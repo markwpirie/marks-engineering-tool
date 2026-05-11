@@ -81,7 +81,7 @@ function wtSetHz(hz) {
       hintEl.textContent = '💡 Typical NEMA: 440 V, 460 V, 480 V';
       hintEl.style.display = 'block';
     } else {
-      hintEl.textContent = '💡 Enter the motor nameplate (50 Hz) voltage';
+      hintEl.textContent = '💡 Typical 60 Hz supply: 440 V, 460 V, 480 V';
       hintEl.style.display = 'block';
     }
   }
