@@ -345,6 +345,71 @@ tr:hover td { background: var(--surface2); }
 .dragging { opacity: 0.5; }
 .drag-over { border-color: var(--accent) !important; background: var(--surface3) !important; }
 
+/* ── BETA badge ── */
+.beta-badge {
+  display: inline-block;
+  font-size: 0.58rem; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--accent4);
+  border: 1px solid var(--accent4); border-radius: 4px;
+  padding: 1px 5px; vertical-align: middle; margin-left: 4px;
+  opacity: 0.85;
+}
+
+/* ── Wonder Tool ── */
+.wt-summary {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.wt-summary-header {
+  font-family: var(--head); font-size: 1rem; font-weight: 700;
+  color: var(--accent); letter-spacing: 1px; margin-bottom: 10px;
+}
+.wt-summary-text {
+  font-size: 0.92rem; line-height: 1.75; color: var(--text);
+}
+.wt-code {
+  font-family: var(--mono); font-size: 0.88rem;
+  color: var(--accent3); background: var(--surface3);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 2px 7px;
+}
+.wt-cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px; margin-bottom: 16px;
+}
+.wt-card {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.wt-card-warn { border-color: var(--danger); }
+.wt-card-label {
+  font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text2); margin-bottom: 4px;
+}
+.wt-card-value {
+  font-family: var(--mono); font-size: 1.1rem; font-weight: 700;
+  color: var(--accent); margin-bottom: 4px;
+}
+.wt-card-code { font-size: 0.88rem; }
+.wt-card-warn .wt-card-value { color: var(--danger); }
+.wt-card-note {
+  font-size: 0.75rem; color: var(--text3); line-height: 1.4;
+}
+.wt-alert {
+  background: var(--surface2); border: 1px solid var(--danger);
+  border-radius: var(--radius); padding: 16px 20px;
+  color: var(--text); font-size: 0.9rem; line-height: 1.6;
+}
+.wt-disclaimer {
+  font-size: 0.78rem; color: var(--text3); line-height: 1.6;
+  border-top: 1px solid var(--border); padding-top: 12px;
+  margin-top: 4px;
+}
+
 /* About modal — styled to match brigelectric.com */
 #aboutModal {
   display: none; position: fixed; inset: 0; z-index: 10000;

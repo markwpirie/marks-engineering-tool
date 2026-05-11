@@ -16,6 +16,7 @@
   <button class="nav-tab"        data-tab="units"    onclick="switchTab('units')">⚖️ Units</button>
   <button class="nav-tab"        data-tab="calcs"    onclick="switchTab('calcs')">🧮 Calcs</button>
   <button class="nav-tab"        data-tab="cable"    onclick="switchTab('cable')">🔌 Cable & Gland</button>
+  <button class="nav-tab"        data-tab="wonder"   onclick="switchTab('wonder')">✨ Wonder Tool <span class="beta-badge">BETA</span></button>
   <button class="nav-tab"        data-tab="npt"      onclick="switchTab('npt')">🔩 NPT</button>
   <button class="nav-tab"        data-tab="prompts"  onclick="switchTab('prompts')">🤖 Prompts</button>
   <button class="nav-tab"        data-tab="recycle"  onclick="switchTab('recycle')">🗑️ Recycle Bin</button>
@@ -517,6 +518,79 @@
 </div>
 
 <!-- ════════════════════════════════════════════
+     TAB 5b — WONDER TOOL
+════════════════════════════════════════════ -->
+<div id="tab-wonder" class="tab-content">
+  <h2>✨ Wonder Tool <span class="beta-badge" style="font-size:0.7rem;vertical-align:middle">BETA</span></h2>
+  <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">Enter a motor size and supply voltage — get the correct cable and gland in one step.</p>
+
+  <div class="card">
+    <div class="card-title">⚙️ Motor & Supply</div>
+    <div class="grid2">
+      <div class="field">
+        <label>Motor Power</label>
+        <div id="wt_kw_wrap"></div>
+      </div>
+      <div class="field">
+        <label>Supply Voltage (Line-to-Line)</label>
+        <div id="wt_volt_wrap"></div>
+      </div>
+      <div class="field">
+        <label>Efficiency Class</label>
+        <select id="wt_ie" onchange="wtCalc()">
+          <option value="IE2">IE2</option>
+          <option value="IE3" selected>IE3 (default)</option>
+          <option value="IE4">IE4</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Grouping / Derating Factor</label>
+        <div id="wt_derating_wrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔌 Cable & Gland Preferences</div>
+    <div class="grid2">
+      <div class="field">
+        <label>Cable Type</label>
+        <select id="wt_cabletype" onchange="wtCalc()">
+          <option value="RFOU" selected>RFOU — Standard Offshore Power</option>
+          <option value="BFOU">BFOU — Fire Resistant</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Cable Cores</label>
+        <select id="wt_cores" onchange="wtCalc()">
+          <option value="4" selected>4-core (3Ph + integrated earth)</option>
+          <option value="3">3-core (3Ph, separate earth)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Gland Type</label>
+        <select id="wt_glandtype" onchange="wtCalc()">
+          <option value="453" selected>501/453 — Coldflow Armoured (SWA/braid)</option>
+          <option value="653">ICG/653 — Barrier (Ex e/d)</option>
+          <option value="421">501/421 — Compression Non-Armoured</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Gland Entry Thread</label>
+        <select id="wt_entry" onchange="wtCalc()">
+          <option value="metric" selected>Metric (M20, M25…)</option>
+          <option value="npt">NPT (¾", 1"…)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="wt_result" style="margin-top:4px">
+    <p style="color:var(--text2);padding:12px 0">Enter motor power and voltage above to get a recommendation.</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
      TAB 6 — NPT REFERENCE
 ════════════════════════════════════════════ -->
 <div id="tab-npt" class="tab-content">
@@ -693,6 +767,7 @@
 <script src="js/tabs/tab-units.js"></script>
 <script src="js/tabs/tab-calcs.js"></script>
 <script src="js/tabs/tab-cable.js"></script>
+<script src="js/tabs/tab-wonder.js"></script>
 <script src="js/tabs/tab-npt.js"></script>
 <script src="js/tabs/tab-prompts.js"></script>
 <script src="js/app.js"></script>

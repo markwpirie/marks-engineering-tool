@@ -170,6 +170,9 @@ window.addEventListener('DOMContentLoaded', () => {
   updateGgenSizes();        // init gland generator dropdowns
   updateCgenUI();           // init cable descriptor generator
 
+  // Tab 5b — Wonder Tool
+  initWonderTool();
+
   // Tab 6 — NPT
   showNPTInfo();
   showAdapterInfo();
