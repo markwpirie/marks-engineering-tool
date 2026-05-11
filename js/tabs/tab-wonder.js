@@ -195,44 +195,48 @@ function wtCalc() {
   const pf  = parseFloat(document.getElementById('wt_pf')?.value  || 0.88);
   const eff = parseFloat(document.getElementById('wt_eff')?.value || 0.92);
 
-  // ── FLA ──
-  let fla50 = (kw * 1000) / (Math.sqrt(3) * volt * pf * eff);
-  let fla, flaNote;
-
+  // ── FLA — for 50/60 mode, uprate kW by correction factor ──
+  let kwEffective = kw;
+  let uprateLine = '';
   if (wtHz === '5060') {
-    const fla60 = fla50 * corrFactor;
-    fla = fla60;
-    flaNote = `Nameplate FLA (50 Hz): ${fla50.toFixed(2)} A → estimated at 60 Hz: ${fla60.toFixed(2)} A (×${corrFactor} correction)`;
+    kwEffective = kw * corrFactor;
+    uprateLine = `At 60 Hz: ${kw} kW × ${corrFactor} = ${kwEffective.toFixed(1)} kW effective`;
+    // Show below the power dropdown
+    const upEl = document.getElementById('wt_uprate_note');
+    if (upEl) { upEl.textContent = uprateLine; upEl.style.display = 'block'; }
   } else {
-    fla = fla50;
-    flaNote = null;
+    const upEl = document.getElementById('wt_uprate_note');
+    if (upEl) upEl.style.display = 'none';
   }
+
+  const fla = (kwEffective * 1000) / (Math.sqrt(3) * volt * pf * eff);
 
   // ── Derating ──
   const combinedDerating = tempFactor * groupFactor;
-  const requiredPerRun   = fla / (combinedDerating * parallel);
+  // requiredPerRun = minimum RATED cable current needed so that derated current ≥ FLA per run
+  const requiredPerRun = fla / (combinedDerating * parallel);
 
-  // ── Cable selection ──
+  // ── Cable selection — filter on RATED current, derating already in requiredPerRun ──
   const powerData = CABLE_DATA[cableType]?.Power;
   if (!powerData) { result.innerHTML = `<p style="color:var(--danger)">Cable data not found.</p>`; return; }
 
   const allEntries = powerData.entries.filter(e => e[0] === cores).sort((a,b) => a[1]-b[1]);
-  const candidates = allEntries.filter(e => e[4] * combinedDerating >= requiredPerRun);
+  const candidates = allEntries.filter(e => e[4] >= requiredPerRun);
 
   if (!candidates.length) {
     result.innerHTML = `<div class="wt-alert">
-      <strong>No cable found.</strong> No ${cores}-core ${cableType} cable covers
-      ${requiredPerRun.toFixed(1)} A per run (FLA ${fla.toFixed(1)} A ÷ ${combinedDerating.toFixed(2)} derating ÷ ${parallel} run${parallel>1?'s':''}).
-      Consider increasing parallel runs or checking the Cable &amp; Gland tab.
+      <strong>No cable found.</strong> No ${cores}-core ${cableType} cable rated ≥ ${requiredPerRun.toFixed(1)} A
+      (FLA ${fla.toFixed(1)} A ÷ ${combinedDerating.toFixed(2)} combined derating${parallel>1?' ÷ '+parallel+' runs':''}).
+      Consider parallel runs or checking the Cable &amp; Gland tab.
     </div>`;
     return;
   }
 
   const cable = candidates[0];
   const [cCores, cCSA, cOD, cWeight, cRating, cInnerOD] = cable;
-  const cDerated    = +(cRating * combinedDerating).toFixed(1);
-  const totalCap    = +(cDerated * parallel).toFixed(1);
-  const headroom    = (((totalCap / fla) - 1) * 100).toFixed(0);
+  const cDerated = +(cRating * combinedDerating).toFixed(1);
+  const totalCap = +(cDerated * parallel).toFixed(1);
+  const headroom = (((showTotal ? totalCap : cDerated) / fla - 1) * 100).toFixed(0);
 
   // ── Cable comparison table slice ──
   const selIdx     = allEntries.findIndex(e => e[1] === cCSA);
@@ -242,63 +246,65 @@ function wtCalc() {
   const glandResult = wtFindGland(glandPref, cOD);
 
   // ── Labels ──
+  const showTotal  = parallel > 1;
   const tempObj    = WT_TEMP.find(t => Math.abs(t.factor - tempFactor) < 0.001);
-  const tempLabel  = tempObj ? `${tempObj.temp}°C` : `custom (×${tempFactor})`;
-  const groupLabel = groupFactor === 1.00 ? '≤6 cables (×1.00)' : '>6 cables (×0.85)';
-  const cableDesc  = `${cCores}-core ${cCSA}mm² ${cableType} 600/1000V (NEK 606)`;
+  const tempLabel  = tempObj ? `${tempObj.temp}°C` : `×${tempFactor}`;
+  const groupLabel = groupFactor === 1.00 ? '≤6 cables' : '>6 cables';
+  const cableDesc  = `${cCores}-core ${cCSA}mm² ${cableType} 600/1000V`;
   const glandCode  = glandResult.match ? glandResult.orderCode : 'No match';
-  const freqLabel  = wtHz===60 ? '60 Hz (NEMA)' : wtHz==='5060' ? '50 Hz motor / 60 Hz supply' : '50 Hz (IEC)';
 
-  // ── Plain-text summary for copy ──
-  const summaryPlain =
+  // ── Summary (stored globally to avoid quote-in-onclick issues) ──
+  window._wtSummary =
 `WONDER TOOL — Motor Cable & Gland Selection
 ============================================
-Motor:      ${modeLabel} | ${volt} V | ${ie} | ${freqLabel}
-FLA:        ${fla.toFixed(2)} A  (PF ${pf.toFixed(2)}, η ${eff.toFixed(2)})${flaNote ? '\n            ' + flaNote : ''}
-Ambient:    ${tempLabel}  (factor ×${tempFactor})
-Grouping:   ${groupLabel}
-Parallel:   ${parallel > 1 ? `${parallel} parallel runs` : 'single run'}
-Derating:   ×${combinedDerating.toFixed(3)} combined
+Motor:    ${modeLabel} | ${volt} V | ${ie}
+${wtHz==='5060'?`Uprated: ${uprateLine}\n`:''}FLA:      ${fla.toFixed(2)} A  (PF ${pf.toFixed(2)}, η ${eff.toFixed(2)})
+Ambient:  ${tempLabel}  (×${tempFactor})
+Grouping: ${groupLabel}  (×${groupFactor})${parallel>1?`\nParallel: ${parallel} runs`:''}
+Derating: ×${combinedDerating.toFixed(3)} combined
 
-Cable:      ${parallel > 1 ? `${parallel} × ` : ''}${cableDesc}
-  Rated:    ${cRating} A per run  |  Derated: ${cDerated} A per run
-  Total:    ${totalCap} A  (${headroom}% headroom over FLA)
-  OD:       ${cOD} mm  |  Weight: ${cWeight} kg/km
+Cable:    ${parallel>1?parallel+' × ':''}${cableDesc}
+  Rated ${cRating} A — Derated ${cDerated} A — OD ${cOD} mm — ${cWeight} kg/km
+  ${headroom}% headroom over FLA${parallel>1?` (total ${totalCap} A)`:''}
 
-Gland:      ${glandCode}  (${wtGlandTypeName(glandPref)})${glandResult.match ? `
-  Size ${glandResult.match.size}  |  Entry: ${useNPT ? glandResult.match.npt : glandResult.match.metric}` : ''}
+Gland:    ${glandCode}  (${wtGlandTypeName(glandPref)})${glandResult.match?`
+  Size ${glandResult.match.size} | Entry: ${useNPT?glandResult.match.npt:glandResult.match.metric}`:''}
 
 Generated by M.E.T. v3.7 — tools.brigelectric.com`;
 
+  window._wtCableDesc = `${parallel>1?parallel+' × ':''}${cableDesc} — OD ${cOD}mm — Rated ${cRating}A — Derated ${cDerated}A`;
+
   // ── Render ──────────────────────────────────────────────────
+  const capLine = showTotal
+    ? `derated ${cDerated} A/run, <strong>${totalCap} A total</strong>`
+    : `derated <strong>${cDerated} A</strong>`;
+
   result.innerHTML = `
     <div class="wt-section-header">⚡ Recommendation</div>
     <div class="wt-summary-card">
       <p class="wt-summary-text">
-        For a <strong>${modeLabel}</strong> motor on a <strong>${volt} V</strong> supply (${ie}, ${freqLabel}),
-        FLA is <strong>${fla.toFixed(1)} A</strong>${flaNote ? ` <span style="color:var(--text2);font-size:0.82rem">(${flaNote})</span>` : ''} (PF ${pf.toFixed(2)}, η ${eff.toFixed(2)}).
-        With ambient <strong>${tempLabel}</strong> (×${tempFactor}) and <strong>${groupLabel}</strong>,
-        combined derating is <strong>×${combinedDerating.toFixed(3)}</strong>.
-        ${parallel>1?`Running <strong>${parallel} parallel cables</strong>, `:''}
-        select <strong>${parallel>1?parallel+' × ':''}${cableDesc}</strong>
-        — rated ${cRating} A, derated ${cDerated} A, giving <strong>${headroom}% headroom</strong>.
+        <strong>${modeLabel}</strong> at <strong>${volt} V</strong>${wtHz==='5060'?` — uprated to <strong>${kwEffective.toFixed(1)} kW</strong> at 60 Hz`:''}
+        → FLA <strong>${fla.toFixed(1)} A</strong> (PF ${pf.toFixed(2)}, η ${eff.toFixed(2)}).
+        Ambient ${tempLabel}, grouping ${groupLabel}: combined derating <strong>×${combinedDerating.toFixed(3)}</strong>.
+        ${parallel>1?`<strong>${parallel} parallel runs</strong> — `:''}
+        Select <strong>${parallel>1?parallel+' × ':''}${cableDesc}</strong>, rated ${cRating} A, ${capLine}, giving <strong>+${headroom}% headroom</strong>.
         ${glandResult.match
-          ? `Use a <strong>${wtGlandTypeName(glandPref)}</strong> gland: <span class="wt-inline-code">${glandCode}</span>.`
-          : `<span style="color:var(--danger)">No ${wtGlandTypeName(glandPref)} gland found for OD ${cOD} mm — check manually.</span>`}
+          ? `Gland: <span class="wt-inline-code">${glandCode}</span>.`
+          : `<span style="color:var(--danger)">No ${wtGlandTypeName(glandPref)} gland found for OD ${cOD} mm.</span>`}
       </p>
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn" style="font-size:0.8rem" onclick="copyText(${JSON.stringify(summaryPlain)})">⎘ Copy Full Summary</button>
+        <button class="btn" style="font-size:0.8rem" onclick="copyText(window._wtSummary)">⎘ Copy Summary</button>
         <button class="btn" style="font-size:0.8rem" onclick="window.print()">🖨 Print</button>
       </div>
     </div>
 
     <div class="wt-chips">
-      <div class="wt-chip"><div class="wt-chip-label">Motor FLA</div><div class="wt-chip-val">${fla.toFixed(2)} A</div></div>
-      <div class="wt-chip"><div class="wt-chip-label">Req. per run</div><div class="wt-chip-val">${requiredPerRun.toFixed(1)} A</div></div>
-      <div class="wt-chip"><div class="wt-chip-label">Temp factor</div><div class="wt-chip-val">×${tempFactor}</div></div>
-      <div class="wt-chip"><div class="wt-chip-label">Group factor</div><div class="wt-chip-val">×${groupFactor}</div></div>
+      <div class="wt-chip"><div class="wt-chip-label">FLA</div><div class="wt-chip-val">${fla.toFixed(2)} A</div></div>
+      <div class="wt-chip"><div class="wt-chip-label">Min rated / run</div><div class="wt-chip-val">${requiredPerRun.toFixed(1)} A</div></div>
+      <div class="wt-chip"><div class="wt-chip-label">Temp ×</div><div class="wt-chip-val">${tempFactor}</div></div>
+      <div class="wt-chip"><div class="wt-chip-label">Group ×</div><div class="wt-chip-val">${groupFactor}</div></div>
       <div class="wt-chip"><div class="wt-chip-label">Combined</div><div class="wt-chip-val">×${combinedDerating.toFixed(3)}</div></div>
-      ${parallel>1?`<div class="wt-chip"><div class="wt-chip-label">Parallel runs</div><div class="wt-chip-val">${parallel}</div></div>`:''}
+      ${showTotal?`<div class="wt-chip"><div class="wt-chip-label">Runs</div><div class="wt-chip-val">${parallel}</div></div>`:''}
       <div class="wt-chip wt-chip-accent"><div class="wt-chip-label">Headroom</div><div class="wt-chip-val">+${headroom}%</div></div>
     </div>
 
@@ -411,7 +417,7 @@ function wtCableCard(cores, csa, od, weight, rating, innerOD, powerData, deratin
     <div class="result-box" style="margin-top:12px">
       <span style="color:var(--text2);font-size:0.75rem">Cable description</span><br>
       <span style="font-family:var(--mono);font-size:0.82rem">${desc}</span>
-      <button class="copy-btn" onclick="copyText(${JSON.stringify(copyDesc)})">⎘</button>
+      <button class="copy-btn" onclick="copyText(window._wtCableDesc)">⎘</button>
     </div>`;
 }
 
