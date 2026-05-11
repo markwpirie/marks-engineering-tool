@@ -140,7 +140,7 @@ function showGlandRec(OD) {
     const metEx=`501/453/UNIV/${g453.size}/${g453.metric.replace('/','-')}`;
     html+=`<div class="gland-card">
       <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:10px">
-        <img src="${'/local/met_files/jpg/501-453.jpg'}" alt="Hawke 501/453/UNIV" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
+        <img src="${'jpg/501-453.jpg'}" alt="Hawke 501/453/UNIV" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
         <div style="flex:1">
           <div class="gland-card-header" style="margin-bottom:6px">Hawke 501/453/UNIV — Coldflow, Armoured/Braided <span class="tag tag-blue">ARMOURED</span></div>
           <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. Passive diaphragm seal for cold flow cables. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.</p>
@@ -173,7 +173,7 @@ function showGlandRec(OD) {
     const metEx=`ICG/653/UNIV/${g653.size}/${g653.metric}`;
     html+=`<div class="gland-card">
       <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:10px">
-        <img src="${'/local/met_files/jpg/icg653.jpg'}" alt="Hawke ICG/653/UNIV" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
+        <img src="${'jpg/icg653.jpg'}" alt="Hawke ICG/653/UNIV" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
         <div style="flex:1">
           <div class="gland-card-header" style="margin-bottom:6px">Hawke ICG/653/UNIV — Barrier Gland <span class="tag tag-orange">BARRIER</span></div>
           <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. Seals around individual cores. Cold flow, hygroscopic fillers, fibre optic cables. ExPress resin standard (30 min cure). QSP available (suffix Q).</p>
@@ -210,7 +210,7 @@ function showGlandRec(OD) {
     const metEx=`501/421/UNIV/${gland421.size}/${gland421.metric}`;
     html+=`<div class="gland-card">
       <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:10px">
-        <img src="${'/local/met_files/jpg/501-421.jpg'}" alt="Hawke 501/421" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
+        <img src="${'jpg/501-421.jpg'}" alt="Hawke 501/421" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
         <div style="flex:1">
           <div class="gland-card-header" style="margin-bottom:6px">Hawke 501/421/UNIV — Compression, Non-Armoured <span class="tag ${sealColor}">${isSeal}</span></div>
           <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. For non-armoured elastomer and plastic insulated cables. Braid cables: braid passes into enclosure and terminates inside.</p>
