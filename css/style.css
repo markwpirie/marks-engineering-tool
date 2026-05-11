@@ -433,6 +433,26 @@ tr:hover td { background: var(--surface2); }
   border-radius: var(--radius); padding: 16px 20px;
   color: var(--text); font-size: 0.88rem; line-height: 1.6;
 }
+/* FLA live display */
+.wt-fla-box {
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  min-height: 20px;
+}
+.wt-fla-box:empty { display: none; }
+.wt-fla-formula {
+  font-family: var(--mono); font-size: 0.8rem;
+  color: var(--text2); margin-bottom: 4px;
+}
+.wt-fla-result {
+  font-family: var(--mono); font-size: 1.2rem;
+  color: var(--accent);
+}
+.wt-fla-result strong { font-size: 1.4rem; }
+
 .wt-disclaimer {
   font-size: 0.76rem; color: var(--text3); line-height: 1.65;
   border-top: 1px solid var(--border); padding-top: 14px;
