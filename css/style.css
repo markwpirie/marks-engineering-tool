@@ -356,58 +356,96 @@ tr:hover td { background: var(--surface2); }
 }
 
 /* ── Wonder Tool ── */
-.wt-summary {
+.wt-section-header {
+  font-family: var(--head); font-size: 0.95rem; font-weight: 700;
+  color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase;
+  padding-bottom: 8px; margin-bottom: 12px;
+  border-bottom: 2px solid var(--border2);
+  display: flex; align-items: center; gap: 8px;
+}
+.wt-summary-card {
   background: var(--surface2);
   border: 1px solid var(--border2);
   border-left: 3px solid var(--accent);
   border-radius: var(--radius);
   padding: 20px 24px;
-  margin-bottom: 16px;
-}
-.wt-summary-header {
-  font-family: var(--head); font-size: 1rem; font-weight: 700;
-  color: var(--accent); letter-spacing: 1px; margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .wt-summary-text {
-  font-size: 0.92rem; line-height: 1.75; color: var(--text);
+  font-size: 0.9rem; line-height: 1.8; color: var(--text);
 }
-.wt-code {
-  font-family: var(--mono); font-size: 0.88rem;
+.wt-inline-code {
+  font-family: var(--mono); font-size: 0.85rem;
   color: var(--accent3); background: var(--surface3);
   border: 1px solid var(--border); border-radius: 4px;
-  padding: 2px 7px;
+  padding: 1px 6px; white-space: nowrap;
 }
-.wt-cards {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px; margin-bottom: 16px;
+
+/* stat chips */
+.wt-chips {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 4px;
 }
-.wt-card {
-  background: var(--surface2); border: 1px solid var(--border2);
-  border-radius: var(--radius); padding: 14px 16px;
+.wt-chip {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 14px; min-width: 110px;
 }
-.wt-card-warn { border-color: var(--danger); }
-.wt-card-label {
-  font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.06em; color: var(--text2); margin-bottom: 4px;
+.wt-chip-accent { border-color: var(--accent); }
+.wt-chip-label {
+  font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--text3); margin-bottom: 3px;
 }
-.wt-card-value {
-  font-family: var(--mono); font-size: 1.1rem; font-weight: 700;
-  color: var(--accent); margin-bottom: 4px;
+.wt-chip-val {
+  font-family: var(--mono); font-size: 0.95rem; font-weight: 700;
+  color: var(--accent);
 }
-.wt-card-code { font-size: 0.88rem; }
-.wt-card-warn .wt-card-value { color: var(--danger); }
-.wt-card-note {
-  font-size: 0.75rem; color: var(--text3); line-height: 1.4;
+
+/* cable comparison table */
+.wt-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.83rem; margin-bottom: 4px;
 }
+.wt-table thead tr {
+  background: var(--surface3);
+}
+.wt-table th {
+  text-align: left; padding: 8px 12px;
+  font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text2);
+  border-bottom: 1px solid var(--border2);
+}
+.wt-table td {
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.wt-row-green  { background: rgba(0,204,102,0.06); }
+.wt-row-orange { background: rgba(255,204,0,0.07); }
+.wt-row-red    { background: rgba(255,68,85,0.06); }
+.wt-row-selected td { font-weight: 600; }
+.wt-row-selected.wt-row-green { background: rgba(0,204,102,0.14); border-left: 3px solid var(--success); }
+.wt-row-selected.wt-row-orange { background: rgba(255,204,0,0.14); border-left: 3px solid var(--accent4); }
+.wt-row-selected { background: rgba(0,212,255,0.08); border-left: 3px solid var(--accent); }
+.wt-sel-arrow { color: var(--accent); margin-right: 4px; }
+
+/* alert / disclaimer */
 .wt-alert {
   background: var(--surface2); border: 1px solid var(--danger);
   border-radius: var(--radius); padding: 16px 20px;
-  color: var(--text); font-size: 0.9rem; line-height: 1.6;
+  color: var(--text); font-size: 0.88rem; line-height: 1.6;
 }
 .wt-disclaimer {
-  font-size: 0.78rem; color: var(--text3); line-height: 1.6;
-  border-top: 1px solid var(--border); padding-top: 12px;
-  margin-top: 4px;
+  font-size: 0.76rem; color: var(--text3); line-height: 1.65;
+  border-top: 1px solid var(--border); padding-top: 14px;
+  margin-top: 20px;
+}
+
+/* print styles */
+@media print {
+  #topnav, .card, button { display: none !important; }
+  #tab-wonder { display: block !important; }
+  .wt-summary-card, .gland-card, .wt-table { break-inside: avoid; }
+  body { background: #fff; color: #000; }
+  .wt-section-header { color: #000; border-color: #000; }
 }
 
 /* About modal — styled to match brigelectric.com */

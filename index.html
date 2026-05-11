@@ -522,7 +522,7 @@
 ════════════════════════════════════════════ -->
 <div id="tab-wonder" class="tab-content">
   <h2>✨ Wonder Tool <span class="beta-badge" style="font-size:0.7rem;vertical-align:middle">BETA</span></h2>
-  <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">Enter a motor size and supply voltage — get the correct cable and gland in one step.</p>
+  <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">Enter a motor and supply details — get the correct cable and gland in one step. Based on IEC 60092-352 / NEK 606 / Hawke International.</p>
 
   <div class="card">
     <div class="card-title">⚙️ Motor & Supply</div>
@@ -544,14 +544,15 @@
         </select>
       </div>
       <div class="field">
-        <label>Grouping / Derating Factor</label>
-        <div id="wt_derating_wrap"></div>
+        <label>Ambient Temperature <span style="color:var(--text2);font-weight:400;font-size:0.8rem">IEC 60092-352</span></label>
+        <div id="wt_temp_wrap"></div>
+        <div style="font-size:0.75rem;color:var(--text3);margin-top:4px">Ct = √((90−T) / 45) — base 45°C, 90°C conductor max</div>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-title">🔌 Cable & Gland Preferences</div>
+    <div class="card-title">🔌 Cable Selection</div>
     <div class="grid2">
       <div class="field">
         <label>Cable Type</label>
@@ -568,6 +569,25 @@
         </select>
       </div>
       <div class="field">
+        <label>Grouping Factor <span style="color:var(--text2);font-weight:400;font-size:0.8rem">IEC 60092-352 Table B.4</span></label>
+        <div id="wt_group_wrap"></div>
+        <div style="font-size:0.75rem;color:var(--text3);margin-top:4px">Per IEC 60092-352 Table B.4: 1.00 for ≤6 cables, 0.85 for &gt;6 cables in a group</div>
+      </div>
+      <div class="field">
+        <label>Parallel Runs</label>
+        <select id="wt_parallel" onchange="wtCalc()">
+          <option value="1" selected>1 — single cable</option>
+          <option value="2">2 — parallel (e.g. 2 × 70mm² instead of 150mm²)</option>
+          <option value="3">3 — parallel runs</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔩 Gland Selection</div>
+    <div class="grid2">
+      <div class="field">
         <label>Gland Type</label>
         <select id="wt_glandtype" onchange="wtCalc()">
           <option value="453" selected>501/453 — Coldflow Armoured (SWA/braid)</option>
@@ -576,7 +596,7 @@
         </select>
       </div>
       <div class="field">
-        <label>Gland Entry Thread</label>
+        <label>Entry Thread</label>
         <select id="wt_entry" onchange="wtCalc()">
           <option value="metric" selected>Metric (M20, M25…)</option>
           <option value="npt">NPT (¾", 1"…)</option>
