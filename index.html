@@ -544,15 +544,23 @@
       <div class="field">
         <label>Supply Voltage (Line-to-Line)</label>
         <div id="wt_volt_wrap"></div>
-        <div id="wt_volt_hint" style="display:none;margin-top:6px;font-size:0.78rem;color:var(--accent2)">💡 Typical 50 Hz: 380 V, 400 V, 415 V, 440 V</div>
+        <div id="wt_volt_hint" style="display:none;margin-top:6px;font-size:0.78rem;color:var(--text2)"></div>
       </div>
       <div class="field">
         <label>Efficiency Class</label>
-        <select id="wt_ie" onchange="wtCalc()">
+        <select id="wt_ie" onchange="wtIEChange()">
           <option value="IE2">IE2</option>
-          <option value="IE3" selected>IE3 (default)</option>
+          <option value="IE3" selected>IE3</option>
           <option value="IE4">IE4</option>
         </select>
+      </div>
+      <div class="field">
+        <label>Power Factor (PF) <span style="font-size:0.75rem;color:var(--text3);font-weight:400">auto-filled, override if known</span></label>
+        <input type="number" id="wt_pf" step="0.01" min="0.5" max="1" oninput="this.dataset.manual='1';wtCalc()">
+      </div>
+      <div class="field">
+        <label>Efficiency (η) <span style="font-size:0.75rem;color:var(--text3);font-weight:400">auto-filled, override if known</span></label>
+        <input type="number" id="wt_eff" step="0.01" min="0.5" max="1" oninput="this.dataset.manual='1';wtCalc()">
       </div>
       <div class="field" id="wt_corr_row" style="display:none">
         <label>60 Hz FLA correction factor</label>
@@ -584,17 +592,20 @@
           <option value="3">3 core</option>
         </select>
       </div>
-      <div class="field">
-        <label>Grouping Factor <span style="color:var(--text2);font-weight:400;font-size:0.8rem">IEC 60092-352 Table B.4</span></label>
-        <div id="wt_group_wrap"></div>
-        <div style="font-size:0.75rem;color:var(--text3);margin-top:4px">Per IEC 60092-352 Table B.4: 1.00 for ≤6 cables, 0.85 for &gt;6 cables in a group</div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Cable Grouping <span style="color:var(--text2);font-weight:400;font-size:0.8rem">IEC 60092-352 Table B.4</span></label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button id="wt_grp_1"   class="btn active" onclick="wtSetGroup(1.00)">1.00 — up to 6 cables</button>
+          <button id="wt_grp_085" class="btn"        onclick="wtSetGroup(0.85)">0.85 — 7 or more cables</button>
+        </div>
+        <div style="font-size:0.75rem;color:var(--text3);margin-top:6px">Per IEC 60092-352 Table B.4 — only two defined values. Applies to cables laid touching in air.</div>
       </div>
       <div class="field">
         <label>Parallel Runs</label>
         <select id="wt_parallel" onchange="wtCalc()">
           <option value="1" selected>1 — single cable</option>
-          <option value="2">2 — parallel (e.g. 2 × 70mm² instead of 150mm²)</option>
-          <option value="3">3 — parallel runs</option>
+          <option value="2">2 parallel</option>
+          <option value="3">3 parallel</option>
         </select>
       </div>
     </div>

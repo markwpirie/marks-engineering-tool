@@ -19,15 +19,10 @@ const WT_TEMP = [
   { temp:65, factor:0.75, label:'65°C' },
 ];
 
-// IEC 60092-352 Table B.4 — grouping factors (cables in air)
-const WT_GROUP = [
-  { val:1.00, label:'1.00 — up to 6 cables grouped' },
-  { val:0.85, label:'0.85 — 7 or more cables grouped' },
-];
-
 // NEMA_HP is defined in tab-calcs.js — reuse it here
 
-let wtHz = 50; // '50' | '60' | '5060'
+let wtHz      = 50;   // 50 | 60 | '5060'
+let wtGroup   = 1.00; // grouping derating factor
 
 // ── Init ────────────────────────────────────────────────────
 function initWonderTool() {
@@ -37,13 +32,7 @@ function initWonderTool() {
       `<option value="${t.factor}"${t.temp===45?' selected':''}>${t.label} (×${t.factor})</option>`
     ).join('') + `</select>`;
 
-  document.getElementById('wt_group_wrap').innerHTML =
-    `<select id="wt_group" onchange="wtCalc()">` +
-    WT_GROUP.map(g =>
-      `<option value="${g.val}"${g.val===1.00?' selected':''}>${g.label}</option>`
-    ).join('') + `</select>`;
-
-  wtSetHz(50);  // renders power input and voltage, then calls wtCalc
+  wtSetHz(50); // renders power + voltage selects, then calls wtCalc
 }
 
 // ── Frequency mode ───────────────────────────────────────────
@@ -82,9 +71,20 @@ function wtSetHz(hz) {
   const corrRow = document.getElementById('wt_corr_row');
   if (corrRow) corrRow.style.display = hz === '5060' ? 'block' : 'none';
 
-  // Show voltage hint for 50→60Hz mode
+  // Voltage hint — varies by frequency mode
   const hintEl = document.getElementById('wt_volt_hint');
-  if (hintEl) hintEl.style.display = hz === '5060' ? 'block' : 'none';
+  if (hintEl) {
+    if (hz === 50) {
+      hintEl.textContent = '💡 Typical IEC: 380 V, 400 V, 415 V, 440 V';
+      hintEl.style.display = 'block';
+    } else if (hz === 60) {
+      hintEl.textContent = '💡 Typical NEMA: 440 V, 460 V, 480 V';
+      hintEl.style.display = 'block';
+    } else {
+      hintEl.textContent = '💡 Enter the motor nameplate (50 Hz) voltage';
+      hintEl.style.display = 'block';
+    }
+  }
 
   // Rebuild voltage if not already rendered
   if (!document.getElementById('wt_volt')) {
@@ -98,10 +98,46 @@ function wtSetHz(hz) {
   wtCalc();
 }
 
+function wtFillPfEff(kw) {
+  const ie = document.getElementById('wt_ie')?.value || 'IE3';
+  if (!isNaN(kw) && kw > 0) {
+    const { eff, pf } = flaLookup(kw, ie);
+    const pfEl  = document.getElementById('wt_pf');
+    const effEl = document.getElementById('wt_eff');
+    if (pfEl  && pfEl.dataset.manual  !== '1') pfEl.value  = pf.toFixed(2);
+    if (effEl && effEl.dataset.manual !== '1') effEl.value = eff.toFixed(2);
+  }
+}
+
 function wtKwChange() {
-  const v = parseFloat(document.getElementById('wt_kw')?.value);
-  const m = document.getElementById('wt_kw_manual');
+  const sel = document.getElementById('wt_kw');
+  const m   = document.getElementById('wt_kw_manual');
+  const v   = parseFloat(sel?.value);
   if (m) m.style.display = v === 0 ? 'block' : 'none';
+  const kw = v === 0 ? parseFloat(m?.value) : v;
+  wtFillPfEff(kw);
+  wtCalc();
+}
+
+function wtIEChange() {
+  // Re-fill PF/eff from new IE class, then recalc
+  const kwSel = parseFloat(document.getElementById('wt_kw')?.value);
+  const kw = kwSel === 0
+    ? parseFloat(document.getElementById('wt_kw_manual')?.value)
+    : kwSel;
+  // Clear manual override flags so lookup re-fills
+  const pfEl  = document.getElementById('wt_pf');
+  const effEl = document.getElementById('wt_eff');
+  if (pfEl)  pfEl.dataset.manual  = '0';
+  if (effEl) effEl.dataset.manual = '0';
+  wtFillPfEff(kw);
+  wtCalc();
+}
+
+function wtSetGroup(val) {
+  wtGroup = val;
+  document.getElementById('wt_grp_1')  ?.classList.toggle('active', val === 1.00);
+  document.getElementById('wt_grp_085')?.classList.toggle('active', val === 0.85);
   wtCalc();
 }
 
@@ -146,7 +182,7 @@ function wtCalc() {
 
   const ie          = document.getElementById('wt_ie')?.value        || 'IE3';
   const tempFactor  = parseFloat(document.getElementById('wt_temp')?.value   || 1.00);
-  const groupFactor = parseFloat(document.getElementById('wt_group')?.value  || 1.00);
+  const groupFactor = wtGroup;
   const cableType   = document.getElementById('wt_cabletype')?.value  || 'RFOU';
   const cores       = parseInt(document.getElementById('wt_cores')?.value    || 4);
   const parallel    = parseInt(document.getElementById('wt_parallel')?.value || 1);
@@ -154,8 +190,12 @@ function wtCalc() {
   const useNPT      = document.getElementById('wt_entry')?.value === 'npt';
   const corrFactor  = parseFloat(document.getElementById('wt_corr_factor')?.value || 1.15);
 
+  // ── PF / eff — fill fields if empty, then read ──
+  wtFillPfEff(kw);
+  const pf  = parseFloat(document.getElementById('wt_pf')?.value  || 0.88);
+  const eff = parseFloat(document.getElementById('wt_eff')?.value || 0.92);
+
   // ── FLA ──
-  const { eff, pf } = flaLookup(kw, ie);
   let fla50 = (kw * 1000) / (Math.sqrt(3) * volt * pf * eff);
   let fla, flaNote;
 
@@ -302,19 +342,19 @@ function wtFindGland(glandPref, OD) {
 }
 
 function wtGlandTypeName(pref) {
-  return pref==='453' ? 'Coldflow Armoured (501/453/UNIV)'
-       : pref==='653' ? 'Barrier (ICG/653/UNIV)'
-       : 'Compression Non-Armoured (501/421/UNIV)';
+  return pref==='453' ? 'Hawke Braided Gland (501/453/UNIV)'
+       : pref==='653' ? 'Hawke Barrier Gland (ICG/653/UNIV)'
+       : 'Hawke Compression Gland (501/421/UNIV)';
 }
 
 // ── Cable comparison table ────────────────────────────────────
 function wtCableTable(entries, selCSA, fla, derating, parallel) {
-  const flaTotal = fla; // total FLA (all parallel runs)
+  const showTotal = parallel > 1;
   const rows = entries.map(e => {
     const [cores, csa, od, , rated] = e;
     const derated  = +(rated * derating).toFixed(1);
     const totalCap = +(derated * parallel).toFixed(1);
-    const ratio    = totalCap / flaTotal;
+    const ratio    = (showTotal ? totalCap : derated) / fla;
     const isSel    = csa === selCSA;
     let statusTag, rowClass;
     if (ratio >= 1.0) {
@@ -328,13 +368,11 @@ function wtCableTable(entries, selCSA, fla, derating, parallel) {
       rowClass  = isSel ? 'wt-row-selected' : 'wt-row-red';
     }
     const marker = isSel ? '<span class="wt-sel-arrow">▶</span> ' : '';
-    const parallelNote = parallel > 1
-      ? ` <span style="color:var(--text3);font-size:0.72rem">(${parallel}×${derated})</span>` : '';
     return `<tr class="${rowClass}">
       <td style="font-family:var(--mono);font-weight:${isSel?700:400}">${marker}${cores}C × ${csa} mm²</td>
       <td style="font-family:var(--mono)">${rated} A</td>
       <td style="font-family:var(--mono)">${derated} A</td>
-      <td style="font-family:var(--mono)">${totalCap} A${parallelNote}</td>
+      ${showTotal ? `<td style="font-family:var(--mono)">${totalCap} A</td>` : ''}
       <td>${od} mm</td>
       <td>${statusTag}</td>
     </tr>`;
@@ -343,7 +381,8 @@ function wtCableTable(entries, selCSA, fla, derating, parallel) {
   return `<table class="wt-table">
     <thead><tr>
       <th>Cable</th><th>Rated (A)</th><th>Derated / run</th>
-      <th>Total capacity</th><th>OD</th><th>vs ${flaTotal.toFixed(1)} A FLA</th>
+      ${showTotal ? `<th>Total (${parallel} runs)</th>` : ''}
+      <th>OD</th><th>vs ${fla.toFixed(1)} A FLA</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
@@ -360,7 +399,7 @@ function wtCableCard(cores, csa, od, weight, rating, innerOD, powerData, deratin
       <div class="gland-info-item"><div class="key">Cable Type</div><div class="val" style="font-size:0.8rem">${powerData.label}</div></div>
       <div class="gland-info-item"><div class="key">Configuration</div><div class="val">${cores}-core ${csa} mm²${parallel>1?` × ${parallel} runs`:''}</div></div>
       <div class="gland-info-item"><div class="key">Overall OD</div><div class="val" style="color:var(--accent);font-size:1.1rem">${od} mm</div></div>
-      ${innerOD ? `<div class="gland-info-item"><div class="key">Inner Sheath OD</div><div class="val" style="color:var(--accent4)">${innerOD} mm</div></div>` : ''}
+      ${innerOD ? `<div class="gland-info-item"><div class="key">Inner Sheath OD <span style="font-size:0.7rem;color:var(--text3)">(for gland inner range)</span></div><div class="val">${innerOD} mm</div></div>` : ''}
       <div class="gland-info-item"><div class="key">Rated @45°C</div><div class="val">${rating} A</div></div>
       <div class="gland-info-item"><div class="key">Derated per run</div><div class="val" style="color:var(--accent)">${derated} A</div></div>
       ${parallel>1?`<div class="gland-info-item"><div class="key">Total (${parallel} runs)</div><div class="val" style="color:var(--success)">${totalCap} A</div></div>`:''}
@@ -389,8 +428,8 @@ function wtGlandCard(glandPref, OD, useNPT) {
       <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:10px">
         <img src="jpg/501-453.jpg" alt="Hawke 501/453/UNIV" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
         <div style="flex:1">
-          <div class="gland-card-header" style="margin-bottom:6px">Hawke 501/453/UNIV — Coldflow, Armoured/Braided <span class="tag tag-blue">ARMOURED</span></div>
-          <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. Passive diaphragm seal for cold flow cables. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.</p>
+          <div class="gland-card-header" style="margin-bottom:6px">Hawke 501/453/UNIV — Armoured / Braided <span class="tag tag-blue">ARMOURED</span></div>
+          <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. Passive diaphragm seal. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.</p>
         </div>
       </div>
       <div class="gland-info-grid">
