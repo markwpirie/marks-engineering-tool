@@ -25,8 +25,7 @@ const WT_GROUP = [
   { val:0.85, label:'0.85 — 7 or more cables grouped' },
 ];
 
-// NEMA HP ratings (60 Hz)
-const NEMA_HP = [0.5,0.75,1,1.5,2,3,5,7.5,10,15,20,25,30,40,50,60,75,100,125,150,200,250,300,350,400,450,500];
+// NEMA_HP is defined in tab-calcs.js — reuse it here
 
 let wtHz = 50; // '50' | '60' | '5060'
 
