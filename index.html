@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M.E.T. v3.7 — Mark's Engineering Tool</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav id="topnav">
+  <div class="brand" onclick="showAbout()" title="About M.E.T.">⚡ M.E.T.</div>
+  <button class="nav-tab active" data-tab="symbols"  onclick="switchTab('symbols')">🔧 Symbols</button>
+  <button class="nav-tab"        data-tab="atex"     onclick="switchTab('atex')">🔥 ATEX</button>
+  <button class="nav-tab"        data-tab="units"    onclick="switchTab('units')">⚖️ Units</button>
+  <button class="nav-tab"        data-tab="calcs"    onclick="switchTab('calcs')">🧮 Calcs</button>
+  <button class="nav-tab"        data-tab="cable"    onclick="switchTab('cable')">🔌 Cable & Gland</button>
+  <button class="nav-tab"        data-tab="npt"      onclick="switchTab('npt')">🔩 NPT</button>
+  <button class="nav-tab"        data-tab="prompts"  onclick="switchTab('prompts')">🤖 Prompts</button>
+  <button class="nav-tab"        data-tab="recycle"  onclick="switchTab('recycle')">🗑️ Recycle Bin</button>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;padding-right:4px;flex-shrink:0">
+    <button class="btn" onclick="exportData()" style="font-size:0.72rem;padding:5px 10px" title="Export data to JSON">⬇️ Export</button>
+    <button class="btn" onclick="importData()" style="font-size:0.72rem;padding:5px 10px" title="Import data from JSON">⬆️ Import</button>
+    <button class="btn danger" onclick="resetAllState()" style="font-size:0.72rem;padding:5px 10px" title="Reset all calculator inputs to defaults">↺ Reset</button>
+    <button id="themeToggle" class="btn" onclick="toggleTheme()" style="font-size:0.72rem;padding:5px 10px" title="Toggle dark/light mode">🌙</button>
+  </div>
+</nav>
+
+<div id="toast"></div>
+
+<!-- ════════════════════════════════════════════
+     ABOUT MODAL
+════════════════════════════════════════════ -->
+<div id="aboutModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAbout()">✕</button>
+    <div style="font-family:var(--head);font-size:2rem;font-weight:700;color:var(--accent);letter-spacing:2px;margin-bottom:6px">⚡ M.E.T.</div>
+    <div style="font-family:var(--head);font-size:1.1rem;color:var(--text2);margin-bottom:20px">Mark's Engineering Tool</div>
+    <p style="font-size:0.9rem;line-height:1.7;color:var(--text)">Written by <strong>Mark</strong> and <strong>Claude</strong>. A labour of love, two cups of coffee, one very long offshore rotation, and a concerning number of late-night conversations with an AI about cable gland order codes.</p>
+    <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+    <div style="font-size:0.82rem;color:var(--text2);line-height:1.8">
+      <div>⚠️ <strong style="color:var(--warn)">Disclaimer:</strong> This tool is for reference only. Always verify against official datasheets, standards, and project specifications before ordering, installing, or certifying anything.</div>
+      <div style="margin-top:8px">🔥 <strong style="color:var(--accent2)">ATEX Disclaimer:</strong> Ex zone classifications, protection concepts, and EPL assignments must be verified by a competent person per IEC 60079-14 / NORSOK E-001. This tool does not constitute engineering sign-off.</div>
+      <div style="margin-top:8px">🔩 <strong style="color:var(--accent4)">Gland Disclaimer:</strong> Gland selections are indicative. Always confirm with Hawke datasheets. NPT adapters in hazardous areas require certified adapters and may require an MOC.</div>
+      <div style="margin-top:8px">💡 Data sources: Hawke International datasheets, Cable Solutions NEK606, IEC 60079 series, ANSI/ASME B1.20.1.</div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+    <div style="font-size:0.78rem;color:var(--text3);text-align:center">v3.7 · Offline-capable · No data leaves your browser</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB 1 — SYMBOLS
+════════════════════════════════════════════ -->
+<div id="tab-symbols" class="tab-content active">
+  <h2>🔧 Symbol Tool</h2>
+  <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">Click any symbol to copy. Search filters all sections. Drag ⠿ handles to reorder sections — order is saved automatically.</p>
+
+  <div class="search-bar">
+    <input type="text" id="symSearch" placeholder="Search symbols, snippets..." oninput="filterSymbols()">
+  </div>
+
+  <div id="sym-sections"></div>
+
+  <!-- Snippet Store -->
+  <div class="card" id="clipboardSection">
+    <div class="card-title">📋 My Clipboard — Snippet Store</div>
+    <div class="flex-row" style="margin-bottom:12px">
+      <div class="field" style="flex:1"><label>Title</label><input type="text" id="snipTitle" placeholder="e.g. Site address"></div>
+      <div class="field" style="flex:2"><label>Content</label><textarea id="snipBody" rows="2" placeholder="Paste text, email, address..."></textarea></div>
+      <button class="btn primary" onclick="addSnippet()">+ Add</button>
+    </div>
+    <div id="snippetList"></div>
+  </div>
+
+  <!-- Custom Sections -->
+  <div class="card">
+    <div class="card-title">⚙️ Custom Sections</div>
+    <div class="flex-row" style="margin-bottom:12px;align-items:flex-end;flex-wrap:wrap;gap:8px">
+      <div class="field"><label>Section Name</label><input type="text" id="customSecName" placeholder="My section name"></div>
+      <div class="field" style="flex:0 0 auto">
+        <label>Emoji</label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input type="text" id="customSecEmoji" placeholder="📌" style="width:60px">
+          <button class="btn" style="padding:6px 10px;font-size:0.9rem" onclick="openEmojiModal('new')" title="Pick emoji">😊</button>
+        </div>
+      </div>
+      <button class="btn primary" onclick="addCustomSection()">+ Section</button>
+    </div>
+    <p style="font-size:0.78rem;color:var(--text2)">Add items in the format <code>text</code> or <code>text | tooltip label</code>. Click ✕ on a section header to send it to the Recycle Bin tab.</p>
+  </div>
+
+  <!-- Document Number Generator -->
+  <div class="card">
+    <div class="card-title">📄 Document Number Generator — IP-QF-023 (MDR)</div>
+
+    <div class="field">
+      <label>Step 1 — Select category (letter)</label>
+      <div class="flex-wrap" id="docCatButtons" style="gap:6px;margin-top:4px"></div>
+    </div>
+
+    <div class="field" style="margin-top:8px">
+      <label>Step 2 — Select document code</label>
+      <select id="docCodeSelect" onchange="onDocCodeSelect()" style="display:none;margin-top:4px">
+        <option value="">— select code —</option>
+      </select>
+    </div>
+
+    <div class="grid2" style="margin-top:12px">
+      <div>
+        <div class="field">
+          <label>Project Prefix (e.g. WCE-ES-146)</label>
+          <input type="text" id="docProject" placeholder="WCE-ES-146" oninput="genDocNumber()">
+        </div>
+        <div class="field">
+          <label>Description (auto-filled)</label>
+          <input type="text" id="docDesc" placeholder="Select category and code above..." oninput="genDocNumber()">
+        </div>
+        <div class="flex-row">
+          <div class="field" style="flex:1">
+            <label>Sequence No.</label>
+            <input type="number" id="docSeq" value="1" min="1" max="9999" oninput="genDocNumber()">
+          </div>
+          <div class="field" style="flex:1">
+            <label>Sheet No.</label>
+            <input type="number" id="docSheet" value="1" min="1" max="99" oninput="genDocNumber()">
+          </div>
+          <div class="field" style="flex:1">
+            <label>Revision</label>
+            <input type="text" id="docRev" value="01" placeholder="01" oninput="genDocNumber()">
+          </div>
+        </div>
+        <div id="docNumOutput" style="margin-top:4px"></div>
+      </div>
+      <div style="font-size:0.82rem;color:var(--text2);line-height:1.9;padding-top:4px">
+        <strong style="color:var(--text)">Format:</strong><br>
+        <code style="font-family:var(--mono);font-size:0.8rem;color:var(--accent)">[PROJECT]-[CODE]-[NNNN]-[SS]-[RR]</code><br><br>
+        <strong style="color:var(--text)">Example:</strong><br>
+        <code style="font-family:var(--mono);font-size:0.8rem;color:var(--accent3)">WCE-ES-146-C19-0001-01-01 (Block Diagram)</code><br><br>
+        <div style="background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:4px">
+          <strong style="color:var(--text2)">NNNN</strong> = sequence (0001) &nbsp;
+          <strong style="color:var(--text2)">SS</strong> = sheet (01) &nbsp;
+          <strong style="color:var(--text2)">RR</strong> = revision (01)<br>
+          <span style="font-size:0.75rem;color:var(--text3)">Source: IP-QF-023 Rev 05</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB 2 — ATEX
+════════════════════════════════════════════ -->
+<div id="tab-atex" class="tab-content">
+  <h2>🔥 ATEX / IEC 60079 Tool</h2>
+
+  <div class="grid2">
+    <!-- DECODER -->
+    <div class="card">
+      <div class="card-title">🔍 Decoder — Paste ATEX Marking</div>
+      <div class="flex-row">
+        <input type="text" id="atexInput" placeholder="e.g. II 2 G Ex d e IIC T4 Gb" style="flex:1" onkeydown="if(event.key==='Enter')decodeATEX()">
+        <button class="btn primary" onclick="decodeATEX()">Decode</button>
+      </div>
+      <!-- Quick-load buttons — full marking strings -->
+      <div class="flex-wrap" style="margin-top:10px;gap:6px">
+        <button class="btn" onclick="document.getElementById('atexInput').value='II 2 G Ex d IIC T4 Gb';decodeATEX()">II 2 G Ex d IIC T4 Gb</button>
+        <button class="btn" onclick="document.getElementById('atexInput').value='II 2 G Ex e IIC T5 Gb';decodeATEX()">II 2 G Ex e IIC T5 Gb</button>
+        <button class="btn" onclick="document.getElementById('atexInput').value='II 2 GD Ex de IIC T4 Gb';decodeATEX()">II 2 GD Ex de IIC T4 Gb</button>
+        <button class="btn" onclick="document.getElementById('atexInput').value='II 1 G Ex ia IIC T6 Ga';decodeATEX()">II 1 G Ex ia IIC T6 Ga</button>
+        <button class="btn" onclick="document.getElementById('atexInput').value='II 2 G Ex ib IIB T4 Gb';decodeATEX()">II 2 G Ex ib IIB T4 Gb</button>
+        <button class="btn" onclick="document.getElementById('atexInput').value='II 3 G Ex nA IIC T3 Gc';decodeATEX()">II 3 G Ex nA IIC T3 Gc</button>
+        <button class="btn" onclick="document.getElementById('atexInput').value='II 2 G Ex e mb IIC T4 Gb';decodeATEX()">II 2 G Ex e mb IIC T4 Gb</button>
+        <button class="btn" onclick="document.getElementById('atexInput').value='II 2 G Ex d e mb IIC T4 Gb';decodeATEX()">II 2 G Ex d e mb IIC T4 Gb</button>
+        <button class="btn" onclick="document.getElementById('atexInput').value='II 2 GD Ex d e mb t IIC T4 Gb';decodeATEX()">II 2 GD Ex d e mb t IIC T4 Gb</button>
+        <button class="btn" onclick="document.getElementById('atexInput').value='II 2 G Ex px IIC T4 Gb';decodeATEX()">II 2 G Ex px IIC T4 Gb</button>
+        <button class="btn" onclick="document.getElementById('atexInput').value='II 2 G Ex h IIC T4 Gb';decodeATEX()">II 2 G Ex h IIC T4 Gb</button>
+        <button class="btn" onclick="document.getElementById('atexInput').value='II 2 D Ex t IIIC T135 Db';decodeATEX()">II 2 D Ex t IIIC T135 Db</button>
+      </div>
+      <div id="atexDecodeResult" style="margin-top:16px"></div>
+    </div>
+
+    <!-- ENCODER -->
+    <div class="card">
+      <div class="card-title">✏️ Encoder — Build ATEX Marking</div>
+      <div class="field"><label>Equipment Group</label><div class="flex-wrap" id="enc-group"></div></div>
+      <div class="field"><label>Category</label><div class="flex-wrap" id="enc-cat"></div></div>
+      <div class="field"><label>Environment (multi-select)</label><div class="flex-wrap" id="enc-env"></div></div>
+      <div class="field"><label>Protection Concept(s) — up to 4</label><div class="flex-wrap" id="enc-prot"></div></div>
+      <div class="field"><label>Gas / Dust Group</label><div class="flex-wrap" id="enc-gasgrp"></div></div>
+      <div class="field"><label>Temperature Class</label><div class="flex-wrap" id="enc-temp"></div></div>
+      <div class="field"><label>Equipment Protection Level (EPL)</label><div class="flex-wrap" id="enc-epl"></div></div>
+      <div id="encodeResult" style="margin-top:12px"></div>
+      <div id="encodeWarnings" style="margin-top:6px"></div>
+      <button class="btn primary" style="margin-top:12px;width:100%" onclick="buildATEX()">Build Marking</button>
+    </div>
+  </div>
+
+  <!-- Wallcharts -->
+  <div class="card">
+    <div class="card-title">📋 Reference Wallcharts</div>
+    <div class="flex-wrap" style="gap:10px">
+      <button class="btn primary" onclick="window.open('/local/met_files/pdfs/sira-wallchart.pdf','_blank')">📄 SIRA Wallchart</button>
+      <button class="btn primary" onclick="window.open('/local/met_files/pdfs/exveritas_wallchart.pdf','_blank')">📄 Exveritas Wallchart</button>
+    </div>
+    <p style="font-size:0.78rem;color:var(--text2);margin-top:8px">Place PDF files at <code>/config/www/met_files/pdfs/sira-wallchart.pdf</code> and <code>/config/www/met_files/pdfs/exveritas_wallchart.pdf</code></p>
+  </div>
+
+  <!-- IP Rating Lookup -->
+  <div class="card">
+    <div class="card-title">🌊 IP Rating Lookup — IEC 60529</div>
+    <div class="flex-wrap" style="margin-bottom:14px">
+      <button class="btn" onclick="setIPAtex(6,6)">IP66</button>
+      <button class="btn" onclick="setIPAtex(6,7)">IP67</button>
+      <button class="btn" onclick="setIPAtex(6,8)">IP68</button>
+      <button class="btn" onclick="setIPAtex(6,9)">IP69</button>
+      <button class="btn" onclick="setIPAtex(5,4)">IP54</button>
+      <button class="btn" onclick="setIPAtex(5,5)">IP55</button>
+      <button class="btn" onclick="setIPAtex(4,4)">IP44</button>
+      <button class="btn" onclick="setIPAtex(2,0)">IP20</button>
+    </div>
+    <div class="flex-row">
+      <div class="field"><label>First Digit (0–6)</label>
+        <select id="atex_ip1" onchange="calcIPAtex()">
+          <option>0</option><option>1</option><option>2</option><option>3</option>
+          <option>4</option><option value="5" selected>5</option><option>6</option>
+        </select>
+      </div>
+      <div class="field"><label>Second Digit (0–9)</label>
+        <select id="atex_ip2" onchange="calcIPAtex()">
+          <option>0</option><option>1</option><option>2</option><option>3</option>
+          <option value="4" selected>4</option><option>5</option><option>6</option>
+          <option>7</option><option>8</option><option>9</option>
+        </select>
+      </div>
+    </div>
+    <div id="atexIPResult" style="margin-top:12px"></div>
+    <div style="margin-top:8px;font-size:0.78rem;color:var(--text2)">📐 IEC 60529 | ATEX Zone 1/2 typically requires IP54 minimum</div>
+  </div>
+
+  <!-- Zone/EPL Matrix -->
+  <div class="card">
+    <div class="card-title">🗺️ Zone / EPL / Category Compatibility Matrix</div>
+    <div id="zoneMatrix"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB 3 — UNITS<!-- ════════════════════════════════════════════
+     TAB 3 — UNITS
+════════════════════════════════════════════ -->
+<div id="tab-units" class="tab-content">
+  <h2>⚖️ Unit Converter</h2>
+
+  <div class="card">
+    <!-- Category buttons -->
+    <div class="field" style="margin-bottom:4px"><label>Category</label></div>
+    <div class="flex-wrap" id="unitCatBtns" style="margin-bottom:14px;gap:6px"></div>
+
+    <!-- From/To button rows (populated by JS) -->
+    <div class="grid2" style="gap:16px;margin-bottom:12px">
+      <div>
+        <div class="field" style="margin-bottom:4px"><label>From</label></div>
+        <div class="flex-wrap" id="unitFromBtns" style="gap:5px"></div>
+      </div>
+      <div>
+        <div class="field" style="margin-bottom:4px"><label>To</label></div>
+        <div class="flex-wrap" id="unitToBtns" style="gap:5px"></div>
+      </div>
+    </div>
+
+    <div class="flex-row" style="align-items:flex-end;gap:8px;margin-bottom:12px">
+      <div class="field" style="flex:1"><label>Value</label><input type="number" id="unitVal" value="1" oninput="doConvert()"></div>
+      <button class="btn" onclick="swapUnits()" title="Swap From ↔ To" style="padding:8px 14px;font-size:1.1rem;margin-bottom:6px">⇄</button>
+    </div>
+    <div id="unitResult" class="result-box" style="font-size:1.1rem">—</div>
+    <div id="unitAllResults" style="margin-top:16px"></div>
+    <div id="awgTable" style="display:none;margin-top:16px"></div>
+  </div>
+
+  <!-- SI Prefix Converter -->
+  <div class="card">
+    <div class="card-title">🔬 SI Prefix Converter</div>
+    <div class="flex-row" style="align-items:flex-end;gap:12px">
+      <div class="field" style="flex:1"><label>Value</label><input type="number" id="si_val" value="1" oninput="calcSI()"></div>
+    </div>
+    <!-- Prefix selector buttons (pico to tera) -->
+    <div class="flex-wrap" id="siPrefixBtns" style="margin-top:10px;gap:6px"></div>
+    <div id="siResult" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB 4 — CALCULATORS<!-- ════════════════════════════════════════════
+     TAB 4 — CALCULATORS
+════════════════════════════════════════════ -->
+<div id="tab-calcs" class="tab-content">
+  <h2>🧮 Engineering Calculators</h2>
+  <!-- Category nav -->
+  <div id="calcCatNav" class="flex-wrap" style="margin-bottom:16px"></div>
+  <!-- Two-column layout -->
+  <div style="display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start">
+    <div id="calcList" class="calc-list-sidebar"></div>
+    <div class="card">
+      <p id="calcDesc" class="calc-desc-text"></p>
+      <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
+      <div id="calcPanel"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB 5 — CABLE & GLAND
+════════════════════════════════════════════ -->
+<div id="tab-cable" class="tab-content">
+  <h2>🔌 Cable & Gland Reference</h2>
+
+  <!-- Cable Selector -->
+  <div class="card">
+    <div class="card-title">📋 Cable Selector — NEK 606 (Cable Solutions)</div>
+    <div class="flex-row" style="margin-bottom:16px">
+      <div class="field">
+        <label>Fire Rating</label>
+        <select id="c_rating" onchange="updateCableApp()">
+          <option value="RFOU">RFOU (Flame Retardant)</option>
+          <option value="BFOU">BFOU (Fire Resistant)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Application</label>
+        <select id="c_app" onchange="updateCableCores()">
+          <option value="Power">Power & Control (P)</option>
+          <option value="InstrI">Instrument Individually Screened (I)</option>
+          <option value="InstrC">Instrument Collectively Screened (C)</option>
+          <option value="Earth">Earth (P15/108)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Cores / Pairs / Triples</label>
+        <select id="c_cores" onchange="updateCableCSA()"></select>
+      </div>
+      <div class="field">
+        <label>CSA (mm²)</label>
+        <select id="c_csa" onchange="showCableResult()"></select>
+      </div>
+    </div>
+    <div id="cableResult"></div>
+
+    <!-- Temp correction -->
+    <div id="tempCorrSection" style="display:none;margin-top:16px">
+      <div class="card-title" style="margin-top:0">🌡️ Ambient Temperature Correction (Power Cables)</div>
+      <div class="field">
+        <label>Ambient Temperature</label>
+        <select id="ambTemp" onchange="applyTempCorr()">
+          <option value="1.10">35°C (×1.10)</option>
+          <option value="1.05">40°C (×1.05)</option>
+          <option value="1.00" selected>45°C (×1.00) — base</option>
+          <option value="0.94">50°C (×0.94)</option>
+          <option value="0.88">55°C (×0.88)</option>
+          <option value="0.82">60°C (×0.82)</option>
+          <option value="0.74">65°C (×0.74)</option>
+          <option value="0.67">70°C (×0.67)</option>
+          <option value="0.58">75°C (×0.58)</option>
+          <option value="0.47">80°C (×0.47)</option>
+        </select>
+      </div>
+      <div id="tempCorrResult"></div>
+    </div>
+  </div>
+
+  <!-- Gland Recommender -->
+  <div class="card">
+    <div class="card-title">🔩 Gland Recommender — Hawke ATEX/IECEx</div>
+    <div class="gland-tabs">
+      <button class="btn active" id="gland-metric-btn" onclick="switchGlandTab('metric')">⚙️ Metric Entry</button>
+      <button class="btn" id="gland-npt-btn" onclick="switchGlandTab('npt')">🔩 NPT Entry</button>
+    </div>
+    <div id="glandResults"></div>
+  </div>
+
+  <!-- AWG/CSA table -->
+  <div class="card">
+    <div class="card-title">📊 AWG ↔ CSA Conversion Table</div>
+    <div id="awgCsaTable"></div>
+    <p style="font-size:0.75rem;color:var(--text2);margin-top:10px">AWG to mm² is approximate. IEC/BS cables are rated by nominal CSA; the nearest IEC size may differ slightly from exact AWG area.</p>
+  </div>
+
+  <!-- Stubs -->
+  <div class="grid2">
+    <div class="card" style="opacity:0.5;pointer-events:none">
+      <div class="card-title">📦 Cable Tray Fill Calculator <span class="tag tag-yellow">COMING SOON</span></div>
+      <p style="font-size:0.82rem;color:var(--text2)">IEC 61537 / NEC fill calculations with SVG bundle sketch.</p>
+    </div>
+    <div class="card" style="opacity:0.5;pointer-events:none">
+      <div class="card-title">⚖️ Cable Weight / Pulling Tension <span class="tag tag-yellow">COMING SOON</span></div>
+      <p style="font-size:0.82rem;color:var(--text2)">Multi-cable weight, pulling tension, jam ratio calculations.</p>
+    </div>
+  </div>
+
+  <!-- ── Cable Description Generator ── -->
+  <div class="card">
+    <div class="card-title">📋 Cable Description Generator</div>
+    <div class="flex-row" style="flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:flex-end">
+
+      <!-- Count -->
+      <div class="field" style="flex:0 0 auto" id="cgen_elements_box">
+        <label id="cgen_unit_label">Count</label>
+        <select id="cgen_elements" onchange="genCableDesc()"></select>
+      </div>
+
+      <!-- Per element (pairs/triples) -->
+      <div class="field" style="flex:0 0 auto" id="cgen_perelement_box">
+        <label>Element Type</label>
+        <select id="cgen_perelement" onchange="genCableDesc()"></select>
+      </div>
+
+      <!-- CSA -->
+      <div class="field" style="flex:0 0 auto">
+        <label>CSA</label>
+        <select id="cgen_csa" onchange="genCableDesc()">
+          <option value="0.5">0.5 mm²</option>
+          <option value="0.75">0.75 mm²</option>
+          <option value="1.0">1.0 mm²</option>
+          <option value="1.5" selected>1.5 mm²</option>
+          <option value="2.5">2.5 mm²</option>
+          <option value="4">4 mm²</option>
+          <option value="6">6 mm²</option>
+          <option value="10">10 mm²</option>
+          <option value="16">16 mm²</option>
+          <option value="25">25 mm²</option>
+          <option value="35">35 mm²</option>
+          <option value="50">50 mm²</option>
+          <option value="70">70 mm²</option>
+          <option value="95">95 mm²</option>
+          <option value="120">120 mm²</option>
+          <option value="150">150 mm²</option>
+          <option value="185">185 mm²</option>
+          <option value="240">240 mm²</option>
+          <option value="300">300 mm²</option>
+        </select>
+      </div>
+
+      <!-- Type -->
+      <div class="field" style="flex:0 0 auto">
+        <label>Type</label>
+        <select id="cgen_type" onchange="updateCgenUI()">
+          <option value="RFOU">RFOU</option>
+          <option value="BFOU">BFOU</option>
+          <option value="RFOU(i)">RFOU(i) — Ind. screen</option>
+          <option value="BFOU(i)">BFOU(i) — Ind. screen</option>
+          <option value="RFOU(c)">RFOU(c) — Coll. screen</option>
+          <option value="BFOU(c)">BFOU(c) — Coll. screen</option>
+          <option value="UX Earth">UX Earth</option>
+        </select>
+      </div>
+
+      <!-- Colour — screened only -->
+      <div class="field" style="flex:0 0 auto" id="cgen_colour_box">
+        <label>Colour</label>
+        <select id="cgen_colour" onchange="genCableDesc()">
+          <option value="">— none —</option>
+          <option value="GREY">GREY</option>
+          <option value="BLUE">BLUE</option>
+        </select>
+      </div>
+
+      <!-- Extra -->
+      <div class="field" style="flex:1;min-width:120px">
+        <label>Extra (opt.)</label>
+        <input type="text" id="cgen_extra" placeholder="e.g. SWA" oninput="genCableDesc()">
+      </div>
+    </div>
+    <div id="cgenOutput"></div>
+  </div>
+
+  <!-- ── Gland Part Number Generator ── -->
+  <div class="card">
+    <div class="card-title">🔩 Gland Part Number Generator</div>
+    <div class="flex-row" style="flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:flex-end">
+      <div class="field" style="flex:0 0 auto">
+        <label>Gland Type</label>
+        <select id="ggen_type" onchange="updateGgenSizes()">
+          <option value="453">501/453/UNIV (Armoured)</option>
+          <option value="653">ICG/653/UNIV (Barrier)</option>
+          <option value="421">501/421/UNIV (Non-arm.)</option>
+        </select>
+      </div>
+      <div class="field" style="flex:0 0 auto">
+        <label>Size</label>
+        <select id="ggen_size" onchange="updateGgenEntries()"></select>
+      </div>
+      <div class="field" style="flex:0 0 auto">
+        <label>Entry Type</label>
+        <select id="ggen_entrytype" onchange="updateGgenEntries()">
+          <option value="metric">Metric</option>
+          <option value="npt">NPT</option>
+        </select>
+      </div>
+      <div class="field" style="flex:0 0 auto">
+        <label>Entry Size</label>
+        <select id="ggen_entry" onchange="genGlandCode()"></select>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:0.8rem;color:var(--text2);display:block;margin-bottom:6px">Suffix options (select any that apply):</label>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem;cursor:pointer"><input type="checkbox" class="ggen-suffix-check" value="S" onchange="genGlandCode()"> /S — Alt seal</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem;cursor:pointer"><input type="checkbox" class="ggen-suffix-check" value="Q" onchange="genGlandCode()"> /Q — QSP resin</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem;cursor:pointer"><input type="checkbox" class="ggen-suffix-check" value="NI" onchange="genGlandCode()"> /NI — Nickel plated</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem;cursor:pointer"><input type="checkbox" class="ggen-suffix-check" value="SS" onchange="genGlandCode()"> /SS — Stainless steel</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem;cursor:pointer"><input type="checkbox" class="ggen-suffix-check" value="BN" onchange="genGlandCode()"> /BN — Brass nickel</label>
+      </div>
+    </div>
+    <div id="ggenOutput"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB 6 — NPT REFERENCE
+════════════════════════════════════════════ -->
+<div id="tab-npt" class="tab-content">
+  <h2>🔩 NPT Reference</h2>
+
+  <div class="grid2">
+    <div>
+      <!-- NPT Size Lookup -->
+      <div class="card">
+        <div class="card-title">📐 NPT Size Lookup</div>
+        <div class="field">
+          <label>NPT Size</label>
+          <select id="nptSelect" onchange="showNPTInfo()">
+            <option value="1/8">⅛" NPT</option>
+            <option value="1/4">¼" NPT</option>
+            <option value="3/8">⅜" NPT</option>
+            <option value="1/2">½" NPT</option>
+            <option value="3/4" selected>¾" NPT</option>
+            <option value="1">1" NPT</option>
+            <option value="1-1/4">1¼" NPT</option>
+            <option value="1-1/2">1½" NPT</option>
+            <option value="2">2" NPT</option>
+            <option value="2-1/2">2½" NPT</option>
+            <option value="3">3" NPT</option>
+          </select>
+        </div>
+        <div id="nptInfo"></div>
+      </div>
+
+      <!-- Thread Identifier -->
+      <div class="card">
+        <div class="card-title">🔭 Thread Identifier (from caliper OD)</div>
+        <div class="flex-row">
+          <div class="field" style="flex:1"><label>Measured Thread OD (mm)</label><input type="number" id="nptOD" placeholder="e.g. 26.4" oninput="identifyNPT()"></div>
+          <button class="btn primary" onclick="identifyNPT()">Identify</button>
+        </div>
+        <div id="nptIDResult" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div>
+      <!-- Adapter Cross-Reference -->
+      <div class="card">
+        <div class="card-title">🔀 Adapter Cross-Reference</div>
+        <div class="field"><label>NPT Size</label>
+          <select id="adapterNPT" onchange="showAdapterInfo()">
+            <option value="1/2">½" NPT → M20</option>
+            <option value="3/4" selected>¾" NPT → M25</option>
+            <option value="1">1" NPT → M32</option>
+            <option value="1-1/4">1¼" NPT → M40</option>
+            <option value="1-1/2">1½" NPT → M50</option>
+            <option value="2">2" NPT → M63</option>
+          </select>
+        </div>
+        <div id="adapterInfo"></div>
+      </div>
+
+      <!-- Why NPT naming -->
+      <div class="card">
+        <div class="card-title">❓ Why ¾" NPT ≠ ¾" Anything Measurable</div>
+        <div style="font-size:0.85rem;line-height:1.7;color:var(--text2)">
+          <p>NPT size designations refer to the <strong style="color:var(--text)">nominal bore</strong> of the pipe the thread was designed for — <em>not</em> any directly measurable thread dimension.</p>
+          <br>
+          <p>¾" NPT has a thread OD of approximately <strong style="color:var(--accent)">26.4 mm</strong> — not ¾" (19.05 mm).</p>
+          <br>
+          <p>For cable entry sizing, always use the <strong style="color:var(--text)">catalogue bore figure</strong> (e.g. 19.00 mm on the Eaton Redapt ¾"→M25 adapter) — never derive a clearance from the NPT nominal size.</p>
+          <br>
+          <div style="background:var(--surface3);border:1px solid var(--warn);border-radius:6px;padding:12px">
+            <span style="color:var(--warn);font-weight:600">⚠️ ATEX Note:</span>
+            <span> NPT entries in hazardous areas require <strong>certified adapters</strong> with full ATEX/IECEx/UKEX documentation. Uncertified adapters require a formal MOC process per IEC 60079-14.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full NPT reference table -->
+  <div class="card">
+    <div class="card-title">📊 Full NPT Reference Table</div>
+    <div id="nptFullTable"></div>
+  </div>
+
+  <!-- Stubs -->
+  <div class="grid2">
+    <div class="card" style="opacity:0.5;pointer-events:none">
+      <div class="card-title">📋 MOC / Derogation Builder <span class="tag tag-yellow">COMING SOON</span></div>
+      <p style="font-size:0.82rem;color:var(--text2)">Template builder for NPT adapter MOC documentation.</p>
+    </div>
+    <div class="card" style="opacity:0.5;pointer-events:none">
+      <div class="card-title">🔩 Gland Torque Reference <span class="tag tag-yellow">COMING SOON</span></div>
+      <p style="font-size:0.82rem;color:var(--text2)">Hawke recommended installation torque by size and material.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     TAB — PROMPTS
+════════════════════════════════════════════ -->
+<div id="tab-prompts" class="tab-content">
+  <h2>🤖 Prompt Engineering</h2>
+
+  <div class="prompt-formula">
+    <strong>The Formula for Effective Prompts:</strong>
+    &nbsp; <strong>1. Role</strong> — who is the AI? &nbsp;→&nbsp;
+    <strong>2. Task</strong> — what must they do? &nbsp;→&nbsp;
+    <strong>3. Context</strong> — constraints & background &nbsp;→&nbsp;
+    <strong>4. Format</strong> — how should output look?
+  </div>
+
+  <h4 style="margin-bottom:10px">Quick-load a persona:</h4>
+  <div class="role-grid" id="promptRoleGrid"></div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div>
+      <div class="field">
+        <div class="prompt-field-label"><span class="prompt-field-num">1</span> Role — who is the AI acting as?</div>
+        <textarea id="pgRole" rows="2" placeholder="e.g. a Senior E&I Engineer with 20 years offshore experience" oninput="generatePrompt()"></textarea>
+      </div>
+      <div class="field">
+        <div class="prompt-field-label"><span class="prompt-field-num">2</span> Task — what specific action?</div>
+        <textarea id="pgTask" rows="3" placeholder="Describe exactly what you want done..." oninput="generatePrompt()"></textarea>
+      </div>
+      <div class="field">
+        <div class="prompt-field-label"><span class="prompt-field-num">3</span> Context — background & constraints</div>
+        <textarea id="pgContext" rows="2" placeholder="Standards, audience, project info..." oninput="generatePrompt()"></textarea>
+      </div>
+      <div class="field">
+        <div class="prompt-field-label"><span class="prompt-field-num">4</span> Format — how should output look?</div>
+        <input type="text" id="pgFormat" placeholder="e.g. Numbered list | Markdown table | JSON | Email" oninput="generatePrompt()">
+      </div>
+      <div id="pgOutput" style="margin-top:4px"></div>
+    </div>
+    <div>
+      <h4 style="margin-bottom:12px">Prompting Tips</h4>
+      <div id="promptTipsBox"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB — RECYCLE BIN
+════════════════════════════════════════════ -->
+<div id="tab-recycle" class="tab-content">
+  <h2>🗑️ Recycle Bin</h2>
+  <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">
+    Custom sections removed via ✕ on their header land here. Restore them or permanently delete them below.
+  </p>
+  <div id="recycleBinContent"></div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     EMOJI MODAL
+════════════════════════════════════════════ -->
+<div id="emojiModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:20px;width:min(600px,95vw);max-height:80vh;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700;font-size:1rem;color:var(--text)">😊 Pick an Emoji</div>
+      <button class="btn" onclick="closeEmojiModal()" style="padding:4px 10px">✕ Close</button>
+    </div>
+    <div id="emojiModalCats" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+    <div id="emojiModalGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(36px,1fr));gap:3px;overflow-y:auto;max-height:50vh;padding:4px"></div>
+  </div>
+</div>
+
+<!-- ════ SCRIPTS ════ -->
+<script src="js/data-atex.js"></script>
+<script src="js/data-glands.js"></script>
+<script src="js/data-cable.js"></script>
+<script src="js/data-symbols.js"></script>
+<script src="js/data-docregister.js"></script>
+<script src="js/tabs/tab-symbols.js"></script>
+<script src="js/tabs/tab-atex.js"></script>
+<script src="js/tabs/tab-units.js"></script>
+<script src="js/tabs/tab-calcs.js"></script>
+<script src="js/tabs/tab-cable.js"></script>
+<script src="js/tabs/tab-npt.js"></script>
+<script src="js/tabs/tab-prompts.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
