@@ -526,14 +526,25 @@
 
   <div class="card">
     <div class="card-title">⚙️ Motor & Supply</div>
+
+    <div class="field" style="margin-bottom:14px">
+      <label>Supply Frequency / Standard</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <button id="wt_btn_50"   class="btn active" onclick="wtSetHz(50)">50 Hz (IEC)</button>
+        <button id="wt_btn_60"   class="btn"        onclick="wtSetHz(60)">60 Hz (NEMA)</button>
+        <button id="wt_btn_5060" class="btn"        onclick="wtSetHz('5060')">50 Hz motor on 60 Hz supply</button>
+      </div>
+    </div>
+
     <div class="grid2">
       <div class="field">
         <label>Motor Power</label>
-        <div id="wt_kw_wrap"></div>
+        <div id="wt_power_wrap"></div>
       </div>
       <div class="field">
         <label>Supply Voltage (Line-to-Line)</label>
         <div id="wt_volt_wrap"></div>
+        <div id="wt_volt_hint" style="display:none;margin-top:6px;font-size:0.78rem;color:var(--accent2)">💡 Typical 50 Hz: 380 V, 400 V, 415 V, 440 V</div>
       </div>
       <div class="field">
         <label>Efficiency Class</label>
@@ -542,6 +553,11 @@
           <option value="IE3" selected>IE3 (default)</option>
           <option value="IE4">IE4</option>
         </select>
+      </div>
+      <div class="field" id="wt_corr_row" style="display:none">
+        <label>60 Hz FLA correction factor</label>
+        <input type="number" id="wt_corr_factor" value="1.15" step="0.01" min="1" max="2" oninput="wtCalc()">
+        <div style="font-size:0.75rem;color:var(--text3);margin-top:4px">Running a 50 Hz motor at 60 Hz increases speed ~20% and raises FLA. Default 1.15×.</div>
       </div>
       <div class="field">
         <label>Ambient Temperature <span style="color:var(--text2);font-weight:400;font-size:0.8rem">IEC 60092-352</span></label>
