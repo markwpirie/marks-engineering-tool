@@ -374,10 +374,10 @@ function wtCableTable(entries, selCSA, fla, derating, parallel) {
     const ratio    = (showTotal ? totalCap : derated) / fla;
     const isSel    = csa === selCSA;
     let statusTag, rowClass;
-    if (ratio >= 1.0) {
+    if (ratio >= 1.10) {
       statusTag = `<span class="tag tag-green">✓ OK</span>`;
       rowClass  = isSel ? 'wt-row-selected wt-row-green' : 'wt-row-green';
-    } else if (ratio >= 0.90) {
+    } else if (ratio >= 1.0) {
       statusTag = `<span class="tag tag-yellow">~ Borderline</span>`;
       rowClass  = isSel ? 'wt-row-selected wt-row-orange' : 'wt-row-orange';
     } else {
