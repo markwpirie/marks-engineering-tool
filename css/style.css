@@ -453,6 +453,19 @@ tr:hover td { background: var(--surface2); }
 }
 .wt-fla-result strong { font-size: 1.4rem; }
 
+.wt-upsize-note {
+  background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3);
+  border-left: 3px solid #3b82f6; border-radius: var(--radius);
+  padding: 10px 14px; margin-bottom: 12px;
+  font-size: 0.85rem; color: var(--text); line-height: 1.6;
+}
+.wt-borderline-note {
+  background: rgba(255,204,0,0.1); border: 1px solid rgba(255,204,0,0.3);
+  border-left: 3px solid var(--accent4); border-radius: var(--radius);
+  padding: 10px 14px; margin-bottom: 12px;
+  font-size: 0.85rem; color: var(--text); line-height: 1.6;
+}
+
 .wt-disclaimer {
   font-size: 0.76rem; color: var(--text3); line-height: 1.65;
   border-top: 1px solid var(--border); padding-top: 14px;
