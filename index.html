@@ -524,6 +524,44 @@
   <h2>✨ Wonder Tool <span class="beta-badge" style="font-size:0.7rem;vertical-align:middle">BETA</span></h2>
   <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">Enter a motor and supply details — get the correct cable and gland in one step. Based on IEC 60092-352 / NEK 606 / Hawke International.</p>
 
+  <!-- Project Details -->
+  <div class="card wt-proj-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div class="card-title" style="margin:0">📋 Project Details <span style="font-size:0.72rem;font-weight:400;color:var(--text3)">— all fields saved automatically</span></div>
+      <button class="btn primary" onclick="wtGeneratePDF()" id="wt_pdf_btn" style="font-size:0.82rem" disabled>📄 Generate PDF</button>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label>Project Name</label>
+        <input type="text" id="wt_proj_name" placeholder="e.g. FPSO Topside Modifications" oninput="wtSaveField('name')">
+      </div>
+      <div class="field">
+        <label>Project Number</label>
+        <input type="text" id="wt_proj_num" placeholder="e.g. WCE-ES-146" oninput="wtSaveField('num')">
+      </div>
+      <div class="field">
+        <label>Prepared By</label>
+        <input type="text" id="wt_proj_by" placeholder="Name" oninput="wtSaveField('by')">
+      </div>
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="wt_proj_date" oninput="wtSaveField('date')">
+      </div>
+      <div class="field">
+        <label>Cable Tag / Reference</label>
+        <input type="text" id="wt_proj_tag" placeholder="e.g. C-ES-146-001" oninput="wtSaveField('tag')">
+      </div>
+      <div class="field">
+        <label>Circuit Description</label>
+        <input type="text" id="wt_proj_circuit" placeholder="e.g. MCC-A to P-101A" oninput="wtSaveField('circuit')">
+      </div>
+      <div class="field">
+        <label>Revision</label>
+        <input type="text" id="wt_proj_rev" placeholder="01" oninput="wtSaveField('rev')">
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title">⚙️ Motor & Supply</div>
 
