@@ -573,8 +573,13 @@
         <div id="wt_temp_wrap"></div>
         <div style="font-size:0.75rem;color:var(--text3);margin-top:4px">Ct = √((90−T) / 45) — base 45°C, 90°C conductor max</div>
       </div>
+      <div class="field">
+        <label>FLA Override <span style="font-size:0.75rem;color:var(--text3);font-weight:400">enter nameplate amps to skip calculation</span></label>
+        <input type="number" id="wt_fla_override" placeholder="e.g. 142" step="0.1" min="0" oninput="wtCalc()">
+      </div>
       <div class="field" style="grid-column:1/-1">
         <div id="wt_fla_display" class="wt-fla-box"></div>
+        <div style="font-size:0.75rem;color:var(--text3);margin-top:6px">⚑ Always use the FLA from the motor rating plate where possible — calculated values are based on typical efficiency class data and may differ from nameplate.</div>
       </div>
     </div>
   </div>
@@ -597,12 +602,21 @@
         </select>
       </div>
       <div class="field" style="grid-column:1/-1">
-        <label>Cable Grouping <span style="color:var(--text2);font-weight:400;font-size:0.8rem">IEC 60092-352 Table B.4</span></label>
-        <div style="display:flex;gap:8px;margin-top:4px">
+        <label>Cable Grouping
+          <span style="color:var(--text2);font-weight:400;font-size:0.8rem">IEC 60092-352 Table B.4</span>
+          <a href="pdfs/IEC 60092-352 Table B4.pdf" target="_blank" style="font-size:0.75rem;margin-left:8px;color:var(--accent)">📄 View standard extract</a>
+        </label>
+        <div style="display:flex;gap:8px;margin-top:6px">
           <button id="wt_grp_1"   class="btn active" onclick="wtSetGroup(1.00)">1.00 — up to 6 cables</button>
           <button id="wt_grp_085" class="btn"        onclick="wtSetGroup(0.85)">0.85 — 7 or more cables</button>
         </div>
-        <div style="font-size:0.75rem;color:var(--text3);margin-top:6px">Per IEC 60092-352 Table B.4 — only two defined values. Applies to cables laid touching in air.</div>
+        <div style="font-size:0.75rem;color:var(--text3);margin-top:6px">
+          Cable ratings are taken from IEC 60092-352 Table B.4.
+          <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent.includes('▶')?'▼ Hide standard text':'▶ Show standard text'" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:0.75rem;padding:0;margin-left:4px">▶ Show standard text</button>
+          <span style="display:none;margin-top:6px;padding:10px 12px;background:var(--surface3);border-left:2px solid var(--border2);border-radius:4px;font-size:0.75rem;color:var(--text2);line-height:1.6;font-style:italic">
+            "These ratings may be considered applicable, without correction factors, for cables bunched together on cable trays, in cable conduits, pipes or trunking, unless more than six cables, which may be expected to operate simultaneously at their full rated capacity, are laid close together in a cable bunch in such a way that there is an absence of free air circulation around them. In this case a correction factor of 0.85 should be applied." — IEC 60092-352 Table B.4
+          </span>
+        </div>
       </div>
       <div class="field">
         <label>Parallel Runs</label>
