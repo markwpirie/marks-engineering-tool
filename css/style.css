@@ -85,6 +85,32 @@ body.light-mode #topnav {
   transition: opacity 0.15s;
 }
 #topnav .brand:hover { opacity: 0.8; }
+.version-banner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(0, 212, 255, 0.08);
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+body.light-mode .version-banner {
+  background: rgba(0, 119, 170, 0.08);
+}
+.version-banner .pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--accent);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
 .nav-tab {
   font-family: var(--head);
   font-size: 0.82rem;

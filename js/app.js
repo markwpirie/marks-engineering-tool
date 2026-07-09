@@ -57,7 +57,7 @@ function closeAbout() {
 // ── Export / Import JSON ──
 function exportData() {
   const data = {
-    version: '3.7',
+    version: '3.8',
     exported: new Date().toISOString(),
     snippets:        JSON.parse(localStorage.getItem('met_snippets')   || '[]'),
     customSections:  JSON.parse(localStorage.getItem('met_customsecs') || '[]'),
