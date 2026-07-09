@@ -38,6 +38,8 @@ Then open http://localhost:8000.
 
 This project is already connected to GitHub and is set up for deployment from the main branch. If Cloudflare is already configured to deploy from main, simply push your changes there when ready.
 
+A GitHub Pages workflow is also included as a fallback in [.github/workflows/deploy-pages.yml](.github/workflows/deploy-pages.yml).
+
 Typical flow:
 
 ```bash
@@ -45,6 +47,8 @@ git add .
 git commit -m "Describe your update"
 git push origin main
 ```
+
+For a simple release checklist, see [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md).
 
 ## Notes
 
