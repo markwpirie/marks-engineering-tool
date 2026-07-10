@@ -836,14 +836,17 @@
       </div>
       <div class="field">
         <div class="prompt-field-label"><span class="prompt-field-num">2</span> Task — what specific action?</div>
+        <div class="role-grid field-preset-row" id="pgTaskPresets"></div>
         <textarea id="pgTask" rows="3" placeholder="Describe exactly what you want done..." oninput="generatePrompt()"></textarea>
       </div>
       <div class="field">
         <div class="prompt-field-label"><span class="prompt-field-num">3</span> Context — background & constraints</div>
+        <div class="role-grid field-preset-row" id="pgContextPresets"></div>
         <textarea id="pgContext" rows="2" placeholder="Standards, audience, project info..." oninput="generatePrompt()"></textarea>
       </div>
       <div class="field">
         <div class="prompt-field-label"><span class="prompt-field-num">4</span> Format — how should output look?</div>
+        <div class="role-grid field-preset-row" id="pgFormatPresets"></div>
         <input type="text" id="pgFormat" placeholder="e.g. Numbered list | Markdown table | JSON | Email" oninput="generatePrompt()">
       </div>
       <div id="pgOutput" style="margin-top:4px"></div>

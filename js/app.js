@@ -208,6 +208,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Tab 7 — Prompt engineering
   renderPromptRoles();
+  renderPromptPresets();
   renderPromptTipsBuiltin();
 
   // Recycle Bin

@@ -94,6 +94,12 @@ function selectPromptRole(id) {
   PROMPT_ROLES.forEach(r => document.getElementById('prole_'+r.id)?.classList.remove('active'));
   document.getElementById('prole_'+id)?.classList.add('active');
 
+  // A persona sets all four fields — clear any field-level preset highlight,
+  // since the persona's text won't generally match one of those presets.
+  clearPromptPresetActive('pgtask', PROMPT_TASKS);
+  clearPromptPresetActive('pgctx', PROMPT_CONTEXTS);
+  clearPromptPresetActive('pgfmt', PROMPT_FORMATS);
+
   // Fill fields (don't overwrite if custom)
   if (id !== 'custom') {
     document.getElementById('pgRole').value = role.role;
@@ -108,6 +114,74 @@ function selectPromptRole(id) {
     document.getElementById('pgRole').focus();
   }
   generatePrompt();
+}
+
+// ── Per-field presets (Task / Context / Format) ──
+// Each entry: { id, label, text }. Selecting one fills only its own field,
+// on top of whatever the persona grid above set — same active-highlight
+// behaviour as the persona buttons.
+const PROMPT_TASKS = [
+  { id:'review-spec', label:'Review spec for gaps', text:'Review the following specification and identify any gaps, ambiguities, or non-conformances that need clarification before issue.' },
+  { id:'draft-email', label:'Draft technical email', text:'Draft a clear, professional technical email covering the following point(s), keeping it concise and action-oriented.' },
+  { id:'summarise-report', label:'Summarise report', text:'Summarise the following report, pulling out the key findings, risks, and recommended actions.' },
+  { id:'method-step', label:'Write method statement step', text:'Write a method statement step for the following task, including sequence, PPE/tools required, and key hazards to control.' },
+  { id:'review-risk', label:'Review risk assessment', text:'Review the following risk assessment and identify any missing hazards, weak controls, or inconsistent risk ratings.' },
+  { id:'explain-concept', label:'Explain a concept', text:'Explain the following technical concept clearly, starting from first principles and using a practical example.' },
+  { id:'meeting-minutes', label:'Draft meeting minutes', text:'Draft meeting minutes from the following notes, capturing decisions made, action items with owners, and open questions.' },
+  { id:'check-calc', label:'Check calculation approach', text:'Check the following calculation approach for correctness, flag any assumptions that need verifying, and note any standard clauses it should reference.' },
+];
+
+const PROMPT_CONTEXTS = [
+  { id:'atex-offshore', label:'ATEX Zone 1 offshore', text:'This is for an ATEX Zone 1 installation on an offshore facility. Applicable standards include IEC 60079-14 and NORSOK E-001.' },
+  { id:'fpso', label:'FPSO / floating production', text:'This is for an FPSO / floating production facility. Consider marine, weight, and space constraints alongside the applicable Ex and process standards.' },
+  { id:'onshore-terminal', label:'Onshore terminal', text:'This is for an onshore terminal or plant. Apply the relevant onshore Ex/process standards and site-specific permit requirements.' },
+  { id:'client-docs', label:'Client documentation package', text:'This will go into a formal client documentation package, so tone should be precise, professional, and free of internal jargon.' },
+  { id:'internal-comms', label:'Internal team comms', text:'This is internal team communication — informal but clear is fine, focus on getting the point across quickly.' },
+  { id:'no-context', label:'No special context', text:'' },
+];
+
+const PROMPT_FORMATS = [
+  { id:'findings-table', label:'Findings table (Ref / Issue / Std / Action)', text:'Findings table: Ref, Issue, Standard Reference, Recommended Action. Add a one-line summary at the end.' },
+  { id:'numbered-list', label:'Numbered list', text:'Numbered list, one point per item, most important first.' },
+  { id:'short-email', label:'Short email', text:'Short email format: subject line, brief opening, key points, clear call to action.' },
+  { id:'exec-summary', label:'Executive summary + bullets', text:'3-sentence executive summary followed by supporting bullet points.' },
+  { id:'step-procedure', label:'Step-by-step procedure', text:'Numbered, step-by-step procedure with any prerequisites called out at the top.' },
+  { id:'plain-paragraph', label:'Plain paragraph, max 200 words', text:'Plain paragraph, no headings or bullets, maximum 200 words.' },
+];
+
+function renderPromptPresetRow(containerId, list, prefix) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = list.map(p =>
+    `<button class="btn" id="${prefix}_${p.id}" onclick="selectPromptPreset('${prefix}','${p.id}')">${p.label}</button>`
+  ).join('');
+}
+
+function clearPromptPresetActive(prefix, list) {
+  list.forEach(p => document.getElementById(prefix+'_'+p.id)?.classList.remove('active'));
+}
+
+const PROMPT_PRESET_FIELDS = {
+  pgtask: { list: PROMPT_TASKS, fieldId: 'pgTask' },
+  pgctx:  { list: PROMPT_CONTEXTS, fieldId: 'pgContext' },
+  pgfmt:  { list: PROMPT_FORMATS, fieldId: 'pgFormat' },
+};
+
+function selectPromptPreset(prefix, id) {
+  const cfg = PROMPT_PRESET_FIELDS[prefix];
+  if (!cfg) return;
+  const preset = cfg.list.find(p => p.id === id);
+  if (!preset) return;
+  clearPromptPresetActive(prefix, cfg.list);
+  document.getElementById(prefix+'_'+id)?.classList.add('active');
+  document.getElementById(cfg.fieldId).value = preset.text;
+  generatePrompt();
+}
+
+function renderPromptPresets() {
+  renderPromptPresetRow('pgTaskPresets', PROMPT_TASKS, 'pgtask');
+  renderPromptPresetRow('pgContextPresets', PROMPT_CONTEXTS, 'pgctx');
+  renderPromptPresetRow('pgFormatPresets', PROMPT_FORMATS, 'pgfmt');
 }
 
 // ── Prompt tips (built-in, no fetch needed) ──

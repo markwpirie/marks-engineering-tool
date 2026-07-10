@@ -677,6 +677,7 @@ table.data tr:hover td { background: var(--surface2); }
 .role-grid {
   display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;
 }
+.role-grid.field-preset-row { margin-bottom: 8px; }
 .prompt-formula {
   background: var(--surface3); border: 1px solid var(--border2);
   border-radius: var(--r-card); padding: 14px 18px; margin-bottom: 18px;
