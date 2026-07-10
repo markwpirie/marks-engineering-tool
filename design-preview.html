@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M.E.T. — Design Preview — Cable &amp; Gland</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+/* ══════════════════════════════════════════════════════════
+   DESIGN TOKENS — "the datasheet, electrified"
+   ══════════════════════════════════════════════════════════ */
+:root {
+  --bg:        #101317;
+  --surface:   #161A20;
+  --surface2:  #1D232B;
+  --border:    #303947;
+  --border2:   #47525F;
+
+  --text:      #F4F7FB;
+  --text2:     #B4BFCE;
+  --text3:     #8593A6;
+
+  --accent:       #6CB2F2;
+  --accent-hover: #8FC5F8;
+  --accent-ink:   #0F1216;   /* text on accent-filled surfaces */
+  --accent-tint:  rgba(108,178,242,0.14);
+
+  --pass:      #4CAF7D;
+  --pass-tint: rgba(76,175,125,0.12);
+  --warn:      #D9A13B;
+  --warn-tint: rgba(217,161,59,0.12);
+  --fail:      #D96A5B;
+  --fail-tint: rgba(217,106,91,0.12);
+
+  --body: 'Inter', system-ui, sans-serif;
+  --head: 'Rajdhani', var(--body);
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --r-ctl: 4px;
+  --r-card: 8px;
+}
+html[data-theme="light"] {
+  --bg:        #F5F7FA;
+  --surface:   #FFFFFF;
+  --surface2:  #EDF1F5;
+  --border:    #D5DCE4;
+  --border2:   #B9C3CF;
+  --text:      #1A2330;
+  --text2:     #4A5568;
+  --text3:     #7A8698;
+  --accent:       #2E7CC0;
+  --accent-hover: #1F659F;
+  --accent-ink:   #FFFFFF;
+  --accent-tint:  rgba(46,124,192,0.10);
+  --pass:      #24774E;
+  --pass-tint: rgba(36,119,78,0.10);
+  --warn:      #96690F;
+  --warn-tint: rgba(150,105,15,0.10);
+  --fail:      #B33F31;
+  --fail-tint: rgba(179,63,49,0.10);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  padding-bottom: 64px;
+}
+.wrap { max-width: 1220px; margin: 0 auto; padding: 0 24px; }
+
+/* ── App header ─────────────────────────────────────────── */
+header.app {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.masthead {
+  display: flex; align-items: baseline; gap: 14px;
+  padding: 18px 0 0;
+}
+.brand {
+  font-family: var(--head); font-weight: 700; font-size: 1.55rem;
+  letter-spacing: 0.04em; color: var(--text);
+}
+.brand .dot { color: var(--accent); }
+.wordmark {
+  font-family: var(--head); font-weight: 600; font-size: 0.72rem;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--text3);
+}
+.mast-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.ver {
+  font-family: var(--mono); font-size: 0.7rem; color: var(--text3);
+}
+.iconbtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: var(--r-ctl);
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text2); cursor: pointer;
+}
+.iconbtn:hover { color: var(--text); border-color: var(--border2); }
+.iconbtn svg { width: 15px; height: 15px; }
+
+/* ── Nav: typography-only tabs ──────────────────────────── */
+nav.tabs {
+  display: flex; gap: 2px; overflow-x: auto;
+  margin-top: 14px;
+}
+nav.tabs a {
+  font-family: var(--head); font-weight: 600; font-size: 0.86rem;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--text3); text-decoration: none;
+  padding: 8px 14px 10px;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+nav.tabs a:hover { color: var(--text2); }
+nav.tabs a.active { color: var(--text); border-bottom-color: var(--accent); }
+
+/* ── Section kicker (datasheet clause heading) ──────────── */
+.kicker {
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--head); font-weight: 600; font-size: 0.74rem;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--text2);
+  margin: 0 0 12px;
+}
+.kicker .n { color: var(--accent); font-family: var(--mono); font-size: 0.7rem; font-weight: 500; }
+.kicker::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── Cards ──────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 16px 20px 18px;
+  margin-top: 18px;
+}
+
+/* ── Form controls ──────────────────────────────────────── */
+.fields { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+@media (max-width: 760px) { .fields { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 430px) { .fields { grid-template-columns: 1fr; } }
+label.fl {
+  display: block;
+  font-size: 0.72rem; font-weight: 500; letter-spacing: 0.04em;
+  color: var(--text3); text-transform: uppercase;
+  margin-bottom: 5px;
+}
+select, input[type="number"] {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-ctl);
+  color: var(--text);
+  font-family: var(--body); font-size: 0.85rem;
+  padding: 8px 10px;
+}
+select:focus, input:focus { outline: none; border-color: var(--accent); }
+
+.btn {
+  font-family: var(--head); font-weight: 600; font-size: 0.78rem;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  background: var(--surface2); color: var(--text2);
+  border: 1px solid var(--border); border-radius: var(--r-ctl);
+  padding: 7px 14px; cursor: pointer;
+}
+.btn:hover { color: var(--text); border-color: var(--border2); }
+.btn.active { background: var(--accent-tint); color: var(--accent); border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+/* ── Definition grid (spec table look) ──────────────────── */
+.spec {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  border-top: 1px solid var(--border);
+  margin-top: 14px;
+}
+.spec > div {
+  padding: 6px 14px 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.spec .k {
+  font-size: 0.68rem; font-weight: 500; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--text3);
+  margin-bottom: 1px;
+}
+.spec .v { font-family: var(--mono); font-size: 0.86rem; color: var(--text); }
+.spec .v.hi { color: var(--accent); font-size: 1.02rem; font-weight: 500; }
+.spec .v small { color: var(--text3); font-size: 0.72rem; }
+.spec .full { grid-column: 1 / -1; }
+.spec .v.plain { font-family: var(--body); font-size: 0.8rem; color: var(--text2); }
+
+/* ── Status badges (the ONLY surviving pills) ───────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--head); font-weight: 600; font-size: 0.68rem;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 2.5px 8px; border-radius: 3px;
+}
+.badge svg { width: 11px; height: 11px; }
+.badge.pass { color: var(--pass); background: var(--pass-tint); }
+.badge.warn { color: var(--warn); background: var(--warn-tint); }
+.badge.fail { color: var(--fail); background: var(--fail-tint); }
+.badge.rec  { color: var(--accent); background: var(--accent-tint); }
+.badge.mut  { color: var(--text3); background: var(--surface2); }
+
+/* ── Source note ────────────────────────────────────────── */
+.source {
+  margin-top: 14px;
+  font-size: 0.72rem; color: var(--text3);
+}
+.source .mono { font-family: var(--mono); }
+
+/* ── Gland family + size rows ───────────────────────────── */
+.family { display: flex; gap: 18px; align-items: flex-start; margin-top: 16px; }
+.family img {
+  width: 150px; border-radius: var(--r-ctl);
+  border: 1px solid var(--border); flex-shrink: 0;
+}
+.family h3 {
+  font-family: var(--head); font-weight: 600; font-size: 1.02rem;
+  letter-spacing: 0.03em;
+}
+.family p { font-size: 0.78rem; color: var(--text2); margin-top: 4px; max-width: 62ch; }
+@media (max-width: 620px) { .family { flex-direction: column; } .family img { width: 120px; } }
+
+.gsize {
+  border: 1px solid var(--border);
+  border-radius: var(--r-ctl);
+  margin-top: 10px;
+  padding: 10px 16px 11px;
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 3px 20px;
+  align-items: start;
+}
+.gsize.rec { border-left: 3px solid var(--accent); padding-left: 14px; }
+.gsize .sizeref {
+  font-family: var(--mono); font-size: 1.5rem; font-weight: 700;
+  color: var(--text); line-height: 1.1; grid-row: span 2;
+}
+.gsize .sizeref small { display: block; font-size: 0.62rem; font-weight: 400; color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 2px; }
+.gsize .meta { display: flex; flex-wrap: wrap; gap: 4px 24px; }
+.gsize .meta span { font-size: 0.78rem; color: var(--text2); }
+.gsize .meta span b { font-family: var(--mono); font-weight: 500; color: var(--text); }
+.gsize .fit { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 6px; grid-column: 2; }
+.gsize .code {
+  grid-column: 3; grid-row: 1 / span 2; justify-self: end; text-align: right;
+}
+.gsize .code .k { font-size: 0.66rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text3); margin-bottom: 3px; }
+.gsize .code .oc {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 0.82rem; color: var(--text);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-ctl); padding: 5px 8px 5px 10px;
+}
+.copy {
+  display: inline-flex; background: none; border: none; cursor: pointer;
+  color: var(--text3); padding: 2px;
+}
+.copy:hover { color: var(--accent); }
+.copy svg { width: 13px; height: 13px; }
+@media (max-width: 720px) {
+  .gsize { grid-template-columns: 52px 1fr; }
+  .gsize .code { grid-column: 1 / -1; grid-row: auto; justify-self: start; text-align: left; margin-top: 8px; }
+}
+
+/* ── Data table (datasheet treatment) ───────────────────── */
+.tblwrap { overflow-x: auto; margin-top: 4px; }
+table.data { width: 100%; border-collapse: collapse; }
+table.data th {
+  font-family: var(--head); font-weight: 600; font-size: 0.7rem;
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--text3);
+  text-align: left; padding: 8px 12px;
+  border-bottom: 1px solid var(--border2);
+}
+table.data th.num, table.data td.num { text-align: right; }
+table.data td {
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem; color: var(--text2);
+}
+table.data td.num { font-family: var(--mono); color: var(--text); }
+table.data tr:hover td { background: var(--surface2); }
+
+/* ── Callout / notice ───────────────────────────────────── */
+.notice {
+  display: flex; gap: 10px; align-items: flex-start;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warn);
+  border-radius: var(--r-ctl);
+  background: var(--warn-tint);
+  padding: 10px 14px;
+  font-size: 0.78rem; color: var(--text2);
+  margin-top: 14px;
+}
+.notice svg { width: 15px; height: 15px; color: var(--warn); flex-shrink: 0; margin-top: 1px; }
+
+/* ── Footer / disclaimer ────────────────────────────────── */
+footer.site {
+  margin-top: 40px; padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 0.74rem; color: var(--text3);
+}
+footer.site .mono { font-family: var(--mono); }
+
+/* ── Design-notes strip (preview only) ──────────────────── */
+.dnotes {
+  margin-top: 28px; padding: 16px 20px;
+  border: 1px dashed var(--border2); border-radius: var(--r-card);
+  font-size: 0.76rem; color: var(--text3);
+}
+.dnotes b { color: var(--text2); }
+.dnotes ul { margin: 8px 0 0 18px; }
+.dnotes li { margin-top: 3px; }
+.swatches { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.sw { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 0.68rem; }
+.sw i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; border: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<!-- SVG sprite: the complete functional icon set (10) — the ONLY iconography in the app -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+</svg>
+
+<header class="app">
+  <div class="wrap">
+    <div class="masthead">
+      <div class="brand">M<span class="dot">.</span>E<span class="dot">.</span>T<span class="dot">.</span></div>
+      <div class="wordmark">Mark's Engineering Tool</div>
+      <div class="mast-right">
+        <span class="ver">v3.9 · 2026-07-09</span>
+        <button class="iconbtn" id="themeBtn" title="Toggle theme" aria-label="Toggle light/dark theme">
+          <svg id="themeIcon"><use href="#i-sun"/></svg>
+        </button>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Main sections">
+      <a href="#" role="tab" aria-selected="false">Symbols</a>
+      <a href="#" role="tab" aria-selected="false">ATEX</a>
+      <a href="#" role="tab" aria-selected="false">Units</a>
+      <a href="#" role="tab" aria-selected="false">Calculators</a>
+      <a href="#" role="tab" aria-selected="true" class="active">Cable &amp; Gland</a>
+      <a href="#" role="tab" aria-selected="false">Wonder Tool</a>
+      <a href="#" role="tab" aria-selected="false">NPT</a>
+      <a href="#" role="tab" aria-selected="false">Prompts</a>
+      <a href="#" role="tab" aria-selected="false">Recycle Bin</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ── Cable selector ─────────────────────────────────── -->
+  <section class="card">
+    <h2 class="kicker"><span class="n">5.1</span> Cable Selector — NEK TS 606</h2>
+
+    <div class="fields">
+      <div>
+        <label class="fl" for="p-rating">Fire Rating</label>
+        <select id="p-rating"><option>RFOU (Flame Retardant)</option><option>BFOU (Fire Resistant)</option></select>
+      </div>
+      <div>
+        <label class="fl" for="p-app">Application</label>
+        <select id="p-app"><option>Power &amp; Control (P)</option><option>Instrument, Ind. Screened (I)</option><option>Instrument, Coll. Screened (C)</option><option>Earth (UX P15)</option></select>
+      </div>
+      <div>
+        <label class="fl" for="p-cores">Cores</label>
+        <select id="p-cores"><option>3 core(s)</option><option>3G (earth core)</option><option>4 core(s)</option></select>
+      </div>
+      <div>
+        <label class="fl" for="p-csa">CSA</label>
+        <select id="p-csa"><option>25 mm²</option><option>35 mm²</option><option>50 mm²</option></select>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="full">
+        <div class="k">Cable Type</div>
+        <div class="v plain">RFOU (P1/P8/P101) — 600/1000V Power &amp; Control &nbsp;·&nbsp; 3 × 25 mm²</div>
+      </div>
+      <div><div class="k">Overall OD</div><div class="v hi">26 ± 1 mm</div></div>
+      <div><div class="k">OD over inner covering</div><div class="v">22 ± 1 mm</div></div>
+      <div><div class="k">Weight</div><div class="v">1560 <small>kg/km</small></div></div>
+      <div><div class="k">Copper content</div><div class="v">894 <small>kg/km</small></div></div>
+      <div><div class="k">Current @ 45 °C</div><div class="v hi">89 <small>A</small></div></div>
+      <div><div class="k">Braid CSA</div><div class="v">16 <small>mm²</small></div></div>
+      <div><div class="k">Conductor R (20 / 90 °C)</div><div class="v">0.734 / 0.936 <small>Ω/km</small></div></div>
+      <div><div class="k">Reactance (50 / 60 Hz)</div><div class="v">0.079 / 0.095 <small>Ω/km</small></div></div>
+      <div><div class="k">Short-circuit (1 s)</div><div class="v">3500 <small>A</small></div></div>
+      <div><div class="k">Min bend radius</div><div class="v">208 <small>mm install</small> / 156 <small>fixed</small></div></div>
+      <div><div class="k">Voltage rating</div><div class="v">600/1000 V</div></div>
+      <div class="full"><div class="k">Core colours</div><div class="v plain">Brown — Black — Grey</div></div>
+    </div>
+
+    <div class="source">Source: Draka <span class="mono">NEK TS 606</span> datasheet, Range &amp; Dimensions p.34 / Electrical Values p.37. Values are book data — verify against the delivered cable's documentation.</div>
+  </section>
+
+  <!-- ── Temp correction ────────────────────────────────── -->
+  <section class="card">
+    <h2 class="kicker"><span class="n">5.2</span> Ambient Temperature Correction — IEC 60092-352</h2>
+    <div class="fields" style="grid-template-columns: 220px 1fr">
+      <div>
+        <label class="fl" for="p-amb">Ambient Temperature</label>
+        <select id="p-amb"><option>45 °C (×1.00) — base</option><option selected>60 °C (×0.82)</option><option>70 °C (×0.67)</option></select>
+      </div>
+      <div style="align-self:end">
+        <div class="spec" style="margin-top:0;border-top:none">
+          <div style="border-bottom:none"><div class="k">Corrected rating</div><div class="v hi">73.0 <small>A</small> <small style="margin-left:6px">= 89 A × 0.82</small></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Gland recommender ──────────────────────────────── -->
+  <section class="card">
+    <h2 class="kicker"><span class="n">5.3</span> Gland Recommender — Hawke ATEX/IECEx</h2>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn active">Metric Entry</button>
+      <button class="btn">NPT Entry</button>
+    </div>
+
+    <!-- Family: 501/453 -->
+    <div class="family">
+      <img src="jpg/501-453.jpg" alt="Hawke 501/453/UNIV cable gland cross-section">
+      <div>
+        <h3>Hawke 501/453/UNIV — Coldflow, Armoured / Braided</h3>
+        <p>Dual certified Exe/Exd. Passive diaphragm seal for cold-flow cables. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.</p>
+      </div>
+    </div>
+
+    <div class="gsize">
+      <div class="sizeref">B<small>Size ref</small></div>
+      <div class="meta">
+        <span>Entry <b>M25</b></span>
+        <span>Inner sheath <b>11.1–19.7 mm</b></span>
+        <span>Outer sheath <b>16.9–26.0 mm</b></span>
+        <span>Armour Ø <b>1.25/1.6 mm</b></span>
+      </div>
+      <div class="fit">
+        <span class="badge pass"><svg><use href="#i-check"/></svg>Fits book value</span>
+        <span class="badge warn"><svg><use href="#i-warn"/></svg>Book value only — undersized at +1 mm tolerance</span>
+      </div>
+      <div class="code">
+        <div class="k">Order code</div>
+        <span class="oc">501/453/UNIV/B/M25 <button class="copy" title="Copy order code" aria-label="Copy order code"><svg><use href="#i-copy"/></svg></button></span>
+      </div>
+    </div>
+
+    <div class="gsize rec">
+      <div class="sizeref">C<small>Size ref</small></div>
+      <div class="meta">
+        <span>Entry <b>M32</b></span>
+        <span>Inner sheath <b>17.6–26.5 mm</b></span>
+        <span>Outer sheath <b>22.0–33.0 mm</b></span>
+        <span>Armour Ø <b>1.6/2.0 mm</b></span>
+      </div>
+      <div class="fit">
+        <span class="badge rec">Recommended</span>
+        <span class="badge pass"><svg><use href="#i-check"/></svg>Fits book value</span>
+        <span class="badge pass"><svg><use href="#i-check"/></svg>Fits full tolerance (±1 mm)</span>
+      </div>
+      <div class="code">
+        <div class="k">Order code</div>
+        <span class="oc">501/453/UNIV/C/M32 <button class="copy" title="Copy order code" aria-label="Copy order code"><svg><use href="#i-copy"/></svg></button></span>
+      </div>
+    </div>
+
+    <!-- Family: ICG/653 -->
+    <div class="family">
+      <img src="jpg/icg653.jpg" alt="Hawke ICG/653/UNIV barrier gland cross-section">
+      <div>
+        <h3>Hawke ICG/653/UNIV — Barrier</h3>
+        <p>Dual certified Exe/Exd. Seals around individual cores — cold flow, hygroscopic fillers, fibre-optic cables. ExPress resin standard (30 min cure), QSP available (suffix Q).</p>
+      </div>
+    </div>
+
+    <div class="gsize">
+      <div class="sizeref">B<small>Size ref</small></div>
+      <div class="meta">
+        <span>Entry <b>M25</b></span>
+        <span>Max inner sheath <b>19.9 mm</b></span>
+        <span>Max over cores <b>15.9 mm</b></span>
+        <span>Outer sheath <b>16.9–26.0 mm</b></span>
+      </div>
+      <div class="fit">
+        <span class="badge pass"><svg><use href="#i-check"/></svg>Fits book value</span>
+        <span class="badge warn"><svg><use href="#i-warn"/></svg>Book value only — undersized at +1 mm tolerance</span>
+      </div>
+      <div class="code">
+        <div class="k">Order code</div>
+        <span class="oc">ICG/653/UNIV/B/M25 <button class="copy" title="Copy order code" aria-label="Copy order code"><svg><use href="#i-copy"/></svg></button></span>
+      </div>
+    </div>
+
+    <div class="gsize rec">
+      <div class="sizeref">C<small>Size ref</small></div>
+      <div class="meta">
+        <span>Entry <b>M32</b></span>
+        <span>Max inner sheath <b>26.2 mm</b></span>
+        <span>Max over cores <b>21.9 mm</b></span>
+        <span>Outer sheath <b>22.0–33.0 mm</b></span>
+      </div>
+      <div class="fit">
+        <span class="badge rec">Recommended</span>
+        <span class="badge pass"><svg><use href="#i-check"/></svg>Fits book value</span>
+        <span class="badge pass"><svg><use href="#i-check"/></svg>Fits full tolerance (±1 mm)</span>
+      </div>
+      <div class="code">
+        <div class="k">Order code</div>
+        <span class="oc">ICG/653/UNIV/C/M32 <button class="copy" title="Copy order code" aria-label="Copy order code"><svg><use href="#i-copy"/></svg></button></span>
+      </div>
+    </div>
+
+    <div class="notice">
+      <svg><use href="#i-warn"/></svg>
+      <span>NPT entries in ATEX zones require certified adapters — check MOC implications before ordering. Gland selections are indicative; always confirm against the current Hawke datasheet.</span>
+    </div>
+  </section>
+
+  <!-- ── AWG table ──────────────────────────────────────── -->
+  <section class="card">
+    <h2 class="kicker"><span class="n">5.4</span> AWG ↔ CSA Conversion</h2>
+    <div class="tblwrap">
+      <table class="data">
+        <thead>
+          <tr><th>AWG</th><th class="num">CSA (mm²)</th><th>Nearest IEC size</th><th>Typical use</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">18</td><td class="num">0.82</td><td>—</td><td>Control / instrumentation</td></tr>
+          <tr><td class="num">16</td><td class="num">1.31</td><td><span class="badge mut">1.5 mm²</span></td><td>Standard instrument core</td></tr>
+          <tr><td class="num">14</td><td class="num">2.08</td><td><span class="badge mut">2.5 mm²</span></td><td>Control / small power</td></tr>
+          <tr><td class="num">12</td><td class="num">3.31</td><td><span class="badge mut">4 mm²</span></td><td>Small power</td></tr>
+          <tr><td class="num">10</td><td class="num">5.26</td><td><span class="badge mut">6 mm²</span></td><td>Power</td></tr>
+          <tr><td class="num">8</td><td class="num">8.37</td><td><span class="badge mut">10 mm²</span></td><td>Power</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="source">AWG → mm² is approximate; IEC/BS cables are rated by nominal CSA and the nearest IEC size may differ slightly from the exact AWG area.</div>
+  </section>
+
+  <!-- ── Disclaimer (kept, per CLAUDE.md) ───────────────── -->
+  <footer class="site">
+    <strong>Reference only.</strong> Always verify against official datasheets, standards, and project specifications before ordering, installing, or certifying.
+    Ex classifications and EPL assignments must be verified by a competent person per IEC 60079-14 / NORSOK E-001.
+    <span class="mono" style="float:right">M.E.T. v3.9</span>
+  </footer>
+
+  <!-- ── Design notes (this preview only — deleted at rollout) ── -->
+  <div class="dnotes">
+    <b>Design notes — for review, not part of the app.</b>
+    <ul>
+      <li><b>Zero chrome emoji.</b> Headers are datasheet-style numbered kickers (Rajdhani, tracked small caps + hairline rule). The only iconography is a 10-icon inline SVG set for functional controls — identical rendering on every OS.</li>
+      <li><b>One accent.</b> Steel blue marks interactive elements and key result values (OD, current) only. Green/amber/red appear exclusively as engineering judgements — fit status, corrected ratings, warnings. If a colour is on screen, it means something.</li>
+      <li><b>Pills survive only as status badges.</b> Category labels are plain text. The amber "book value only" badge is your tolerance flag from the gland recommender upgrade.</li>
+      <li><b>Density kept.</b> Spec grid packs 13 datasheet fields into the same space as before; mono numerals, units set small and muted, keys in small caps like a Draka table header.</li>
+      <li>Toggle the theme (top right) — light mode is a full equivalent, not an afterthought.</li>
+    </ul>
+    <div class="swatches">
+      <span class="sw"><i style="background:#6CB2F2"></i>accent</span>
+      <span class="sw"><i style="background:#4CAF7D"></i>pass</span>
+      <span class="sw"><i style="background:#D9A13B"></i>warn</span>
+      <span class="sw"><i style="background:#D96A5B"></i>fail</span>
+      <span class="sw"><i style="background:#161A20"></i>surface</span>
+      <span class="sw"><i style="background:#1D232B"></i>surface-2</span>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const btn = document.getElementById('themeBtn');
+const icon = document.getElementById('themeIcon').querySelector('use');
+btn.addEventListener('click', () => {
+  const root = document.documentElement;
+  const light = root.getAttribute('data-theme') === 'light';
+  root.setAttribute('data-theme', light ? 'dark' : 'light');
+  icon.setAttribute('href', light ? '#i-sun' : '#i-moon');
+});
+</script>
+</body>
+</html>
