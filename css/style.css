@@ -558,7 +558,7 @@ table.data tr:hover td { background: var(--surface2); }
 
 /* print styles */
 @media print {
-  #topnav, .version-banner, .card, button { display: none !important; }
+  #topnav, .version-banner, header.app, footer.site, .card, button { display: none !important; }
   #tab-wonder { display: block !important; }
   .wt-summary-card, .gland-card, .wt-table { break-inside: avoid; }
   body { background: #fff; color: #000; }

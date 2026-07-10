@@ -33,19 +33,24 @@ function switchTab(name) {
 }
 
 // ── Dark/Light mode ──
+function setThemeIcon(isLight) {
+  const use = document.querySelector('#themeIcon use');
+  if (use) use.setAttribute('href', isLight ? '#i-sun' : '#i-moon');
+}
+
 function initTheme() {
   const saved = localStorage.getItem('met_theme');
   if (saved === 'light') {
     document.body.classList.add('light-mode');
-    document.getElementById('themeToggle').textContent = '☀️';
   }
+  setThemeIcon(saved === 'light');
 }
 
 function toggleTheme() {
   document.body.classList.toggle('light-mode');
   const isLight = document.body.classList.contains('light-mode');
   localStorage.setItem('met_theme', isLight ? 'light' : 'dark');
-  document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+  setThemeIcon(isLight);
 }
 
 // ── About modal ──
@@ -161,6 +166,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // Version strings (single source of truth: APP_VERSION)
   const verPill = document.getElementById('verBannerPill'); if (verPill) verPill.textContent = 'v' + APP_VERSION;
   const verAbout = document.getElementById('aboutVersion'); if (verAbout) verAbout.textContent = 'v' + APP_VERSION;
+  const verFooter = document.getElementById('footerVersion'); if (verFooter) verFooter.textContent = 'v' + APP_VERSION;
 
   // Restore last tab
   const lastTab = localStorage.getItem('met_lasttab') || 'symbols';
