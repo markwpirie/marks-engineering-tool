@@ -17,7 +17,7 @@ function copyText(txt) {
 }
 
 function makeCopyBox(val, label='') {
-  return `<div class="result-box">${label ? '<span style="color:var(--text2);font-size:0.75rem">'+label+'</span><br>' : ''}<span>${val}</span><button class="copy-btn" onclick="copyText(${JSON.stringify(val)})">Copy</button></div>`;
+  return `<div class="result-box">${label ? '<span style="color:var(--text2);font-size:0.75rem">'+label+'</span><br>' : ''}<span>${val}</span><button class="copy-btn" data-copy="${escapeHtml(val)}" onclick="copyText(this.dataset.copy)">Copy</button></div>`;
 }
 
 // ── Tab routing ──
@@ -156,7 +156,7 @@ function generatePrompt() {
   if (format) prompt += `\n\n<output_format>\n${format}\n</output_format>`;
   const escaped = escapeHtml(prompt);
   const out = document.getElementById('pgOutput');
-  if (out) out.innerHTML = `<div style="white-space:pre-wrap;font-family:var(--mono);font-size:0.82rem;color:var(--accent3);padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;position:relative">${escaped}<button class="copy-btn" onclick="copyText(${JSON.stringify(prompt)})">Copy</button></div>`;
+  if (out) out.innerHTML = `<div style="white-space:pre-wrap;font-family:var(--mono);font-size:0.82rem;color:var(--accent3);padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;position:relative">${escaped}<button class="copy-btn" data-copy="${escapeHtml(prompt)}" onclick="copyText(this.dataset.copy)">Copy</button></div>`;
 }
 
 // ── INIT ──
