@@ -99,7 +99,7 @@
   </div>
 
   <!-- Custom Sections -->
-  <div class="card">
+  <div class="card" id="card-sym-customsections">
     <div class="kicker"><span class="n">1.2</span> Custom Sections</div>
     <div class="flex-row" style="margin-bottom:12px;align-items:flex-end;flex-wrap:wrap;gap:8px">
       <div class="field"><label>Section Name</label><input type="text" id="customSecName" placeholder="My section name"></div>
@@ -116,7 +116,7 @@
   </div>
 
   <!-- Document Number Generator -->
-  <div class="card">
+  <div class="card" id="card-sym-docnumber">
     <div class="kicker"><span class="n">1.3</span> Document Number Generator — IP-QF-023 (MDR)</div>
 
     <div class="field">
@@ -181,7 +181,7 @@
 
   <div class="grid2">
     <!-- DECODER -->
-    <div class="card">
+    <div class="card" id="card-atex-decoder">
       <div class="kicker"><span class="n">2.1</span> Decoder — Paste ATEX Marking</div>
       <div class="flex-row">
         <input type="text" id="atexInput" placeholder="e.g. II 2 G Ex d e IIC T4 Gb" style="flex:1" onkeydown="if(event.key==='Enter')decodeATEX()">
@@ -206,7 +206,7 @@
     </div>
 
     <!-- ENCODER -->
-    <div class="card">
+    <div class="card" id="card-atex-encoder">
       <div class="kicker"><span class="n">2.2</span> Encoder — Build ATEX Marking</div>
       <div class="field"><label>Equipment Group</label><div class="flex-wrap" id="enc-group"></div></div>
       <div class="field"><label>Category</label><div class="flex-wrap" id="enc-cat"></div></div>
@@ -222,7 +222,7 @@
   </div>
 
   <!-- Wallcharts -->
-  <div class="card">
+  <div class="card" id="card-atex-wallchart">
     <div class="kicker"><span class="n">2.3</span> Reference Wallchart</div>
     <div class="flex-wrap" style="gap:10px">
       <button class="btn primary" onclick="window.open('pdfs/exveritas_wallchart.pdf','_blank')">Ex Veritas Wallchart</button>
@@ -230,7 +230,7 @@
   </div>
 
   <!-- IP Rating Lookup -->
-  <div class="card">
+  <div class="card" id="card-atex-ip">
     <div class="kicker"><span class="n">2.4</span> IP Rating Lookup — IEC 60529</div>
     <div class="flex-wrap" style="margin-bottom:14px">
       <button class="btn" onclick="setIPAtex(6,6)">IP66</button>
@@ -262,7 +262,7 @@
   </div>
 
   <!-- Zone/EPL Matrix -->
-  <div class="card">
+  <div class="card" id="card-atex-zonematrix">
     <div class="kicker"><span class="n">2.5</span> Zone / EPL / Category Compatibility Matrix</div>
     <div id="zoneMatrix"></div>
   </div>
@@ -275,7 +275,7 @@
 <div id="tab-units" class="tab-content">
   <h2>Unit Converter</h2>
 
-  <div class="card">
+  <div class="card" id="card-units-converter">
     <!-- Category buttons -->
     <div class="field" style="margin-bottom:4px"><label>Category</label></div>
     <div class="flex-wrap" id="unitCatBtns" style="margin-bottom:14px;gap:6px"></div>
@@ -301,7 +301,7 @@
   </div>
 
   <!-- SI Prefix Converter -->
-  <div class="card">
+  <div class="card" id="card-units-siprefix">
     <div class="kicker"><span class="n">3.1</span> SI Prefix Converter</div>
     <div class="flex-row" style="align-items:flex-end;gap:12px">
       <div class="field" style="flex:1"><label>Value</label><input type="number" id="si_val" value="1" oninput="calcSI()"></div>
@@ -323,7 +323,7 @@
   <!-- Two-column layout -->
   <div style="display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start">
     <div id="calcList" class="calc-list-sidebar"></div>
-    <div class="card">
+    <div class="card" id="card-calcs-panel">
       <p id="calcDesc" class="calc-desc-text"></p>
       <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
       <div id="calcPanel"></div>
@@ -338,7 +338,7 @@
   <h2>Cable & Gland Reference</h2>
 
   <!-- Cable Selector -->
-  <div class="card">
+  <div class="card" id="card-cable-selector">
     <div class="kicker"><span class="n">5.1</span> Cable Selector — NEK 606 (Cable Solutions)</div>
     <div class="flex-row" style="margin-bottom:16px">
       <div class="field">
@@ -392,7 +392,7 @@
   </div>
 
   <!-- Gland Recommender -->
-  <div class="card">
+  <div class="card" id="card-cable-glandrec">
     <div class="kicker"><span class="n">5.3</span> Gland Recommender — Hawke ATEX/IECEx</div>
     <div class="gland-tabs">
       <button class="btn active" id="gland-metric-btn" onclick="switchGlandTab('metric')">Metric Entry</button>
@@ -402,7 +402,7 @@
   </div>
 
   <!-- AWG/CSA table -->
-  <div class="card">
+  <div class="card" id="card-cable-awgtable">
     <div class="kicker"><span class="n">5.4</span> AWG ↔ CSA Conversion Table</div>
     <div id="awgCsaTable"></div>
     <div class="source">AWG → mm² is approximate. IEC/BS cables are rated by nominal CSA; the nearest IEC size may differ slightly from exact AWG area.</div>
@@ -421,7 +421,7 @@
   </div>
 
   <!-- ── Cable Description Generator ── -->
-  <div class="card">
+  <div class="card" id="card-cable-cabledesc">
     <div class="kicker"><span class="n">5.7</span> Cable Description Generator</div>
     <div class="flex-row" style="flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:flex-end">
 
@@ -497,7 +497,7 @@
   </div>
 
   <!-- ── Gland Part Number Generator ── -->
-  <div class="card">
+  <div class="card" id="card-cable-glandpart">
     <div class="kicker"><span class="n">5.8</span> Gland Part Number Generator</div>
     <div class="flex-row" style="flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:flex-end">
       <div class="field" style="flex:0 0 auto">
@@ -546,7 +546,7 @@
   <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">Enter a motor and supply details — get the correct cable and gland in one step. Based on IEC 60092-352 / NEK 606 / Hawke International.</p>
 
   <!-- Project Details -->
-  <div class="card wt-proj-card">
+  <div class="card wt-proj-card" id="card-wonder-project">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
       <div class="kicker" style="margin:0"><span class="n">6.1</span> Project Details <span style="font-size:0.72rem;font-weight:400;color:var(--text3)">— all fields saved automatically</span></div>
       <button class="btn primary" onclick="wtGeneratePDF()" id="wt_pdf_btn" style="font-size:0.82rem" disabled>Generate PDF</button>
@@ -583,7 +583,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="card-wonder-motor">
     <div class="kicker"><span class="n">6.2</span> Motor & Supply</div>
 
     <div class="field" style="margin-bottom:14px">
@@ -643,7 +643,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="card-wonder-cable">
     <div class="kicker"><span class="n">6.3</span> Cable Selection</div>
     <div class="grid2">
       <div class="field">
@@ -688,7 +688,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="card-wonder-gland">
     <div class="kicker"><span class="n">6.4</span> Gland Selection</div>
     <div class="grid2">
       <div class="field">
@@ -723,7 +723,7 @@
   <div class="grid2">
     <div>
       <!-- NPT Size Lookup -->
-      <div class="card">
+      <div class="card" id="card-npt-lookup">
         <div class="kicker"><span class="n">7.1</span> NPT Size Lookup</div>
         <div class="field">
           <label>NPT Size</label>
@@ -745,7 +745,7 @@
       </div>
 
       <!-- Thread Identifier -->
-      <div class="card">
+      <div class="card" id="card-npt-threadid">
         <div class="kicker"><span class="n">7.2</span> Thread Identifier (from caliper OD)</div>
         <div class="flex-row">
           <div class="field" style="flex:1"><label>Measured Thread OD (mm)</label><input type="number" id="nptOD" placeholder="e.g. 26.4" oninput="identifyNPT()"></div>
@@ -757,7 +757,7 @@
 
     <div>
       <!-- Adapter Cross-Reference -->
-      <div class="card">
+      <div class="card" id="card-npt-adapter">
         <div class="kicker"><span class="n">7.3</span> Adapter Cross-Reference</div>
         <div class="field"><label>NPT Size</label>
           <select id="adapterNPT" onchange="showAdapterInfo()">
@@ -773,7 +773,7 @@
       </div>
 
       <!-- Why NPT naming -->
-      <div class="card">
+      <div class="card" id="card-npt-whynpt">
         <div class="kicker"><span class="n">7.4</span> Why ¾" NPT ≠ ¾" Anything Measurable</div>
         <div style="font-size:0.85rem;line-height:1.7;color:var(--text2)">
           <p>NPT size designations refer to the <strong style="color:var(--text)">nominal bore</strong> of the pipe the thread was designed for — <em>not</em> any directly measurable thread dimension.</p>
@@ -792,7 +792,7 @@
   </div>
 
   <!-- Full NPT reference table -->
-  <div class="card">
+  <div class="card" id="card-npt-fulltable">
     <div class="kicker"><span class="n">7.5</span> Full NPT Reference Table</div>
     <div id="nptFullTable"></div>
   </div>
@@ -864,7 +864,7 @@
 <div id="tab-recycle" class="tab-content">
   <h2>Recycle Bin</h2>
   <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">
-    Custom sections removed via ✕ on their header land here. Restore them or permanently delete them below.
+    Symbols sections removed via ✕ on their header land here. Custom sections can be restored or permanently deleted; built-in sections can only be restored, since their data lives in the app itself.
   </p>
   <div id="recycleBinContent"></div>
 </div>
@@ -907,6 +907,7 @@
 <script src="js/tabs/tab-wonder.js"></script>
 <script src="js/tabs/tab-npt.js"></script>
 <script src="js/tabs/tab-prompts.js"></script>
+<script src="js/reorder.js"></script>
 <script src="js/app.js"></script>
 
 </body>

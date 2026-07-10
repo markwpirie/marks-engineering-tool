@@ -6,6 +6,7 @@
 let snippets        = JSON.parse(localStorage.getItem('met_snippets')    || '[]');
 let customSections  = JSON.parse(localStorage.getItem('met_customsecs')  || '[]');
 let recycledSections= JSON.parse(localStorage.getItem('met_recycled')    || '[]');
+let hiddenSections   = JSON.parse(localStorage.getItem('met_hiddensecs')  || '[]');
 let sectionOrder    = (() => {
   const saved = JSON.parse(localStorage.getItem('met_secorder') || 'null');
   if (!saved || !saved.includes('datetime')) { localStorage.removeItem('met_secorder'); return null; }
@@ -16,6 +17,7 @@ function saveAll() {
   localStorage.setItem('met_snippets',   JSON.stringify(snippets));
   localStorage.setItem('met_customsecs', JSON.stringify(customSections));
   localStorage.setItem('met_recycled',   JSON.stringify(recycledSections));
+  localStorage.setItem('met_hiddensecs', JSON.stringify(hiddenSections));
   localStorage.setItem('met_secorder',   JSON.stringify(getSectionOrder()));
 }
 
@@ -142,18 +144,20 @@ function renderSymbols() {
       const si = parseInt(key.split('_')[1]);
       html += renderCustomSectionCard(si, q, key);
     } else if (typeof key === 'string') {
+      if (hiddenSections.includes(key)) return;
       const spec = SPECIAL_SECTIONS[key];
       if (!spec) return;
       const inner = spec.render(q);
       if (inner === '' && q) return;
-      html += makeDraggableSection(key, `${spec.emoji} ${spec.name}`, inner || '', false);
+      html += makeDraggableSection(key, `${spec.emoji} ${spec.name}`, inner || '', false, makeHideBuiltinBtn(key));
     } else {
+      if (hiddenSections.includes(key)) return;
       const cat = SYMBOL_CATS[key];
       if (!cat) return;
       const filtered = cat.items.filter(([s,l]) => !q || s.toLowerCase().includes(q) || l.toLowerCase().includes(q));
       if (!filtered.length && q) return;
       const inner = `<div class="symbol-grid">${filtered.map(([s,l]) => makeSymCard(s,l)).join('')}</div>`;
-      html += makeDraggableSection(key, `${cat.emoji} ${cat.name}`, inner, false);
+      html += makeDraggableSection(key, `${cat.emoji} ${cat.name}`, inner, false, makeHideBuiltinBtn(key));
     }
   });
 
@@ -380,6 +384,29 @@ function recycleCustomSection(si) {
   renderRecycleBin();
 }
 
+// ── Built-in section hide/restore (Symbols tab ✕) ──
+// Unlike custom sections, no data is deleted here — SYMBOL_CATS and
+// SPECIAL_SECTIONS are code, not user data — so hiding is just a key in
+// met_hiddensecs that renderSymbols() checks, and restoring is removing it.
+function makeHideBuiltinBtn(key) {
+  const arg = typeof key === 'number' ? key : `'${key}'`;
+  return `<button title="Send to Recycle Bin" onclick="event.stopPropagation();recycleBuiltinSection(${arg})" style="background:none;border:none;cursor:pointer;color:var(--text2);font-size:1rem;padding:0 4px">✕</button>`;
+}
+
+function recycleBuiltinSection(key) {
+  if (!hiddenSections.includes(key)) hiddenSections.push(key);
+  saveAll();
+  renderSymbols();
+  renderRecycleBin();
+}
+
+function restoreBuiltinSection(key) {
+  hiddenSections = hiddenSections.filter(k => k !== key);
+  saveAll();
+  renderSymbols();
+  renderRecycleBin();
+}
+
 function addCustomItem(si) {
   const val = document.getElementById('csitem_'+si).value.trim();
   if (!val) return;
@@ -403,15 +430,33 @@ function deleteCustomItem(si,ii) {
 function renderRecycleBin() {
   const el = document.getElementById('recycleBinContent');
   if (!el) return;
-  if (!recycledSections.length) {
+  if (!recycledSections.length && !hiddenSections.length) {
     el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text2)">
       <div style="font-size:2rem;margin-bottom:12px">🗑️</div>
       <div style="font-size:0.95rem;font-weight:600;margin-bottom:8px;color:var(--text)">Nothing here yet</div>
-      <div style="font-size:0.82rem;line-height:1.6">When you remove a custom section using the ✕ button on its header,<br>it moves here instead of being permanently deleted.<br>You can restore it or permanently delete it from here.</div>
+      <div style="font-size:0.82rem;line-height:1.6">When you remove a section using the ✕ button on its header,<br>it moves here instead of being permanently deleted.<br>Custom sections can be restored or permanently deleted; built-in sections can only be restored.</div>
     </div>`;
     return;
   }
-  el.innerHTML = recycledSections.map((sec,i) => `
+  const hiddenCards = hiddenSections.map(key => {
+    const spec = typeof key === 'string' ? SPECIAL_SECTIONS[key] : null;
+    const cat = typeof key === 'number' ? SYMBOL_CATS[key] : null;
+    const name = spec ? spec.name : (cat ? cat.name : 'Unknown section');
+    const emoji = spec ? spec.emoji : (cat ? cat.emoji : '📦');
+    const arg = typeof key === 'number' ? key : `'${key}'`;
+    return `
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:1.5rem">${emoji}</div>
+        <div style="flex:1">
+          <div style="font-weight:600;color:var(--text)">${name}</div>
+          <div style="font-size:0.78rem;color:var(--text2)">Built-in section — hidden</div>
+        </div>
+        <button class="btn" style="font-size:0.78rem" onclick="restoreBuiltinSection(${arg})">Restore</button>
+      </div>
+    </div>`;
+  }).join('');
+  const customCards = recycledSections.map((sec,i) => `
     <div class="card" style="margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="font-size:1.5rem">${sec.emoji||'📌'}</div>
@@ -423,6 +468,7 @@ function renderRecycleBin() {
         <button class="btn danger" style="font-size:0.78rem" onclick="permanentDeleteSection(${i})">Delete</button>
       </div>
     </div>`).join('');
+  el.innerHTML = hiddenCards + customCards;
 }
 
 function restoreSection(i) {

@@ -78,6 +78,8 @@ function exportData() {
     customSections:  JSON.parse(localStorage.getItem('met_customsecs') || '[]'),
     recycledSections:JSON.parse(localStorage.getItem('met_recycled')   || '[]'),
     sectionOrder:    JSON.parse(localStorage.getItem('met_secorder')   || 'null'),
+    hiddenSections:  JSON.parse(localStorage.getItem('met_hiddensecs') || '[]'),
+    cardOrder:       JSON.parse(localStorage.getItem('met_cardorder')  || '{}'),
     theme:           localStorage.getItem('met_theme') || 'dark',
     calcState:       JSON.parse(localStorage.getItem('met_calc_state') || '{}'),
     wonderToolProject: wtProj,
@@ -104,6 +106,8 @@ function importData() {
         if (data.customSections)   localStorage.setItem('met_customsecs', JSON.stringify(data.customSections));
         if (data.recycledSections) localStorage.setItem('met_recycled',   JSON.stringify(data.recycledSections));
         if (data.sectionOrder)     localStorage.setItem('met_secorder',   JSON.stringify(data.sectionOrder));
+        if (data.hiddenSections)   localStorage.setItem('met_hiddensecs', JSON.stringify(data.hiddenSections));
+        if (data.cardOrder)        localStorage.setItem('met_cardorder',  JSON.stringify(data.cardOrder));
         if (data.theme)            localStorage.setItem('met_theme',      data.theme);
         if (data.calcState)        localStorage.setItem('met_calc_state', JSON.stringify(data.calcState));
         if (data.wonderToolProject) Object.entries(data.wonderToolProject).forEach(([k,v]) => localStorage.setItem(k, v));
@@ -112,8 +116,11 @@ function importData() {
         customSections   = JSON.parse(localStorage.getItem('met_customsecs') || '[]');
         recycledSections = JSON.parse(localStorage.getItem('met_recycled')   || '[]');
         sectionOrder     = JSON.parse(localStorage.getItem('met_secorder')   || 'null');
+        hiddenSections   = JSON.parse(localStorage.getItem('met_hiddensecs') || '[]');
+        cardOrder        = JSON.parse(localStorage.getItem('met_cardorder')  || '{}');
         renderSymbols(); renderSnippets(); renderRecycleBin();
         if (typeof initWonderTool === 'function') initWonderTool();
+        if (typeof initCardReorder === 'function') initCardReorder();
         toast('Imported');
       } catch(err) { toast('Import failed: invalid file'); }
     };
@@ -216,6 +223,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Doc number generator
   initDocSearch();
+
+  // Site-wide card drag-reorder (all tabs)
+  initCardReorder();
 
   // Close modals on backdrop click
   document.getElementById('aboutModal').addEventListener('click', e => {

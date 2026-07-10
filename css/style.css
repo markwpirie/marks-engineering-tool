@@ -402,6 +402,8 @@ table.data tr:hover td { background: var(--surface2); }
 /* Drag-reorder */
 .drag-handle { cursor: grab; color: var(--text3); font-size: 1rem; margin-right: 6px; user-select: none; }
 .drag-handle:active { cursor: grabbing; }
+/* Cards with no .kicker row (e.g. the main Units converter, Calcs panel) get the handle as a leading block */
+.card > .drag-handle:first-child { display: block; margin: 0 0 10px; }
 .dragging { opacity: 0.5; }
 .drag-over { border-color: var(--accent) !important; background: var(--surface3) !important; }
 
