@@ -11,7 +11,7 @@ function wtGeneratePDF() {
 
   // Cable comparison table rows
   const tableRows = d.tableSlice.map(e => {
-    const [cores, csa, od, , rated] = e;
+    const { cores, csa, od, current: rated } = e;
     const derated  = +(rated * d.combinedDerating).toFixed(1);
     const totalCap = +(derated * d.parallel).toFixed(1);
     const cmp      = d.showTotal ? totalCap : derated;
@@ -36,32 +36,33 @@ function wtGeneratePDF() {
 
   // Gland data rows
   const gm = d.glandMatch;
+  const glandItem = (k, v) => `<div class="data-item"><div class="k">${k}</div><div class="v">${v}</div></div>`;
   let glandRows = '';
   if (gm) {
-    const fitRow = `<tr><td>Fit vs Cable OD</td><td>${gm.fitsFullTol ? 'Fits full tolerance band (±'+gm.tol+'mm)' : gm.tol ? 'Fits book value only — verify against max tolerance (+'+gm.tol+'mm)' : 'Fits book value (no tolerance data)'}</td></tr>`;
+    const fitRow = glandItem('Fit vs Cable OD', gm.fitsFullTol ? 'Fits full tolerance band (±'+gm.tol+'mm)' : gm.tol ? 'Fits book value only — verify against max tolerance (+'+gm.tol+'mm)' : 'Fits book value (no tolerance data)');
     if (d.glandPref === '453') {
-      glandRows = `
-        <tr><td>Size Ref</td><td>${gm.size}</td></tr>
-        <tr><td>${d.useNPT?'NPT Entry':'Metric Entry'}</td><td>${d.useNPT?gm.npt:gm.metric}</td></tr>
-        <tr><td>Inner Sheath Range</td><td>${gm.innerMin}–${gm.innerMax} mm</td></tr>
-        <tr><td>Outer Sheath Range</td><td>${gm.outerMin}–${gm.outerMax} mm</td></tr>
-        <tr><td>Armour Wire Ø</td><td>${gm.arm1} mm</td></tr>
-        ${fitRow}`;
+      glandRows =
+        glandItem('Size Ref', gm.size) +
+        glandItem(d.useNPT?'NPT Entry':'Metric Entry', d.useNPT?gm.npt:gm.metric) +
+        glandItem('Inner Sheath Range', `${gm.innerMin}–${gm.innerMax} mm`) +
+        glandItem('Outer Sheath Range', `${gm.outerMin}–${gm.outerMax} mm`) +
+        glandItem('Armour Wire Ø', `${gm.arm1} mm`) +
+        fitRow;
     } else if (d.glandPref === '653') {
-      glandRows = `
-        <tr><td>Size Ref</td><td>${gm.size}</td></tr>
-        <tr><td>${d.useNPT?'NPT Entry':'Metric Entry'}</td><td>${d.useNPT?gm.npt:gm.metric}</td></tr>
-        <tr><td>Max Inner Sheath</td><td>${gm.innerMax} mm</td></tr>
-        <tr><td>Max Core Ø</td><td>${gm.coreMax} mm</td></tr>
-        <tr><td>Outer Sheath Range</td><td>${gm.outerMin}–${gm.outerMax} mm</td></tr>
-        ${fitRow}`;
+      glandRows =
+        glandItem('Size Ref', gm.size) +
+        glandItem(d.useNPT?'NPT Entry':'Metric Entry', d.useNPT?gm.npt:gm.metric) +
+        glandItem('Max Inner Sheath', `${gm.innerMax} mm`) +
+        glandItem('Max Core Ø', `${gm.coreMax} mm`) +
+        glandItem('Outer Sheath Range', `${gm.outerMin}–${gm.outerMax} mm`) +
+        fitRow;
     } else {
-      glandRows = `
-        <tr><td>Size Ref</td><td>${gm.size}</td></tr>
-        <tr><td>${d.useNPT?'NPT Entry':'Metric Entry'}</td><td>${d.useNPT?gm.npt:gm.metric}</td></tr>
-        <tr><td>Std Seal OD Range</td><td>${gm.stdMin}–${gm.stdMax} mm</td></tr>
-        ${gm.altMin?`<tr><td>Alt Seal OD Range</td><td>${gm.altMin}–${gm.altMax} mm</td></tr>`:''}
-        ${fitRow}`;
+      glandRows =
+        glandItem('Size Ref', gm.size) +
+        glandItem(d.useNPT?'NPT Entry':'Metric Entry', d.useNPT?gm.npt:gm.metric) +
+        glandItem('Std Seal OD Range', `${gm.stdMin}–${gm.stdMax} mm`) +
+        (gm.altMin ? glandItem('Alt Seal OD Range', `${gm.altMin}–${gm.altMax} mm`) : '') +
+        fitRow;
     }
   }
 
