@@ -87,7 +87,7 @@ function exportData() {
   a.href = URL.createObjectURL(blob);
   a.download = `met-data-${new Date().toISOString().split('T')[0]}.json`;
   a.click();
-  toast('Exported ✅');
+  toast('Exported');
 }
 
 function importData() {
@@ -114,7 +114,7 @@ function importData() {
         sectionOrder     = JSON.parse(localStorage.getItem('met_secorder')   || 'null');
         renderSymbols(); renderSnippets(); renderRecycleBin();
         if (typeof initWonderTool === 'function') initWonderTool();
-        toast('Imported ✅');
+        toast('Imported');
       } catch(err) { toast('Import failed: invalid file'); }
     };
     reader.readAsText(file);
@@ -133,7 +133,7 @@ function resetAllState() {
   if (typeof resetUnitConverter === 'function') resetUnitConverter();
   // Clear Wonder Tool project fields
   Object.keys(localStorage).filter(k => k.startsWith('met_wt_proj_')).forEach(k => localStorage.removeItem(k));
-  toast('All inputs reset to defaults ↺');
+  toast('All inputs reset to defaults');
   // Re-init all tabs
   if (typeof initUnitConverter === 'function') initUnitConverter();
   if (typeof initSIPrefixBtns === 'function') initSIPrefixBtns();

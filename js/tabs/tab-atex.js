@@ -89,17 +89,17 @@ function decodeATEX() {
     if (m) { epl = m; break; }
   }
 
-  if (cat==='1' && epl && !['Ga','Da','Ma'].includes(epl)) warnings.push('⚠️ Category 1 should pair with EPL Ga, Da, or Ma');
-  if (cat==='2' && epl && !['Gb','Db','Mb'].includes(epl)) warnings.push('⚠️ Category 2 should pair with EPL Gb, Db, or Mb');
-  if (cat==='3' && epl && !['Gc','Dc'].includes(epl)) warnings.push('⚠️ Category 3 should pair with EPL Gc or Dc');
-  if (cat==='M1' && epl && epl!=='Ma') warnings.push('⚠️ Category M1 (Group I mining) should pair with EPL Ma');
-  if (cat==='M2' && epl && !['Ma','Mb'].includes(epl)) warnings.push('⚠️ Category M2 (Group I mining) should pair with EPL Ma or Mb');
-  if (prots.includes('ia') && cat && cat!=='1') warnings.push('⚠️ Ex ia is normally Category 1 (EPL Ga)');
-  if (prots.includes('ib') && cat && cat!=='2') warnings.push('⚠️ Ex ib is normally Category 2 (EPL Gb)');
-  if (prots.includes('nA') && cat && cat!=='3') warnings.push('⚠️ Ex nA is normally Category 3 (EPL Gc)');
-  if (prots.includes('ma') && cat && cat!=='1') warnings.push('⚠️ Ex ma is normally Category 1');
-  if (prots.includes('h')) warnings.push('ℹ️ Ex h (special protection) requires site-specific review per IEC 60079-33');
-  if (prots.includes('nL')) warnings.push('⚠️ Ex nL is withdrawn from current IEC 60079-15 — verify whether this marking is legacy or should be Ex ic');
+  if (cat==='1' && epl && !['Ga','Da','Ma'].includes(epl)) warnings.push('Category 1 should pair with EPL Ga, Da, or Ma');
+  if (cat==='2' && epl && !['Gb','Db','Mb'].includes(epl)) warnings.push('Category 2 should pair with EPL Gb, Db, or Mb');
+  if (cat==='3' && epl && !['Gc','Dc'].includes(epl)) warnings.push('Category 3 should pair with EPL Gc or Dc');
+  if (cat==='M1' && epl && epl!=='Ma') warnings.push('Category M1 (Group I mining) should pair with EPL Ma');
+  if (cat==='M2' && epl && !['Ma','Mb'].includes(epl)) warnings.push('Category M2 (Group I mining) should pair with EPL Ma or Mb');
+  if (prots.includes('ia') && cat && cat!=='1') warnings.push('Ex ia is normally Category 1 (EPL Ga)');
+  if (prots.includes('ib') && cat && cat!=='2') warnings.push('Ex ib is normally Category 2 (EPL Gb)');
+  if (prots.includes('nA') && cat && cat!=='3') warnings.push('Ex nA is normally Category 3 (EPL Gc)');
+  if (prots.includes('ma') && cat && cat!=='1') warnings.push('Ex ma is normally Category 1');
+  if (prots.includes('h')) warnings.push({ text: 'Ex h (special protection) requires site-specific review per IEC 60079-33', info: true });
+  if (prots.includes('nL')) warnings.push('Ex nL is withdrawn from current IEC 60079-15 — verify whether this marking is legacy or should be Ex ic');
 
   const rows = [
     ['Equipment Group', grp, grp ? ATEX_DB.group[grp] : null],
@@ -118,13 +118,21 @@ function decodeATEX() {
     html += `<tr><td class="atex-field-name">${name}</td><td style="font-family:var(--mono);color:${color}">${val || '—'}</td><td style="color:var(--text2)">${desc || '<span style="color:var(--danger)">Not identified</span>'}</td></tr>`;
   });
   html += '</tbody></table>';
-  if (warnings.length) {
-    html += '<div style="margin-top:12px">';
-    warnings.forEach(w => { html += `<div style="color:var(--warn);font-size:0.82rem;padding:4px 0">${w}</div>`; });
-    html += '</div>';
-  }
+  html += atexWarningsHtml(warnings);
   html += '</div>';
   document.getElementById('atexDecodeResult').innerHTML = html;
+}
+
+// Renders a list of compatibility warnings as .notice blocks. Each entry is either a plain
+// string (cautionary — amber) or { text, info: true } (advisory — accent-tinted).
+function atexWarningsHtml(warnings) {
+  if (!warnings.length) return '';
+  const rows = warnings.map(w => {
+    const info = typeof w === 'object' && w.info;
+    const text = typeof w === 'object' ? w.text : w;
+    return `<div class="notice${info ? ' info' : ''}" style="margin-top:0"><svg><use href="#i-warn"/></svg><span>${text}</span></div>`;
+  }).join('');
+  return `<div style="margin-top:12px;display:flex;flex-direction:column;gap:6px">${rows}</div>`;
 }
 
 // ENCODER — supports up to 4 protection concepts
@@ -172,16 +180,16 @@ function buildATEX() {
   if (epl) parts.push(epl);
   const marking = parts.join(' ');
   const warnings = [];
-  if (cat==='1' && epl && !['Ga','Da','Ma'].includes(epl)) warnings.push('⚠️ Category 1 should pair with EPL Ga, Da, or Ma');
-  if (cat==='2' && epl && !['Gb','Db','Mb'].includes(epl)) warnings.push('⚠️ Category 2 should pair with EPL Gb, Db');
-  if (cat==='3' && epl && !['Gc','Dc'].includes(epl)) warnings.push('⚠️ Category 3 should pair with EPL Gc or Dc');
-  if (cat==='M1' && epl && epl!=='Ma') warnings.push('⚠️ Category M1 should pair with EPL Ma');
-  if (cat==='M2' && epl && !['Ma','Mb'].includes(epl)) warnings.push('⚠️ Category M2 should pair with EPL Ma or Mb');
-  if (prot.includes('ia') && cat && cat!=='1') warnings.push('⚠️ Ex ia is normally Category 1');
-  if (prot.includes('nA') && cat && cat!=='3') warnings.push('⚠️ Ex nA is normally Category 3');
-  if (prot.includes('nL')) warnings.push('⚠️ Ex nL is withdrawn from current IEC 60079-15 — consider Ex ic instead');
+  if (cat==='1' && epl && !['Ga','Da','Ma'].includes(epl)) warnings.push('Category 1 should pair with EPL Ga, Da, or Ma');
+  if (cat==='2' && epl && !['Gb','Db','Mb'].includes(epl)) warnings.push('Category 2 should pair with EPL Gb, Db');
+  if (cat==='3' && epl && !['Gc','Dc'].includes(epl)) warnings.push('Category 3 should pair with EPL Gc or Dc');
+  if (cat==='M1' && epl && epl!=='Ma') warnings.push('Category M1 should pair with EPL Ma');
+  if (cat==='M2' && epl && !['Ma','Mb'].includes(epl)) warnings.push('Category M2 should pair with EPL Ma or Mb');
+  if (prot.includes('ia') && cat && cat!=='1') warnings.push('Ex ia is normally Category 1');
+  if (prot.includes('nA') && cat && cat!=='3') warnings.push('Ex nA is normally Category 3');
+  if (prot.includes('nL')) warnings.push('Ex nL is withdrawn from current IEC 60079-15 — consider Ex ic instead');
   if (marking.trim()) document.getElementById('encodeResult').innerHTML = makeCopyBox(marking, 'ATEX Marking:');
-  document.getElementById('encodeWarnings').innerHTML = warnings.map(w => `<div style="color:var(--warn);font-size:0.8rem;padding:2px 0">${w}</div>`).join('');
+  document.getElementById('encodeWarnings').innerHTML = atexWarningsHtml(warnings);
 }
 
 function initEncoder() {

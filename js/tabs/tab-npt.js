@@ -73,8 +73,9 @@ function showAdapterInfo() {
     </div>
     <div style="margin-top:10px;font-size:0.82rem"><strong style="color:var(--text2)">Compatible Gland Sizes:</strong> <span>${d.glands}</span></div>
     <div style="margin-top:8px;font-size:0.8rem;color:var(--accent2)">${d.note}</div>
-    <div style="margin-top:10px;background:var(--surface3);border:1px solid var(--warn);border-radius:6px;padding:10px;font-size:0.78rem">
-      <span style="color:var(--warn)">⚠️ MOC Note:</span> Using NPT cable entries in ATEX-classified zones requires a certified NPT-to-metric adapter. Uncertified adapters constitute a derogation requiring a formal Management of Change (MOC) process. Verify ATEX/IECEx/UKEX certificate numbers for both gland and adapter.
+    <div class="notice">
+      <svg><use href="#i-warn"/></svg>
+      <span><strong>MOC Note:</strong> Using NPT cable entries in ATEX-classified zones requires a certified NPT-to-metric adapter. Uncertified adapters constitute a derogation requiring a formal Management of Change (MOC) process. Verify ATEX/IECEx/UKEX certificate numbers for both gland and adapter.</span>
     </div>`;
 }
 

@@ -45,7 +45,7 @@ function initUnitConverter() {
   const catEl = document.getElementById('unitCatBtns');
   if (!catEl) return;
   catEl.innerHTML = Object.entries(UNITS).map(([key, def]) =>
-    `<button class="btn${key===unitActiveCat?' active':''}" onclick="unitSelectCat('${key}')">${def.emoji} ${key}</button>`
+    `<button class="btn${key===unitActiveCat?' active':''}" onclick="unitSelectCat('${key}')">${key}</button>`
   ).join('');
   unitSelectCat(unitActiveCat, true);
 }

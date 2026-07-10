@@ -419,8 +419,8 @@ function renderRecycleBin() {
           <div style="font-weight:600;color:var(--text)">${sec.name}</div>
           <div style="font-size:0.78rem;color:var(--text2)">${sec.items?.length||0} item(s) · Deleted ${new Date(sec.deletedAt).toLocaleDateString('en-GB')}</div>
         </div>
-        <button class="btn" style="font-size:0.78rem" onclick="restoreSection(${i})">↩️ Restore</button>
-        <button class="btn danger" style="font-size:0.78rem" onclick="permanentDeleteSection(${i})">🗑️ Delete</button>
+        <button class="btn" style="font-size:0.78rem" onclick="restoreSection(${i})">Restore</button>
+        <button class="btn danger" style="font-size:0.78rem" onclick="permanentDeleteSection(${i})">Delete</button>
       </div>
     </div>`).join('');
 }

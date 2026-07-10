@@ -4,30 +4,30 @@
 
 // ── Category / Calc registry ──────────────────────────────
 const CALC_REGISTRY = {
-  electrical: { label: '⚡ Electrical', calcs: ['amps','motor_fla','motor_table','motor_start','ohm','kw_kva_kvar','pfc','transformer','voltdrop','fuse','zs','ir','battery','dB','lux','three_phase'] },
-  hvac:       { label: '🌡️ HVAC',       calcs: ['heat_load','ach','duct','chilled_water','pressure_conv'] },
-  mechanical: { label: '⚙️ Mechanical', calcs: ['torque','pump','pipe_velocity','pipe_pressure','thermal_exp'] },
-  offshore:   { label: '🌊 Offshore',   calcs: ['hydrostatic','boyles','vacuum','ventilation'] },
-  general:    { label: '🔢 General',    calcs: ['pct_error','date_calc','vol_shapes','bmi'] }
+  electrical: { label: 'Electrical', calcs: ['amps','motor_fla','motor_table','motor_start','ohm','kw_kva_kvar','pfc','transformer','voltdrop','fuse','zs','ir','battery','dB','lux','three_phase'] },
+  hvac:       { label: 'HVAC',       calcs: ['heat_load','ach','duct','chilled_water','pressure_conv'] },
+  mechanical: { label: 'Mechanical', calcs: ['torque','pump','pipe_velocity','pipe_pressure','thermal_exp'] },
+  offshore:   { label: 'Offshore',   calcs: ['hydrostatic','boyles','vacuum','ventilation'] },
+  general:    { label: 'General',    calcs: ['pct_error','date_calc','vol_shapes','bmi'] }
 };
 const CALC_META = {
-  amps:{label:'⚡ Amps Calculator',instant:true},ohm:{label:'⚡ Ohm\'s Law',instant:true},
-  voltdrop:{label:'📉 Cable Volt Drop',instant:true},
-  kw_kva_kvar:{label:'📐 kW/kVA/kVAR Triangle',instant:true},
-  motor_fla:{label:'🔄 Motor FLA Estimator',instant:true},motor_table:{label:'📋 Motor Data Table',instant:true},motor_start:{label:'🚀 Motor Starting Current',instant:false},
-  pfc:{label:'🔋 Power Factor Correction',instant:true},transformer:{label:'🔌 Transformer Sizing',instant:true},
-  fuse:{label:'🛡️ Fuse / Breaker Sizing',instant:true},zs:{label:'🔁 Earth Fault Loop (Zs)',instant:false},
-  ir:{label:'📊 Insulation Resistance',instant:false},battery:{label:'🔋 Battery / UPS Sizing',instant:false},
-  dB:{label:'📣 dB Converter',instant:true},lux:{label:'💡 Lux / Lighting',instant:true},
-  heat_load:{label:'🌡️ Heat Load',instant:false},ach:{label:'💨 Air Change Rate (ACH)',instant:true},
-  duct:{label:'🟦 Duct Sizing',instant:true},chilled_water:{label:'❄️ Chilled Water Flow',instant:true},
-  pressure_conv:{label:'🧭 Pressure Converter',instant:true},torque:{label:'⚙️ Torque / Shaft Power',instant:true},
-  pump:{label:'🚿 Pump Power',instant:true},pipe_velocity:{label:'🌊 Pipe Flow Velocity',instant:true},
-  pipe_pressure:{label:'📉 Pipe Pressure Drop',instant:false},thermal_exp:{label:'🌡️ Thermal Expansion',instant:true},
-  hydrostatic:{label:'🌊 Hydrostatic Pressure',instant:true},boyles:{label:'💨 Boyle\'s Law',instant:true},
-  vacuum:{label:'🔵 Vacuum Converter',instant:true},ventilation:{label:'💨 Ventilation Rate',instant:true},
-  pct_error:{label:'% Error / Tolerance',instant:true},three_phase:{label:'🔺 3-Phase Power',instant:true},
-  date_calc:{label:'📅 Day/Date Calculator',instant:true},vol_shapes:{label:'📦 Volume Calculator',instant:true},bmi:{label:'🧍 BMI Calculator',instant:true}
+  amps:{label:'Amps Calculator',instant:true},ohm:{label:'Ohm\'s Law',instant:true},
+  voltdrop:{label:'Cable Volt Drop',instant:true},
+  kw_kva_kvar:{label:'kW/kVA/kVAR Triangle',instant:true},
+  motor_fla:{label:'Motor FLA Estimator',instant:true},motor_table:{label:'Motor Data Table',instant:true},motor_start:{label:'Motor Starting Current',instant:false},
+  pfc:{label:'Power Factor Correction',instant:true},transformer:{label:'Transformer Sizing',instant:true},
+  fuse:{label:'Fuse / Breaker Sizing',instant:true},zs:{label:'Earth Fault Loop (Zs)',instant:false},
+  ir:{label:'Insulation Resistance',instant:false},battery:{label:'Battery / UPS Sizing',instant:false},
+  dB:{label:'dB Converter',instant:true},lux:{label:'Lux / Lighting',instant:true},
+  heat_load:{label:'Heat Load',instant:false},ach:{label:'Air Change Rate (ACH)',instant:true},
+  duct:{label:'Duct Sizing',instant:true},chilled_water:{label:'Chilled Water Flow',instant:true},
+  pressure_conv:{label:'Pressure Converter',instant:true},torque:{label:'Torque / Shaft Power',instant:true},
+  pump:{label:'Pump Power',instant:true},pipe_velocity:{label:'Pipe Flow Velocity',instant:true},
+  pipe_pressure:{label:'Pipe Pressure Drop',instant:false},thermal_exp:{label:'Thermal Expansion',instant:true},
+  hydrostatic:{label:'Hydrostatic Pressure',instant:true},boyles:{label:'Boyle\'s Law',instant:true},
+  vacuum:{label:'Vacuum Converter',instant:true},ventilation:{label:'Ventilation Rate',instant:true},
+  pct_error:{label:'% Error / Tolerance',instant:true},three_phase:{label:'3-Phase Power',instant:true},
+  date_calc:{label:'Day/Date Calculator',instant:true},vol_shapes:{label:'Volume Calculator',instant:true},bmi:{label:'BMI Calculator',instant:true}
 };
 const CALC_DESC = {
   amps:'Solve for current (Amps) from kW, kVA or kVAR at any voltage. Supports DC, single-phase and three-phase. Three-phase assumes balanced load. Power factor required for kW→A conversion.',
@@ -176,7 +176,7 @@ function resultGrid(items) {
 }
 
 function formulaNote(f) {
-  return `<div class="calc-formula">📐 ${f}</div>`;
+  return `<div class="calc-formula">${f}</div>`;
 }
 
 function warnBand(val, lo, hi) {
@@ -419,7 +419,7 @@ function htmlMotorFLA(){
   </div>
 
   <div class="field"><label>Voltage (Line-to-Line)</label>${voltSelect('fla_volt','calcMotorFLA()',400)}
-    <div id="fla_volt_hint" style="display:none;margin-top:6px;font-size:0.78rem;color:var(--accent2)">💡 Typical 50 Hz: 380 V, 400 V, 415 V, 440 V</div>
+    <div id="fla_volt_hint" style="display:none;margin-top:6px;font-size:0.78rem;color:var(--accent2)">Typical 50 Hz: 380 V, 400 V, 415 V, 440 V</div>
   </div>
 
   <div class="field"><label>Power Factor <span id="fla_pf_src" style="font-size:0.75rem;color:var(--accent2);font-weight:400"></span></label>
@@ -432,8 +432,9 @@ function htmlMotorFLA(){
   <div class="field" id="fla_60hz_factor_row" style="display:none">
     <label>60 Hz power uprate factor <span style="color:var(--text2);font-weight:400">(applied to nameplate kW, not directly to FLA)</span></label>
     <input type="number" id="fla_60hz_factor" value="1.2" step="0.01" min="1" max="1.3" oninput="calcMotorFLA()">
-    <div style="margin-top:6px;padding:8px 10px;background:var(--warn-bg,#3a2e00);border-left:3px solid var(--warn);border-radius:4px;font-size:0.77rem;color:var(--warn);line-height:1.6">
-      ⚠️ Running a 50 Hz motor on 60 Hz — with supply voltage raised proportionally (V/Hz ratio held constant) — typically increases synchronous speed and shaft power capability by ~20% (factor 1.2), while resulting FLA stays close to the 50 Hz nameplate value. If the voltage is <strong>not</strong> raised, do not apply a power uprate — set this factor to 1.0. Always verify on nameplate or with the manufacturer before energising.
+    <div class="notice">
+      <svg><use href="#i-warn"/></svg>
+      <span>Running a 50 Hz motor on 60 Hz — with supply voltage raised proportionally (V/Hz ratio held constant) — typically increases synchronous speed and shaft power capability by ~20% (factor 1.2), while resulting FLA stays close to the 50 Hz nameplate value. If the voltage is <strong>not</strong> raised, do not apply a power uprate — set this factor to 1.0. Always verify on nameplate or with the manufacturer before energising.</span>
     </div>
   </div>
 
@@ -473,13 +474,13 @@ function flaSetHz(hz) {
   const hintEl  = document.getElementById('fla_volt_hint');
   if (hz === 50) {
     if (voltSel && ['460','480'].includes(voltSel.value)) voltSel.value = '400';
-    if (hintEl) { hintEl.textContent = '💡 Typical 50 Hz: 380 V, 400 V, 415 V, 440 V'; hintEl.style.display = 'block'; }
+    if (hintEl) { hintEl.textContent = 'Typical 50 Hz: 380 V, 400 V, 415 V, 440 V'; hintEl.style.display = 'block'; }
   } else if (hz === 60) {
     if (voltSel && ['400','415'].includes(voltSel.value)) voltSel.value = '460';
-    if (hintEl) { hintEl.textContent = '💡 Typical 60 Hz: 440 V, 460 V, 480 V'; hintEl.style.display = 'block'; }
+    if (hintEl) { hintEl.textContent = 'Typical 60 Hz: 440 V, 460 V, 480 V'; hintEl.style.display = 'block'; }
   } else {
     if (voltSel && ['400','415'].includes(voltSel.value)) voltSel.value = '460';
-    if (hintEl) { hintEl.textContent = '💡 Enter the 60 Hz supply voltage — typical 440 V, 460 V, 480 V'; hintEl.style.display = 'block'; }
+    if (hintEl) { hintEl.textContent = 'Enter the 60 Hz supply voltage — typical 440 V, 460 V, 480 V'; hintEl.style.display = 'block'; }
   }
   flaApplyLookup();
 }
@@ -698,7 +699,7 @@ function calcZs(){
   const r=document.getElementById('zsResult'); if(!r) return;
   if([ze,r1,r2].some(isNaN)){r.innerHTML='Enter all values';return;}
   const zs=ze+r1+r2,limit=ZS_LIMITS[dev]||999,ia=230/zs,pass=zs<=limit;
-  r.innerHTML=resultGrid([['Zs (total)',fmtN(zs,3),'Ω',pass?'var(--success)':'var(--danger)'],['Max permitted',limit===999?'N/A':limit,'Ω'],['Fault Current (Ia)',fmtN(ia,1),'A'],['Compliance',pass?'✅ PASS':'❌ FAIL','',pass?'var(--success)':'var(--danger)']]);
+  r.innerHTML=resultGrid([['Zs (total)',fmtN(zs,3),'Ω',pass?'var(--success)':'var(--danger)'],['Max permitted',limit===999?'N/A':limit,'Ω'],['Fault Current (Ia)',fmtN(ia,1),'A'],['Compliance',pass?'PASS':'FAIL','',pass?'var(--success)':'var(--danger)']]);
 }
 
 function htmlIR(){
@@ -813,8 +814,9 @@ function calcLux(){
   const r=document.getElementById('luxResult'); if(!r) return;
   if([l,w,lm,n].some(isNaN)){r.innerHTML='';return;}
   const lux=n*lm*0.65*mf/(l*w);
-  const guide=lux>=500?'Control Room ✅':lux>=300?'Workshop ✅':lux>=150?'General area ✅':'Below minimum ⚠️';
-  r.innerHTML=resultGrid([['Average Illuminance',fmtN(lux,0),'lux','var(--accent)'],['Area',fmtN(l*w,1),'m²'],['Offshore guide',guide,'']]);
+  const guide=lux>=500?'Control Room':lux>=300?'Workshop':lux>=150?'General area':'Below minimum';
+  const guideColor=lux>=150?'var(--success)':'var(--warn)';
+  r.innerHTML=resultGrid([['Average Illuminance',fmtN(lux,0),'lux','var(--accent)'],['Area',fmtN(l*w,1),'m²'],['Offshore guide',guide,'',guideColor]]);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -876,8 +878,9 @@ function calcACH(){
   const r=document.getElementById('achResult'); if(!r) return;
   if([vol,flow].some(isNaN)){r.innerHTML='';return;}
   const ach=flow/vol;
-  const guide=ach>=12?'Battery room min ✅':ach>=6?'Accommodation ✅':ach>=4?'Low':'Below typical minimum';
-  r.innerHTML=resultGrid([['Air Changes/Hour',fmtN(ach,1),'ACH','var(--accent)'],['Offshore Guide',guide,'']]);
+  const guide=ach>=12?'Battery room min':ach>=6?'Accommodation':ach>=4?'Low':'Below typical minimum';
+  const guideColor=ach>=6?'var(--success)':ach>=4?'var(--warn)':'var(--danger)';
+  r.innerHTML=resultGrid([['Air Changes/Hour',fmtN(ach,1),'ACH','var(--accent)'],['Offshore Guide',guide,'',guideColor]]);
 }
 
 function htmlDuct(){
@@ -996,7 +999,7 @@ function calcPipeVelocity(){
   const r=document.getElementById('pvResult'); if(!r) return;
   if([bore,q].some(isNaN)||bore<=0){r.innerHTML='';return;}
   const area=Math.PI*(bore/2)**2,vel=q/area;
-  r.innerHTML=resultGrid([['Pipe Area',fmtN(area*1e4,2),'cm²'],['Velocity',fmtN(vel,3),'m/s',warnBand(vel,2,3)],['Assessment',vel>3?'⚠️ High — erosion risk':vel>2?'⚠️ Above seawater limit':'✅ Acceptable','']]);
+  r.innerHTML=resultGrid([['Pipe Area',fmtN(area*1e4,2),'cm²'],['Velocity',fmtN(vel,3),'m/s',warnBand(vel,2,3)],['Assessment',vel>3?'High — erosion risk':vel>2?'Above seawater limit':'Acceptable','',warnBand(vel,2,3)]]);
 }
 
 function htmlPipePressure(){
@@ -1156,7 +1159,7 @@ function calcPctError(){
   if([ref,meas].some(isNaN)||ref===0){r.innerHTML='';return;}
   const err=Math.abs(meas-ref)/Math.abs(ref)*100;
   const pass=err<=tol;
-  r.innerHTML=resultGrid([['% Error',fmtN(err,4)+'%','',pass?'var(--success)':'var(--danger)'],['Tolerance',fmtN(tol,2)+'%',''],['Result',pass?'✅ Within tolerance':'❌ Out of tolerance','',pass?'var(--success)':'var(--danger)'],['Absolute Error',fmtN(Math.abs(meas-ref),4),'']]);
+  r.innerHTML=resultGrid([['% Error',fmtN(err,4)+'%','',pass?'var(--success)':'var(--danger)'],['Tolerance',fmtN(tol,2)+'%',''],['Result',pass?'Within tolerance':'Out of tolerance','',pass?'var(--success)':'var(--danger)'],['Absolute Error',fmtN(Math.abs(meas-ref),4),'']]);
 }
 
 function htmlThreePhase(){
@@ -1185,8 +1188,8 @@ function htmlDateCalc(){
   return `<div class="grid2">
     <div>
       <div class="cal-pick-btns">
-        <button class="btn active" id="calPicking1" onclick="calSetActive(1)" style="border-color:var(--accent)">📍 Set Date A (blue)</button>
-        <button class="btn" id="calPicking2" onclick="calSetActive(2)">📍 Set Date B (orange)</button>
+        <button class="btn active" id="calPicking1" onclick="calSetActive(1)" style="border-color:var(--accent)">Set Date A</button>
+        <button class="btn" id="calPicking2" onclick="calSetActive(2)">Set Date B</button>
       </div>
       <div id="calWidget" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px"></div>
       <p style="margin-top:8px;font-size:0.75rem;color:var(--text2)">Click to set <span style="color:var(--accent)">Date A</span>, then <span style="color:var(--accent2)">Date B</span>. Today = <span style="color:var(--accent4)">amber</span>.</p>
@@ -1388,8 +1391,9 @@ function htmlMotorTable() {
     </div>
   </div>
 
-  <div id="mt_60hz_note" style="display:none;margin-bottom:12px;padding:8px 12px;background:var(--warn-bg,#3a2e00);border-left:3px solid var(--warn);border-radius:4px;font-size:0.77rem;color:var(--warn);line-height:1.6">
-    ⚠️ 60 Hz mode: kW column shows effective output (IEC frame rating × factor). IEC frame column shows the original 50 Hz nameplate rating. Factor &gt;1 = uprate, &lt;1 = derate. Voltage auto-set to 460 V — adjust if needed. Always confirm with manufacturer.
+  <div id="mt_60hz_note" class="notice" style="display:none">
+    <svg><use href="#i-warn"/></svg>
+    <span>60 Hz mode: kW column shows effective output (IEC frame rating × factor). IEC frame column shows the original 50 Hz nameplate rating. Factor &gt;1 = uprate, &lt;1 = derate. Voltage auto-set to 460 V — adjust if needed. Always confirm with manufacturer.</span>
   </div>
 
   <div style="overflow-x:auto">
@@ -1421,7 +1425,7 @@ function mtSetHz(hz) {
   const factRow = document.getElementById('mt_factor_row');
   const note    = document.getElementById('mt_60hz_note');
   if (factRow) factRow.style.display = hz===60 ? 'block' : 'none';
-  if (note)    note.style.display    = hz===60 ? 'block' : 'none';
+  if (note)    note.style.display    = hz===60 ? 'flex' : 'none';
   const voltSel = document.getElementById('mt_volt');
   if (voltSel) {
     if (hz===60 && ['380','400','415'].includes(voltSel.value)) voltSel.value = '460';
@@ -1439,7 +1443,7 @@ function mtSetIE(ie) {
 function mtToggleRPM() {
   mtShowRPM = !mtShowRPM;
   const btn = document.getElementById('mt_rpm_toggle');
-  if (btn) { btn.textContent = mtShowRPM ? '✅ RPM shown' : 'Show RPM'; btn.classList.toggle('active', mtShowRPM); }
+  if (btn) { btn.textContent = mtShowRPM ? 'RPM shown' : 'Show RPM'; btn.classList.toggle('active', mtShowRPM); }
   renderMotorTable();
 }
 

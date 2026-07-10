@@ -148,8 +148,8 @@ function showCableResult() {
     <div class="gland-info-item"><div class="key">Min. Bend Radius</div><div class="val">${minBend} mm (8×OD install) / ${fixedBend} mm (6×OD fixed)</div></div>
     ${extras}
     <div class="gland-info-item" style="grid-column:1/-1"><div class="key">Colour Code</div><div class="val" style="font-size:0.8rem">${data.colourCode}</div></div>
-    ${entry.unverified ? `<div class="gland-info-item" style="grid-column:1/-1"><div class="val" style="color:var(--warn)">⚠️ Unverified — not present in the Draka NEK 606 datasheet; retained from the previous dataset. Confirm with manufacturer before use.</div></div>` : ''}
-  </div>`;
+  </div>
+  ${entry.unverified ? `<div class="notice"><svg><use href="#i-warn"/></svg><span>Unverified — not present in the Draka NEK 606 datasheet; retained from the previous dataset. Confirm with manufacturer before use.</span></div>` : ''}`;
 
   document.getElementById('cableResult').innerHTML = html;
   const tcSec = document.getElementById('tempCorrSection');
