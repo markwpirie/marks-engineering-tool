@@ -27,7 +27,8 @@ function decodeATEX() {
   const warnings = [];
 
   const grp = tokens.find(t => t==='I' || t==='II');
-  const cat = tokens.find(t => ['1','2','3'].includes(t));
+  const catToken = tokens.find(t => ['1','2','3'].includes(t) || ['m1','m2'].includes(t.toLowerCase()));
+  const cat = catToken ? (['1','2','3'].includes(catToken) ? catToken : catToken.toUpperCase()) : null;
 
   // Env — case-insensitive GD before G/D
   const envRaw = tokens.find(t => t.toUpperCase()==='GD') ||
@@ -91,11 +92,14 @@ function decodeATEX() {
   if (cat==='1' && epl && !['Ga','Da','Ma'].includes(epl)) warnings.push('⚠️ Category 1 should pair with EPL Ga, Da, or Ma');
   if (cat==='2' && epl && !['Gb','Db','Mb'].includes(epl)) warnings.push('⚠️ Category 2 should pair with EPL Gb, Db, or Mb');
   if (cat==='3' && epl && !['Gc','Dc'].includes(epl)) warnings.push('⚠️ Category 3 should pair with EPL Gc or Dc');
+  if (cat==='M1' && epl && epl!=='Ma') warnings.push('⚠️ Category M1 (Group I mining) should pair with EPL Ma');
+  if (cat==='M2' && epl && !['Ma','Mb'].includes(epl)) warnings.push('⚠️ Category M2 (Group I mining) should pair with EPL Ma or Mb');
   if (prots.includes('ia') && cat && cat!=='1') warnings.push('⚠️ Ex ia is normally Category 1 (EPL Ga)');
   if (prots.includes('ib') && cat && cat!=='2') warnings.push('⚠️ Ex ib is normally Category 2 (EPL Gb)');
   if (prots.includes('nA') && cat && cat!=='3') warnings.push('⚠️ Ex nA is normally Category 3 (EPL Gc)');
   if (prots.includes('ma') && cat && cat!=='1') warnings.push('⚠️ Ex ma is normally Category 1');
   if (prots.includes('h')) warnings.push('ℹ️ Ex h (special protection) requires site-specific review per IEC 60079-33');
+  if (prots.includes('nL')) warnings.push('⚠️ Ex nL is withdrawn from current IEC 60079-15 — verify whether this marking is legacy or should be Ex ic');
 
   const rows = [
     ['Equipment Group', grp, grp ? ATEX_DB.group[grp] : null],
@@ -171,8 +175,11 @@ function buildATEX() {
   if (cat==='1' && epl && !['Ga','Da','Ma'].includes(epl)) warnings.push('⚠️ Category 1 should pair with EPL Ga, Da, or Ma');
   if (cat==='2' && epl && !['Gb','Db','Mb'].includes(epl)) warnings.push('⚠️ Category 2 should pair with EPL Gb, Db');
   if (cat==='3' && epl && !['Gc','Dc'].includes(epl)) warnings.push('⚠️ Category 3 should pair with EPL Gc or Dc');
+  if (cat==='M1' && epl && epl!=='Ma') warnings.push('⚠️ Category M1 should pair with EPL Ma');
+  if (cat==='M2' && epl && !['Ma','Mb'].includes(epl)) warnings.push('⚠️ Category M2 should pair with EPL Ma or Mb');
   if (prot.includes('ia') && cat && cat!=='1') warnings.push('⚠️ Ex ia is normally Category 1');
   if (prot.includes('nA') && cat && cat!=='3') warnings.push('⚠️ Ex nA is normally Category 3');
+  if (prot.includes('nL')) warnings.push('⚠️ Ex nL is withdrawn from current IEC 60079-15 — consider Ex ic instead');
   if (marking.trim()) document.getElementById('encodeResult').innerHTML = makeCopyBox(marking, 'ATEX Marking:');
   document.getElementById('encodeWarnings').innerHTML = warnings.map(w => `<div style="color:var(--warn);font-size:0.8rem;padding:2px 0">${w}</div>`).join('');
 }
@@ -180,9 +187,11 @@ function buildATEX() {
 function initEncoder() {
   mkEncBtns('enc-group', [['I','Mining','Group I: Mining'],['II','Surface','Group II: Surface']], 'group');
   mkEncBtns('enc-cat', [
-    ['1','Zone 0/20','Category 1 — highest protection'],
-    ['2','Zone 1/21','Category 2 — high protection'],
-    ['3','Zone 2/22','Category 3 — normal protection']
+    ['1','Zone 0/20','Category 1 — highest protection (Group II)'],
+    ['2','Zone 1/21','Category 2 — high protection (Group II)'],
+    ['3','Zone 2/22','Category 3 — normal protection (Group II)'],
+    ['M1','Zone M1','Category M1 — Group I mining, remains energised in explosive atmosphere'],
+    ['M2','Zone M2','Category M2 — Group I mining, de-energised if explosive atmosphere present']
   ], 'cat');
   mkEncBtns('enc-env', [['G','Gas/Vapour','Gas or vapour environment'],['D','Dust','Dust environment']], 'env');
   mkEncBtns('enc-prot', [

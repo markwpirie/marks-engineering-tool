@@ -2,6 +2,8 @@
 // M.E.T. — MAIN APP
 // ══════════════════════════════════════════════════════════
 
+const APP_VERSION = '3.8';
+
 // ── Utility ──
 function toast(msg) {
   const t = document.getElementById('toast');
@@ -55,15 +57,25 @@ function closeAbout() {
 }
 
 // ── Export / Import JSON ──
+// Keys of the form met_wt_proj_* (Wonder Tool project fields) are collected by prefix scan
+// since there are several of them and the list may grow.
+function wtProjKeys() {
+  return Object.keys(localStorage).filter(k => k.startsWith('met_wt_proj_'));
+}
+
 function exportData() {
+  const wtProj = {};
+  wtProjKeys().forEach(k => { wtProj[k] = localStorage.getItem(k); });
   const data = {
-    version: '3.8',
+    version: APP_VERSION,
     exported: new Date().toISOString(),
     snippets:        JSON.parse(localStorage.getItem('met_snippets')   || '[]'),
     customSections:  JSON.parse(localStorage.getItem('met_customsecs') || '[]'),
     recycledSections:JSON.parse(localStorage.getItem('met_recycled')   || '[]'),
     sectionOrder:    JSON.parse(localStorage.getItem('met_secorder')   || 'null'),
     theme:           localStorage.getItem('met_theme') || 'dark',
+    calcState:       JSON.parse(localStorage.getItem('met_calc_state') || '{}'),
+    wonderToolProject: wtProj,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -88,12 +100,15 @@ function importData() {
         if (data.recycledSections) localStorage.setItem('met_recycled',   JSON.stringify(data.recycledSections));
         if (data.sectionOrder)     localStorage.setItem('met_secorder',   JSON.stringify(data.sectionOrder));
         if (data.theme)            localStorage.setItem('met_theme',      data.theme);
+        if (data.calcState)        localStorage.setItem('met_calc_state', JSON.stringify(data.calcState));
+        if (data.wonderToolProject) Object.entries(data.wonderToolProject).forEach(([k,v]) => localStorage.setItem(k, v));
         // Reload live state
         snippets         = JSON.parse(localStorage.getItem('met_snippets')   || '[]');
         customSections   = JSON.parse(localStorage.getItem('met_customsecs') || '[]');
         recycledSections = JSON.parse(localStorage.getItem('met_recycled')   || '[]');
         sectionOrder     = JSON.parse(localStorage.getItem('met_secorder')   || 'null');
         renderSymbols(); renderSnippets(); renderRecycleBin();
+        if (typeof initWonderTool === 'function') initWonderTool();
         toast('Imported ✅');
       } catch(err) { toast('Import failed: invalid file'); }
     };
@@ -107,16 +122,19 @@ function resetAllState() {
   if (!confirm('Reset all calculator inputs to defaults? This clears saved values for all tabs.')) return;
   // Clear calc-specific state
   if (typeof clearAllCalcState === 'function') clearAllCalcState();
-  // Clear SI prefix state
-  if (typeof siActiveMult !== 'undefined') { window.siActiveMult = 1; }
-  // Clear unit converter selections
-  if (typeof unitActiveCat !== 'undefined') { window.unitActiveCat = 'Temperature'; }
+  // Clear SI prefix / unit converter selections (these are module-scoped `let` bindings, not
+  // window properties, so they must be reset via dedicated functions — see tab-units.js)
+  if (typeof resetSIPrefix === 'function') resetSIPrefix();
+  if (typeof resetUnitConverter === 'function') resetUnitConverter();
+  // Clear Wonder Tool project fields
+  Object.keys(localStorage).filter(k => k.startsWith('met_wt_proj_')).forEach(k => localStorage.removeItem(k));
   toast('All inputs reset to defaults ↺');
   // Re-init all tabs
   if (typeof initUnitConverter === 'function') initUnitConverter();
   if (typeof initSIPrefixBtns === 'function') initSIPrefixBtns();
   if (typeof calcSI === 'function') calcSI();
   if (typeof initCalcs === 'function') initCalcs();
+  if (typeof initWonderTool === 'function') initWonderTool();
 }
 
 // ── Prompt generator ──
@@ -131,7 +149,7 @@ function generatePrompt() {
   if (context) prompt += `<context>\n${context}\n</context>\n\n`;
   if (task) prompt += `<instructions>\n${task}\n</instructions>`;
   if (format) prompt += `\n\n<output_format>\n${format}\n</output_format>`;
-  const escaped = prompt.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const escaped = escapeHtml(prompt);
   const out = document.getElementById('pgOutput');
   if (out) out.innerHTML = `<div style="white-space:pre-wrap;font-family:var(--mono);font-size:0.82rem;color:var(--accent3);padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;position:relative">${escaped}<button class="copy-btn" onclick="copyText(${JSON.stringify(prompt)})">Copy</button></div>`;
 }
@@ -139,6 +157,10 @@ function generatePrompt() {
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', () => {
   initTheme();
+
+  // Version strings (single source of truth: APP_VERSION)
+  const verPill = document.getElementById('verBannerPill'); if (verPill) verPill.textContent = 'v' + APP_VERSION;
+  const verAbout = document.getElementById('aboutVersion'); if (verAbout) verAbout.textContent = 'v' + APP_VERSION;
 
   // Restore last tab
   const lastTab = localStorage.getItem('met_lasttab') || 'symbols';

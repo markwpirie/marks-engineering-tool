@@ -12,7 +12,7 @@ const CALC_REGISTRY = {
 };
 const CALC_META = {
   amps:{label:'⚡ Amps Calculator',instant:true},ohm:{label:'⚡ Ohm\'s Law',instant:true},
-  voltdrop:{label:'📉 Cable Volt Drop',instant:true},power_triangle:{label:'📐 kW/kVA/kVAR Triangle',instant:true},
+  voltdrop:{label:'📉 Cable Volt Drop',instant:true},
   kw_kva_kvar:{label:'📐 kW/kVA/kVAR Triangle',instant:true},
   motor_fla:{label:'🔄 Motor FLA Estimator',instant:true},motor_table:{label:'📋 Motor Data Table',instant:true},motor_start:{label:'🚀 Motor Starting Current',instant:false},
   pfc:{label:'🔋 Power Factor Correction',instant:true},transformer:{label:'🔌 Transformer Sizing',instant:true},
@@ -32,9 +32,8 @@ const CALC_META = {
 const CALC_DESC = {
   amps:'Solve for current (Amps) from kW, kVA or kVAR at any voltage. Supports DC, single-phase and three-phase. Three-phase assumes balanced load. Power factor required for kW→A conversion.',
   ohm:'Enter any two of Voltage, Current, Resistance, or Power — the other two are calculated. Based on Ohm\'s Law (V=IR). DC or single-phase AC.',
-  voltdrop:'Calculates voltage drop using conductor resistivity. Flagged against IEC 60364: ≤3% lighting, ≤5% motors. Enter one-way cable length; formula accounts for return path.',
-  power_triangle:'Solve the kW / kVA / kVAR relationship. Enter any two to find the third plus power factor angle. Essential for PFC and generator sizing.',
-  motor_fla:'Estimates full-load current for a 3-phase motor. Select 50 Hz (IEC standard kW ratings), 60 Hz (NEMA HP ratings), or 50 Hz motor running on 60 Hz supply. The 60 Hz mode applies a correction factor (default 1.15×) — running a 50 Hz motor at 60 Hz increases speed by ~20% and raises FLA. Always verify on nameplate and check manufacturer approval before doing so.',
+  voltdrop:'Calculates voltage drop using conductor resistance and reactance. Flagged against IEC 60364: ≤3% lighting, ≤5% motors. Enter one-way cable length; formula accounts for return path and load power factor.',
+  motor_fla:'Estimates full-load current for a 3-phase motor. Select 50 Hz (IEC standard kW ratings), 60 Hz (NEMA HP ratings), or 50 Hz motor running on 60 Hz supply. The 60 Hz mode applies a power uprate factor (default 1.2×) to the nameplate kW — assuming supply voltage is also raised proportionally with frequency — rather than inflating FLA directly; if voltage is not raised, set the factor to 1.0. Always verify on nameplate and check manufacturer approval before doing so.',
   motor_table:'Generated reference table of IEC standard motor ratings at the selected voltage, frequency, and efficiency class. Shows FLC, starting current by method, fuse size, indicative cable CSA, and synchronous speed by pole count (toggle). Values derived from IEC 60034-30-1 typical data — always verify against motor nameplate.',
   motor_start:'Estimates inrush current for different starting methods: DOL (6–8× FLA), Star-Delta (~33% of DOL), Soft Starter (~3× FLA), VFD (~1.5× FLA), Autotransformer (custom tap).',
   pfc:'Calculates kVAR of capacitor bank required to correct power factor. Utilities typically require PF ≥ 0.95. Result is reactive power to add, not physical capacitor size.',
@@ -45,7 +44,7 @@ const CALC_DESC = {
   battery:'Sizes a battery bank (Ah) for UPS / DC systems from load and required backup time. Applies Peukert correction and end-of-discharge. Add 20% design margin.',
   dB:'Converts between dB and power/voltage ratios. Power: dB = 10×log(P2/P1). Voltage: dB = 20×log(V2/V1). Common references: 0dBm = 1mW into 50Ω.',
   lux:'Estimates average illuminance using the Lumen Method. Offshore typical targets: workshops 300 lux, walkways 50 lux, control rooms 500 lux. UF assumed 0.65.',
-  heat_load:'Calculates HVAC load from fabric losses, occupancy, lighting, and equipment. Result in kW and BTU/hr. Simplified — use CIBSE/ASHRAE for detailed design.',
+  heat_load:'Calculates HVAC load from fabric losses, occupancy, and equipment. Assumes a square-footprint room; floor loss/gain optional. Default occupant gain 120W (sensible+latent, working adult). Result in kW and BTU/hr. Simplified — use CIBSE/ASHRAE for detailed design.',
   ach:'Calculates air changes per hour or required airflow. Offshore rules of thumb: accommodation 6–8 ACH, battery rooms 12 ACH minimum, hazardous area purge up to 60 ACH.',
   duct:'Calculates duct size from airflow and target velocity, or vice versa. Typical supply velocity: 5–8 m/s. Higher velocity = more noise and pressure drop.',
   chilled_water:'Calculates chilled water flow rate from cooling load. Q = ṁ × Cp × ΔT. Typical ΔT = 6°C (supply 6°C, return 12°C). Cp water = 4.187 kJ/kg·K.',
@@ -108,7 +107,7 @@ function renderCalcPanel() {
 
 function runInstantCalc(id) {
   const map = {
-    amps:calcAmps, ohm:calcOhm, voltdrop:calcVD, power_triangle:calcPowerTriangle,
+    amps:calcAmps, ohm:calcOhm, voltdrop:calcVD,
     motor_fla:flaApplyLookup, motor_table:renderMotorTable, pfc:calcPFC, transformer:calcTransformer, fuse:calcFuse,
     dB:calcDB, lux:calcLux, ach:calcACH, duct:calcDuct, chilled_water:calcChilledWater,
     pressure_conv:calcPressureConv, torque:calcTorque, pump:calcPump,
@@ -209,7 +208,7 @@ function showManualVolt(id) {
 // ── HTML builders ─────────────────────────────────────────
 function buildCalcHTML(id) {
   const map = {
-    amps:htmlAmps, ohm:htmlOhm, voltdrop:htmlVoltDrop, power_triangle:htmlPowerTriangle,
+    amps:htmlAmps, ohm:htmlOhm, voltdrop:htmlVoltDrop,
     motor_fla:htmlMotorFLA, motor_table:htmlMotorTable, motor_start:htmlMotorStart, pfc:htmlPFC, transformer:htmlTransformer,
     fuse:htmlFuse, zs:htmlZs, ir:htmlIR, battery:htmlBattery, dB:htmlDB, lux:htmlLux,
     heat_load:htmlHeatLoad, ach:htmlACH, duct:htmlDuct, chilled_water:htmlChilledWater,
@@ -295,11 +294,21 @@ function calcOhm() {
   r.innerHTML=resultGrid([['Voltage',fmt(res.V),'V'],['Current',fmt(res.I),'A'],['Resistance',fmt(res.R),'Ω'],['Power',fmt(res.P),'W']]);
 }
 
+// Resistance mΩ/m (one-way conductor), representative multicore values at ~90°C conductor
+// temperature (NEK606/IEC 60092-352 style) — NOT 20°C DC copper. Any CSA not in this table
+// falls back to 17.241/csa (a 20°C DC copper approximation), so results near table boundaries
+// may show a small step; this is a known, documented approximation, not a bug.
 const RESISTIVITY={
   1.5:{cu:12.13,al:19.87},2.5:{cu:7.41,al:12.10},4:{cu:4.61,al:7.54},6:{cu:3.08,al:5.02},
   10:{cu:1.83,al:2.99},16:{cu:1.15,al:1.87},25:{cu:0.727,al:1.20},35:{cu:0.524,al:0.868},
   50:{cu:0.387,al:0.641},70:{cu:0.268,al:0.443},95:{cu:0.193,al:0.320},120:{cu:0.153,al:0.253},
   150:{cu:0.124,al:0.206},185:{cu:0.0991,al:0.164},240:{cu:0.0754,al:0.125},300:{cu:0.0601,al:0.100}
+};
+// Reactance mΩ/m — typical multicore NEK606 values (copper, PVC/EPR insulated, 50Hz).
+// Applied via VD = factor × I × L × (R·cosφ + X·sinφ) / 1000.
+const REACTANCE={
+  1.5:0.110,2.5:0.103,4:0.096,6:0.090,10:0.084,16:0.080,25:0.079,35:0.076,
+  50:0.076,70:0.074,95:0.073,120:0.072,150:0.072,185:0.072,240:0.089,300:0.087
 };
 
 function htmlVoltDrop() {
@@ -325,8 +334,10 @@ function htmlVoltDrop() {
     <select id="vd_material" onchange="calcVD()"><option value="cu">Copper</option><option value="al">Aluminium</option></select></div>
   <div class="field"><label>Current (A)</label><input type="number" id="vd_current" value="20" oninput="calcVD()"></div>
   <div class="field"><label>One-way cable length (m)</label><input type="number" id="vd_length" value="50" oninput="calcVD()"></div>
+  <div class="field"><label>Load Power Factor</label>
+    <input type="number" id="vd_pf" value="0.85" min="0.01" max="1" step="0.01" oninput="calcVD()"></div>
   <div id="vdResult"></div>
-  ${formulaNote('VD = Factor × ρ × I × L | Factor: 2 (1-phase), √3 (3-phase)')}`;
+  ${formulaNote('VD = Factor × I × L × (R·cosφ + X·sinφ) / 1000 | Factor: 2 (1-phase), √3 (3-phase)')}`;
 }
 
 let vdPhase=1;
@@ -336,15 +347,18 @@ function calcVD(){
   const csa=parseFloat(document.getElementById('vd_csa')?.value);
   const I=parseFloat(document.getElementById('vd_current')?.value);
   const L=parseFloat(document.getElementById('vd_length')?.value);
+  const pf=parseFloat(document.getElementById('vd_pf')?.value);
   const r=document.getElementById('vdResult'); if(!r) return;
-  if([vnom,csa,I,L].some(isNaN)){r.innerHTML='';return;}
+  if([vnom,csa,I,L,pf].some(isNaN)){r.innerHTML='';return;}
   const mat=document.getElementById('vd_material')?.value||'cu';
   const rho=RESISTIVITY[csa]?RESISTIVITY[csa][mat]:17.241/csa;
+  const x=REACTANCE[csa]!=null?REACTANCE[csa]:0.08; // typical fallback for CSAs outside the table
+  const sinPhi=Math.sqrt(Math.max(0,1-pf*pf));
   const factor=vdPhase===3?Math.sqrt(3):2;
-  const vdrop=factor*rho*I*L/1000;
+  const vdrop=factor*I*L*(rho*pf+x*sinPhi)/1000;
   const pct=vdrop/vnom*100;
-  r.innerHTML=resultGrid([['Voltage Drop',fmtN(vdrop,2),'V','var(--accent)'],['% of Nominal',fmtN(pct,2)+'%','',warnBand(pct,3,5)],['Receiving End',fmtN(vnom-vdrop,1),'V']])+
-    `<div style="margin-top:8px;font-size:0.78rem;color:var(--text2)">IEC 60364: ≤3% lighting, ≤5% motors</div>`;
+  r.innerHTML=resultGrid([['Voltage Drop',fmtN(vdrop,2),'V','var(--accent)'],['% of Nominal',fmtN(pct,2)+'%','',warnBand(pct,3,5)],['Receiving End',fmtN(vnom-vdrop,1),'V'],['R / X used',fmtN(rho,3)+' / '+fmtN(x,3),'mΩ/m']])+
+    `<div style="margin-top:8px;font-size:0.78rem;color:var(--text2)">IEC 60364: ≤3% lighting, ≤5% motors. Includes reactance term (X·sinφ) — significant for larger CSAs and lower power factors.</div>`;
 }
 
 function htmlPowerTriangle(){
@@ -370,62 +384,8 @@ function calcPowerTriangle(){
   r.innerHTML=resultGrid([['kW (Active)',fmtN(rKW,3),'kW'],['kVA (Apparent)',fmtN(rKVA,3),'kVA'],['kVAR (Reactive)',fmtN(rKVAR,3),'kVAR'],['Power Factor',fmtN(pf,4),''],['Angle φ',fmtN(angle,2),'°']]);
 }
 
-// IEC standard 50Hz motor kW ratings
-const IEC_KW = [0.09,0.12,0.18,0.25,0.37,0.55,0.75,1.1,1.5,2.2,3,4,5.5,7.5,11,15,18.5,22,30,37,45,55,75,90,110,132,160,200,250,315,355,400,450,500,560,630,710,800,900,1000];
-// NEMA standard 60Hz HP ratings
-const NEMA_HP = [0.5,0.75,1,1.5,2,3,5,7.5,10,15,20,25,30,40,50,60,75,100,125,150,200,250,300,350,400,450,500];
-
-// Typical IE class PF and efficiency by kW — [IE2_eff, IE3_eff, IE4_eff, pf]
-// PF is broadly class-independent (geometry/poles dominate), so one PF column.
-// Source: IEC 60034-30-1, typical published values for 4-pole motors at full load.
-const IEC_MOTOR_DATA = {
-  0.09:  [0.68, 0.72, 0.75, 0.66],
-  0.12:  [0.70, 0.74, 0.77, 0.68],
-  0.18:  [0.73, 0.77, 0.79, 0.70],
-  0.25:  [0.75, 0.79, 0.81, 0.72],
-  0.37:  [0.77, 0.80, 0.82, 0.74],
-  0.55:  [0.79, 0.82, 0.84, 0.76],
-  0.75:  [0.81, 0.83, 0.85, 0.78],
-  1.1:   [0.83, 0.85, 0.87, 0.80],
-  1.5:   [0.84, 0.86, 0.88, 0.81],
-  2.2:   [0.85, 0.87, 0.89, 0.82],
-  3:     [0.86, 0.88, 0.90, 0.83],
-  4:     [0.87, 0.89, 0.91, 0.84],
-  5.5:   [0.88, 0.90, 0.91, 0.85],
-  7.5:   [0.89, 0.91, 0.92, 0.86],
-  11:    [0.90, 0.92, 0.93, 0.86],
-  15:    [0.91, 0.92, 0.93, 0.87],
-  18.5:  [0.91, 0.93, 0.94, 0.87],
-  22:    [0.92, 0.93, 0.94, 0.88],
-  30:    [0.92, 0.94, 0.95, 0.88],
-  37:    [0.93, 0.94, 0.95, 0.88],
-  45:    [0.93, 0.95, 0.95, 0.89],
-  55:    [0.93, 0.95, 0.96, 0.89],
-  75:    [0.94, 0.95, 0.96, 0.89],
-  90:    [0.94, 0.96, 0.96, 0.90],
-  110:   [0.94, 0.96, 0.96, 0.90],
-  132:   [0.95, 0.96, 0.97, 0.90],
-  160:   [0.95, 0.96, 0.97, 0.91],
-  200:   [0.95, 0.96, 0.97, 0.91],
-  250:   [0.95, 0.96, 0.97, 0.91],
-  315:   [0.95, 0.97, 0.97, 0.91],
-  355:   [0.95, 0.97, 0.97, 0.91],
-  400:   [0.95, 0.97, 0.97, 0.92],
-  450:   [0.96, 0.97, 0.97, 0.92],
-  500:   [0.96, 0.97, 0.97, 0.92],
-};
-
-// Find nearest kW entry in lookup (for manual entries)
-function flaLookup(kw, ieClass) {
-  const keys = Object.keys(IEC_MOTOR_DATA).map(Number).sort((a,b)=>a-b);
-  let nearest = keys[0];
-  let minDiff = Infinity;
-  for (const k of keys) { const d=Math.abs(k-kw); if(d<minDiff){minDiff=d;nearest=k;} }
-  const row = IEC_MOTOR_DATA[nearest];
-  if (!row) return {eff:0.92, pf:0.85};
-  const effIdx = ieClass==='IE2'?0 : ieClass==='IE4'?2 : 1; // default IE3
-  return { eff: row[effIdx], pf: row[3] };
-}
+// IEC_KW, NEMA_HP, IEC_MOTOR_DATA, flaLookup(), computeFLA() are defined in js/data-motors.js
+// (shared with tab-wonder.js — see that file's header comment).
 
 function htmlMotorFLA(){
   const iecOpts  = IEC_KW.map(k=>`<option value="${k}"${k===22?' selected':''}>${k} kW</option>`).join('');
@@ -445,7 +405,7 @@ function htmlMotorFLA(){
   </div>
 
   <div class="field" id="fla_nema_row" style="display:none"><label>Motor Power — NEMA standard rating</label>
-    <select id="fla_hp_nema" onchange="calcMotorFLA()">${nemaOpts}<option value="0">Manual…</option></select>
+    <select id="fla_hp_nema" onchange="flaPickNEMA()">${nemaOpts}<option value="0">Manual…</option></select>
     <input type="number" id="fla_hp_nema_manual" placeholder="Manual HP" style="margin-top:6px;display:none" oninput="calcMotorFLA()">
   </div>
 
@@ -470,10 +430,10 @@ function htmlMotorFLA(){
   </div>
 
   <div class="field" id="fla_60hz_factor_row" style="display:none">
-    <label>60 Hz FLA correction factor <span style="color:var(--text2);font-weight:400">(applied to nameplate FLA)</span></label>
-    <input type="number" id="fla_60hz_factor" value="1.15" step="0.01" min="1" max="2" oninput="calcMotorFLA()">
+    <label>60 Hz power uprate factor <span style="color:var(--text2);font-weight:400">(applied to nameplate kW, not directly to FLA)</span></label>
+    <input type="number" id="fla_60hz_factor" value="1.2" step="0.01" min="1" max="1.3" oninput="calcMotorFLA()">
     <div style="margin-top:6px;padding:8px 10px;background:var(--warn-bg,#3a2e00);border-left:3px solid var(--warn);border-radius:4px;font-size:0.77rem;color:var(--warn);line-height:1.6">
-      ⚠️ Running a 50 Hz motor on 60 Hz increases synchronous speed by 20%. Check manufacturer approval, bearing speed limits, and cooling fan performance before energising. Factor 1.15 is a conservative estimate — always verify on nameplate or with manufacturer.
+      ⚠️ Running a 50 Hz motor on 60 Hz — with supply voltage raised proportionally (V/Hz ratio held constant) — typically increases synchronous speed and shaft power capability by ~20% (factor 1.2), while resulting FLA stays close to the 50 Hz nameplate value. If the voltage is <strong>not</strong> raised, do not apply a power uprate — set this factor to 1.0. Always verify on nameplate or with the manufacturer before energising.
     </div>
   </div>
 
@@ -584,17 +544,20 @@ function calcMotorFLA(){
     modeLabel = flaHz===50 ? `${kw} kW (IEC 50 Hz)` : `${kw} kW (50 Hz motor on 60 Hz supply)`;
   }
 
-  const fla50 = (kw*1000)/(Math.sqrt(3)*volt*pf*eff);
+  const fla50 = computeFLA(kw, volt, pf, eff);
   const rows = [];
 
   if(flaHz==='5060') {
-    const factor = parseFloat(document.getElementById('fla_60hz_factor')?.value||1.15);
-    const fla60  = fla50 * factor;
+    const factor = parseFloat(document.getElementById('fla_60hz_factor')?.value||1.2);
+    const kw60   = kw*factor;
+    const fla60  = computeFLA(kw60, volt, pf, eff);
     rows.push(
-      ['Nameplate FLA (50 Hz)', fmtN(fla50,2), 'A'],
-      ['Estimated FLA at 60 Hz', fmtN(fla60,2), 'A', 'var(--accent)'],
-      ['60 Hz correction factor applied', factor, '×'],
-      ['Speed increase', '~20%', '(synchronous)'],
+      ['50 Hz Nameplate kW', fmtN(kw,2), 'kW'],
+      ['60 Hz Uprated kW (× factor)', fmtN(kw60,2), 'kW', 'var(--accent2)'],
+      ['FLA at nameplate kW, no uprate', fmtN(fla50,2), 'A'],
+      ['Estimated FLA at 60 Hz (uprated kW)', fmtN(fla60,2), 'A', 'var(--accent)'],
+      ['Power uprate factor applied', factor, '×'],
+      ['Speed increase', '~20%', '(synchronous, assumes proportional V/Hz)'],
     );
   } else {
     rows.push(
@@ -604,7 +567,9 @@ function calcMotorFLA(){
 
   rows.push(
     ['Rated Power (shaft output)', fmtN(kw,2), 'kW'],
-    ['1.15× Service Factor kW', fmtN(kw*1.15,2), 'kW'],
+  );
+  if (flaHz===60) rows.push(['NEMA 1.15 Service Factor kW', fmtN(kw*1.15,2), 'kW']);
+  rows.push(
     ['Power Input (electrical)', fmtN(kw/eff,2), 'kW'],
     ['Mode', modeLabel, ''],
     ['PF used', pf, ''],
@@ -761,25 +726,47 @@ function calcIR(){
 }
 
 function htmlBattery(){
-  return `<div class="field"><label>Total DC Load (W)</label><input type="number" id="bat_load" value="500"></div>
-  <div class="field"><label>System Voltage (V)</label><input type="number" id="bat_volt" value="24"></div>
-  <div class="field"><label>Required Backup Time (hours)</label><input type="number" id="bat_hrs" value="4" step="0.5"></div>
+  return `<div class="field"><label>Total DC Load (W)</label><input type="number" id="bat_load" value="500" oninput="calcBattery()"></div>
+  <div class="field"><label>System Voltage (V)</label><input type="number" id="bat_volt" value="24" oninput="calcBattery()"></div>
+  <div class="field"><label>Required Backup Time (hours)</label><input type="number" id="bat_hrs" value="4" step="0.5" oninput="calcBattery()"></div>
   <div class="field"><label>Battery Type</label>
-    <select id="bat_type"><option value="0.8">Lead-Acid / VRLA (80% usable)</option><option value="0.9">Li-Ion (90% usable)</option><option value="0.75">Ni-Cd (75% usable)</option></select></div>
+    <select id="bat_type" onchange="batSetType()">
+      <option value="0.8,1.15">Lead-Acid / VRLA (80% usable, Peukert k=1.15)</option>
+      <option value="0.9,1.05">Li-Ion (90% usable, Peukert k=1.05)</option>
+      <option value="0.75,1.10">Ni-Cd (75% usable, Peukert k=1.10)</option></select></div>
+  <div class="field"><label>Peukert Exponent k</label><input type="number" id="bat_k" value="1.15" min="1" max="1.5" step="0.01" oninput="calcBattery()"></div>
+  <div class="field"><label>Rated Hour-Rate H (typically C10 or C20)</label><input type="number" id="bat_H" value="10" min="1" oninput="calcBattery()"></div>
   <button class="btn" onclick="calcBattery()" style="margin-top:8px">Calculate</button>
   <div id="batResult" style="margin-top:12px"></div>
-  ${formulaNote('Ah = (Load/V) × Hours / Usable Capacity | Add 20% design margin')}`;
+  ${formulaNote('C = I × H × (T/H)^(1/k) [Peukert] | Add 20% design margin. k=1.0 ⇒ no Peukert effect (ideal battery).')}`;
+}
+
+function batSetType(){
+  const [usable,k]=(document.getElementById('bat_type')?.value||'0.8,1.15').split(',');
+  document.getElementById('bat_k').value=k;
+  calcBattery();
 }
 
 function calcBattery(){
   const load=parseFloat(document.getElementById('bat_load')?.value);
   const volt=parseFloat(document.getElementById('bat_volt')?.value);
   const hrs=parseFloat(document.getElementById('bat_hrs')?.value);
-  const cap=parseFloat(document.getElementById('bat_type')?.value||0.8);
+  const usable=parseFloat((document.getElementById('bat_type')?.value||'0.8').split(',')[0]);
+  const k=parseFloat(document.getElementById('bat_k')?.value||1.15);
+  const H=parseFloat(document.getElementById('bat_H')?.value||10);
   const r=document.getElementById('batResult'); if(!r) return;
-  if([load,volt,hrs].some(isNaN)){r.innerHTML='';return;}
-  const raw=(load/volt)*hrs/cap;
-  r.innerHTML=resultGrid([['Load Current',fmtN(load/volt,2),'A'],['Minimum Ah',fmtN(raw,1),'Ah'],['Recommended (+20% margin)',fmtN(raw*1.2,1),'Ah','var(--accent)']]);
+  if([load,volt,hrs,k,H].some(isNaN)){r.innerHTML='';return;}
+  const I=load/volt;
+  // Peukert's Law solved for required rated capacity C at hour-rate H, given actual discharge current I over time hrs:
+  // hrs = H × (C/(I×H))^k  ⇒  C = I × H × (hrs/H)^(1/k)
+  const peukertAh=I*H*Math.pow(hrs/H,1/k);
+  const requiredAh=peukertAh/usable;
+  r.innerHTML=resultGrid([
+    ['Load Current',fmtN(I,2),'A'],
+    ['Peukert-corrected Capacity',fmtN(peukertAh,1),'Ah',(k>1.001?'var(--accent)':'')],
+    ['÷ Usable Fraction',fmtN(requiredAh,1),'Ah'],
+    ['Recommended (+20% margin)',fmtN(requiredAh*1.2,1),`Ah @ ${H}h rate`,'var(--accent)']
+  ]);
 }
 
 function htmlDB(){
@@ -841,21 +828,39 @@ function htmlHeatLoad(){
   <div class="field"><label>Indoor Temp (°C)</label><input type="number" id="hl_tin" value="21"></div>
   <div class="field"><label>Outdoor Temp (°C)</label><input type="number" id="hl_tout" value="35"></div>
   <div class="field"><label>Number of Occupants</label><input type="number" id="hl_occ" value="4"></div>
+  <div class="field"><label>Occupant gain (W/person)</label><input type="number" id="hl_occw" value="120" step="5"></div>
+  <div class="field"><label>Include floor in fabric loss?</label>
+    <div class="flex-wrap">
+      <button class="btn active" id="hl_floor_off" onclick="hlSetFloor(false)">Walls + roof only</button>
+      <button class="btn" id="hl_floor_on" onclick="hlSetFloor(true)">Walls + roof + floor</button>
+    </div>
+  </div>
   <div class="field"><label>Equipment Load (W)</label><input type="number" id="hl_equip" value="1000"></div>
   <button class="btn" onclick="calcHeatLoad()" style="margin-top:8px">Calculate</button>
   <div id="hlResult" style="margin-top:12px"></div>
-  ${formulaNote('Q_fabric = U × A × ΔT | Q_occ ≈ 80W/person | Simplified — use CIBSE for design')}`;
+  ${formulaNote('Q_fabric = U × A × ΔT (assumes a square-footprint room) | Q_occ default 120W/person (sensible+latent, working adult) | Simplified — use CIBSE/ASHRAE for design')}`;
+}
+
+let hlIncludeFloor = false;
+function hlSetFloor(on){
+  hlIncludeFloor = on;
+  document.getElementById('hl_floor_off')?.classList.toggle('active', !on);
+  document.getElementById('hl_floor_on')?.classList.toggle('active', on);
+  calcHeatLoad();
 }
 
 function calcHeatLoad(){
   const area=parseFloat(document.getElementById('hl_area')?.value),h=parseFloat(document.getElementById('hl_h')?.value);
   const u=parseFloat(document.getElementById('hl_u')?.value),tin=parseFloat(document.getElementById('hl_tin')?.value);
   const tout=parseFloat(document.getElementById('hl_tout')?.value),occ=parseFloat(document.getElementById('hl_occ')?.value||0);
+  const occW=parseFloat(document.getElementById('hl_occw')?.value||120);
   const equip=parseFloat(document.getElementById('hl_equip')?.value||0);
   const r=document.getElementById('hlResult'); if(!r) return;
   if([area,h,u,tin,tout].some(isNaN)){r.innerHTML='Enter all values';return;}
-  const dt=Math.abs(tout-tin),wallArea=4*Math.sqrt(area)*h+area;
-  const qFabric=u*wallArea*dt,qOcc=occ*80,total=qFabric+qOcc+equip;
+  const dt=Math.abs(tout-tin);
+  const wallRoofArea=4*Math.sqrt(area)*h+area; // perimeter walls (square footprint) + roof
+  const totalFabricArea=hlIncludeFloor ? wallRoofArea+area : wallRoofArea;
+  const qFabric=u*totalFabricArea*dt,qOcc=occ*occW,total=qFabric+qOcc+equip;
   r.innerHTML=resultGrid([['Fabric Loss/Gain',fmtN(qFabric,0),'W'],['Occupancy Gain',fmtN(qOcc,0),'W'],['Equipment Gain',fmtN(equip,0),'W'],['Total Load',fmtN(total,0),'W','var(--accent)'],['Total Load',fmtN(total/1000,2),'kW'],['BTU/hr',fmtN(total*3.412,0),'BTU/hr']]);
 }
 
@@ -1109,7 +1114,7 @@ function calcVacuum(){
   const toPA={mbar_abs:100,torr:133.322,pa:1,inhg:3386.39};
   const pa_abs=unit==='pct'?atm*(1-val/100):val*toPA[unit];
   const pct_vac=(1-pa_abs/atm)*100;
-  const quality=pa_abs>10000?'Rough vacuum':pa_abs>100?'Medium vacuum':pa_abs>0.1?'High vacuum':'Ultra-high vacuum';
+  const quality=pa_abs>10000?'Rough vacuum':pa_abs>100?'Medium vacuum':pa_abs>1e-5?'High vacuum':'Ultra-high vacuum';
   r.innerHTML=resultGrid([['mbar (abs)',fmtN(pa_abs/100,3),'mbar'],['Torr',fmtN(pa_abs/133.322,3),'Torr'],['% Vacuum',fmtN(Math.max(0,pct_vac),2),'%'],['Pa (abs)',fmtN(pa_abs,2),'Pa'],['inHg',fmtN(pa_abs/3386.39,3),'inHg'],['Quality',quality,'']]);
 }
 
@@ -1171,11 +1176,7 @@ function calcThreePhase(){
   r.innerHTML=resultGrid([['Apparent Power S',fmtN(s,4),'kVA'],['Active Power P',fmtN(p,4),'kW','var(--accent)'],['Reactive Power Q',fmtN(q,4),'kVAR'],['Phase Voltage',fmtN(vl/Math.sqrt(3),2),'V'],['Angle φ',fmtN(Math.acos(Math.min(1,pf))*180/Math.PI,2),'°']]);
 }
 
-// ── IP Rating ─────────────────────────────────────────────
-const IP_FIRST={0:'No protection',1:'≥50mm objects (hand)',2:'≥12.5mm objects (finger)',3:'≥2.5mm objects (tools)',4:'≥1mm objects (wire)',5:'Dust protected (limited ingress)',6:'Dust tight (no ingress)'};
-const IP_SECOND={0:'No protection',1:'Dripping water (vertical)',2:'Dripping water (15° tilt)',3:'Spraying water (60°)',4:'Splashing water (all directions)',5:'Water jets',6:'Powerful water jets',7:'Temporary immersion (1m/30min)',8:'Continuous immersion',9:'High-pressure jet wash'};
-
-// IP Rating moved to ATEX tab (tab-atex.js)
+// IP Rating lookup lives in tab-atex.js (IP_FIRST_DESC / IP_SECOND_DESC)
 
 // ── Date Calculator ───────────────────────────────────────
 let calState={viewYear:new Date().getFullYear(),viewMonth:new Date().getMonth(),selectedDate:null,selectedDate2:null,activeCalendar:1};
@@ -1282,11 +1283,6 @@ function initCalendar(){calState.selectedDate=new Date();calState.selectedDate.s
 // MOTOR DATA TABLE
 // ══════════════════════════════════════════════════════════
 
-
-// ══════════════════════════════════════════════════════════
-// MOTOR DATA TABLE
-// ══════════════════════════════════════════════════════════
-
 // IEC 60092-352 Table B.4 — 90°C rated conductor, 45°C ambient
 // [csa, single_core, two_core, three_or_four_core]  (AC values for 400/500mm²)
 const IEC60092_352_B4 = [
@@ -1384,7 +1380,7 @@ function htmlMotorTable() {
     </div>
     <div class="field" id="mt_factor_row" style="margin:0;flex:0 0 auto;display:none">
       <label>60 Hz power factor <span style="color:var(--text2);font-weight:400;font-size:0.75rem">(×IEC kW rating)</span></label>
-      <input type="number" id="mt_60hz_factor" value="1.15" step="0.01" min="0.5" max="2" style="width:80px" oninput="renderMotorTable()">
+      <input type="number" id="mt_60hz_factor" value="1.2" step="0.01" min="0.5" max="2" style="width:80px" oninput="renderMotorTable()">
     </div>
     <div class="field" style="margin:0;flex:0 0 auto">
       <label>RPM columns</label>
@@ -1450,7 +1446,7 @@ function mtToggleRPM() {
 function renderMotorTable() {
   const volt     = parseFloat(document.getElementById('mt_volt')?.value || 400);
   const start    = document.getElementById('mt_start')?.value || 'dol';
-  const factor60 = mtHz===60 ? parseFloat(document.getElementById('mt_60hz_factor')?.value || 1.15) : 1;
+  const factor60 = mtHz===60 ? parseFloat(document.getElementById('mt_60hz_factor')?.value || 1.2) : 1;
   const thead    = document.getElementById('motorTableHead');
   const tbody    = document.getElementById('motorTableBody');
   const disc     = document.getElementById('mt_disclaimer');
@@ -1479,7 +1475,7 @@ function renderMotorTable() {
     const effKw  = iecKw * factor60;
     const hp     = (effKw / 0.7457).toFixed(1);
     const {eff, pf} = flaLookup(iecKw, mtIE);
-    const flc    = (effKw * 1000) / (Math.sqrt(3) * volt * pf * eff);
+    const flc    = computeFLA(effKw, volt, pf, eff);
     const istart = flc * startMult;
     const fuse   = FUSE_SIZES.find(s => s >= flc * 1.25) || Math.ceil(flc * 1.25);
     const {csa, ampacity} = csaLookup(flc, mtCores, mtBunch);

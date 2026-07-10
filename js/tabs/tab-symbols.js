@@ -26,7 +26,7 @@ function symCopy(el) {
 }
 
 function makeSymCard(symbol, label) {
-  const safe = symbol.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const safe = escapeHtml(symbol);
   return `<div class="sym-card" data-copy="${safe}" onclick="symCopy(this)" title="${label.replace(/"/g,'&quot;')}"><span class="sym">${symbol}</span><span class="sym-label">${label}</span></div>`;
 }
 
@@ -79,7 +79,7 @@ const SPECIAL_SECTIONS = {
       return `<p style="font-size:0.75rem;color:var(--text3);margin-bottom:10px">Live — all formats show today's date. Click to copy.</p>
         <div class="symbol-grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
           ${items.map(f => {
-            const safe = f.val.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            const safe = escapeHtml(f.val);
             return `<div class="sym-card" data-copy="${safe}" onclick="symCopy(this)" style="flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;padding:10px">
               <div style="min-width:0"><div style="font-family:var(--mono);font-size:0.88rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.val}</div>
               <div class="sym-label" style="text-align:left;margin-top:2px">${f.label}</div></div></div>`;
@@ -193,7 +193,7 @@ function renderCustomSectionCard(si, q, dataKey) {
     </div>
     <div class="symbol-grid">
       ${filtered.map((it,ii) => {
-        const safe = it.text.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const safe = escapeHtml(it.text);
         const label = (it.label||'').replace(/"/g,'&quot;');
         return `<div class="sym-card" data-copy="${safe}" onclick="symCopy(this)" title="${label}" style="position:relative">
           <span class="sym" style="font-size:0.9rem;word-break:break-all">${it.text}</span>
@@ -287,7 +287,7 @@ function renderSnippets() {
   document.getElementById('snippetList').innerHTML = filtered.length
     ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
         ${filtered.map(({s,i}) => {
-          const safeBody = s.body.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          const safeBody = escapeHtml(s.body);
           return `<div class="snippet-card" id="snip_card_${i}" data-copy="${safeBody}" onclick="symCopy(this)" style="position:relative;cursor:pointer">
             <div class="snip-title">${s.title}</div>
             <div class="snip-body">${s.body.substring(0,200)}${s.body.length>200?'…':''}</div>

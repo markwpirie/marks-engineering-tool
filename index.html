@@ -29,7 +29,7 @@
 </nav>
 
 <div class="version-banner" role="status" aria-label="Application version">
-  <span class="pill">v3.8</span>
+  <span class="pill" id="verBannerPill">v3.8</span>
   <span>Last updated 2026-07-09</span>
 </div>
 
@@ -53,7 +53,7 @@
       <div class="disc-item" style="color:#64748b">💡 Data sources: Hawke International datasheets, Cable Solutions NEK606, IEC 60079 series, ANSI/ASME B1.20.1.</div>
     </div>
     <hr class="modal-divider">
-    <div class="modal-footer">v3.8 &nbsp;·&nbsp; Offline-capable &nbsp;·&nbsp; No data leaves your browser</div>
+    <div class="modal-footer"><span id="aboutVersion">v3.8</span> &nbsp;·&nbsp; Static site, runs from local files &nbsp;·&nbsp; No data leaves your browser</div>
   </div>
 </div>
 
@@ -211,6 +211,7 @@
       <button class="btn primary" onclick="window.open('pdfs/sira-wallchart.pdf','_blank')">📄 SIRA Wallchart</button>
       <button class="btn primary" onclick="window.open('pdfs/exveritas_wallchart.pdf','_blank')">📄 Exveritas Wallchart</button>
     </div>
+    <p style="font-size:0.75rem;color:var(--text2);margin-top:10px">⚠️ These wallcharts date from 2009 and use terminology current at that time: ATEX Directive 94/9/EC (superseded by 2014/34/EU), EN 13463-x (superseded by ISO 80079-36/-37 for non-electrical equipment), and IEC 61241-x (superseded by IEC 60079-31 / 60079-0 for combustible dust). Use for quick visual reference only — verify current clause numbers against the live standards.</p>
   </div>
 
   <!-- IP Rating Lookup -->
@@ -282,7 +283,6 @@
     </div>
     <div id="unitResult" class="result-box" style="font-size:1.1rem">—</div>
     <div id="unitAllResults" style="margin-top:16px"></div>
-    <div id="awgTable" style="display:none;margin-top:16px"></div>
   </div>
 
   <!-- SI Prefix Converter -->
@@ -339,7 +339,7 @@
           <option value="Power">Power & Control (P)</option>
           <option value="InstrI">Instrument Individually Screened (I)</option>
           <option value="InstrC">Instrument Collectively Screened (C)</option>
-          <option value="Earth">Earth (P15/108)</option>
+          <option value="Earth">Earth (UX P15 — standalone product)</option>
         </select>
       </div>
       <div class="field">
@@ -607,9 +607,9 @@
         <input type="number" id="wt_eff" step="0.01" min="0.5" max="1" oninput="this.dataset.manual='1';wtCalc()">
       </div>
       <div class="field" id="wt_corr_row" style="display:none">
-        <label>60 Hz FLA correction factor</label>
-        <input type="number" id="wt_corr_factor" value="1.15" step="0.01" min="1" max="2" oninput="wtCalc()">
-        <div style="font-size:0.75rem;color:var(--text3);margin-top:4px">Running a 50 Hz motor at 60 Hz increases speed ~20% and raises FLA. Default 1.15×.</div>
+        <label>60 Hz power uprate factor <span style="color:var(--text2);font-weight:400">(applied to nameplate kW, not directly to FLA)</span></label>
+        <input type="number" id="wt_corr_factor" value="1.2" step="0.01" min="1" max="1.3" oninput="wtCalc()">
+        <div style="font-size:0.75rem;color:var(--text3);margin-top:4px">Running a 50 Hz motor at 60 Hz — with supply voltage raised proportionally — typically increases shaft power capability by ~20% while FLA stays close to the 50 Hz nameplate value. If voltage is not raised, set this to 1.0. Default 1.2×.</div>
       </div>
       <div class="field">
         <label>Ambient Temperature <span style="color:var(--text2);font-weight:400;font-size:0.8rem">IEC 60092-352</span></label>
@@ -865,9 +865,11 @@
 </div>
 
 <!-- ════ SCRIPTS ════ -->
+<script src="js/core-utils.js"></script>
 <script src="js/data-atex.js"></script>
 <script src="js/data-glands.js"></script>
 <script src="js/data-cable.js"></script>
+<script src="js/data-motors.js"></script>
 <script src="js/data-symbols.js"></script>
 <script src="js/data-docregister.js"></script>
 <script src="js/tabs/tab-symbols.js"></script>

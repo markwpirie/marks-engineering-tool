@@ -21,7 +21,7 @@ const UNITS = {
   Force:           { emoji:'💪', units: ['N','kN','MN','lbf','kgf','dyne'], toBase: { N:1, kN:1000, MN:1e6, lbf:4.44822, kgf:9.80665, dyne:1e-5 } },
   Power:           { emoji:'⚡', units: ['W','kW','MW','HP (metric)','HP (imperial)','BTU/h','kcal/h'], toBase: { W:1, kW:1000, MW:1e6, 'HP (metric)':735.499, 'HP (imperial)':745.7, 'BTU/h':0.29307, 'kcal/h':1.163 } },
   Speed:           { emoji:'🚀', units: ['m/s','km/h','mph','knots','ft/s'], toBase: { 'm/s':1, 'km/h':0.277778, mph:0.44704, knots:0.514444, 'ft/s':0.3048 } },
-  Distance:        { emoji:'📏', units: ['mm','cm','m','km','inch','ft','yd','mile','nm','µm'], toBase: { mm:0.001, cm:0.01, m:1, km:1000, inch:0.0254, ft:0.3048, yd:0.9144, mile:1609.344, nm:1e-9, µm:1e-6 } },
+  Distance:        { emoji:'📏', units: ['mm','cm','m','km','inch','ft','yd','mile','naut.mile','nanometre','µm'], toBase: { mm:0.001, cm:0.01, m:1, km:1000, inch:0.0254, ft:0.3048, yd:0.9144, mile:1609.344, 'naut.mile':1852, nanometre:1e-9, µm:1e-6 } },
   Area:            { emoji:'📐', units: ['mm²','cm²','m²','km²','inch²','ft²','acre','hectare'], toBase: { 'mm²':1e-6, 'cm²':1e-4, 'm²':1, 'km²':1e6, 'inch²':6.4516e-4, 'ft²':0.0929, acre:4046.856, hectare:1e4 } },
   Volume:          { emoji:'🪣', units: ['ml','cl','l','m³','fl oz (UK)','fl oz (US)','pint (UK)','gallon (UK)','gallon (US)','bbl (oil)'], toBase: { ml:0.001, cl:0.01, l:1, 'm³':1000, 'fl oz (UK)':0.028413, 'fl oz (US)':0.029574, 'pint (UK)':0.568261, 'gallon (UK)':4.54609, 'gallon (US)':3.78541, 'bbl (oil)':158.987 } },
   Flow:            { emoji:'🌊', units: ['m³/s','m³/h','l/s','l/min','l/h','gal/min (US)','gal/min (UK)','bbl/day'], toBase: { 'm³/s':1, 'm³/h':1/3600, 'l/s':0.001, 'l/min':1/60000, 'l/h':1/3600000, 'gal/min (US)':6.30902e-5, 'gal/min (UK)':7.57682e-5, 'bbl/day':1.84013e-6 } },
@@ -35,6 +35,10 @@ const UNITS = {
 let unitActiveCat = 'Temperature';
 let unitActiveFrom = null;
 let unitActiveTo = null;
+
+// Proper reset for the unit converter's active category — see resetSIPrefix() above for why
+// this can't be done by assigning window.unitActiveCat from outside this file.
+function resetUnitConverter() { unitActiveCat = 'Temperature'; }
 
 function initUnitConverter() {
   // Build category buttons
@@ -132,6 +136,10 @@ const SI_PREFIXES = [
 ];
 let siActiveMult = 1; // default: base unit
 
+// Proper reset for the SI prefix selection — assigning window.siActiveMult from outside this
+// file does NOT rebind this module-scoped `let`, so a dedicated reset function is required.
+function resetSIPrefix() { siActiveMult = 1; }
+
 function initSIPrefixBtns() {
   const el = document.getElementById('siPrefixBtns');
   if (!el) return;
@@ -162,15 +170,3 @@ function calcSI() {
   if (r) r.innerHTML = html;
 }
 
-// AWG reference (kept for cable tab, not shown in units tab anymore)
-function renderAWGTable() {
-  const tbl = document.getElementById('awgTable');
-  if (!tbl) return;
-  let html = `<table><thead><tr><th>AWG</th><th>CSA (mm²)</th><th>≈IEC equiv.</th><th>Notes</th></tr></thead><tbody>`;
-  AWG_CSA.forEach(r => {
-    html += `<tr><td><span class="tag tag-blue">AWG ${r.awg}</span></td><td style="font-family:var(--mono)">${r.csa} mm²</td><td>${r.note.includes('mm²') ? '<span class="tag tag-green">'+r.note.match(/[\d.]+mm²/)?.[0]+'</span>' : '—'}</td><td style="color:var(--text2)">${r.note}</td></tr>`;
-  });
-  html += '</tbody></table>';
-  tbl.innerHTML = html;
-  tbl.style.display = 'block';
-}

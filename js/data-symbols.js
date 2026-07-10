@@ -10,7 +10,7 @@ const SYMBOL_CATS = [
     ['Ø','diameter'],['⌀','diameter symbol'],['°','degree'],["'","feet/arcminutes"],['"','inches/arcseconds']
   ]},
   { name:'Temperature & Units', emoji:'🌡️', items:[
-    ['°C','degrees Celsius'],['°F','degrees Fahrenheit'],['°K','Kelvin'],['Δ','Delta / Change'],
+    ['°C','degrees Celsius'],['°F','degrees Fahrenheit'],['K','Kelvin (no degree symbol)'],['Δ','Delta / Change'],
     ['±','Plus/Minus'],['≈','Approximately'],['∞','Infinity'],['μ','Micro'],['Ω','Ohm'],['℃','Celsius symbol'],['℉','Fahrenheit symbol']
   ]},
   { name:'Electrical & I&C', emoji:'⚡', items:[

@@ -7,9 +7,11 @@ const ATEX_DB = {
     II: 'Group II — Surface industries (non-mining)'
   },
   cat: {
-    1: 'Category 1 — Very high protection (Zone 0/20, EPL Ga/Da)',
-    2: 'Category 2 — High protection (Zone 1/21, EPL Gb/Db)',
-    3: 'Category 3 — Normal protection (Zone 2/22, EPL Gc/Dc)'
+    1: 'Category 1 — Very high protection (Zone 0/20, EPL Ga/Da) — Group II (surface)',
+    2: 'Category 2 — High protection (Zone 1/21, EPL Gb/Db) — Group II (surface)',
+    3: 'Category 3 — Normal protection (Zone 2/22, EPL Gc/Dc) — Group II (surface)',
+    M1: 'Category M1 — Group I mining, very high protection, remains energised in explosive atmosphere (EPL Ma)',
+    M2: 'Category M2 — Group I mining, high protection, de-energised if explosive atmosphere present (EPL Mb)'
   },
   env: {
     G: 'Gas/Vapour/Mist environment',
@@ -28,7 +30,7 @@ const ATEX_DB = {
     nA:  'Ex nA — Non-sparking (Zone 2/Category 3 only)',
     nR:  'Ex nR — Restricted breathing (Zone 2)',
     nC:  'Ex nC — Sealed or hermetically sealed device (Zone 2)',
-    nL:  'Ex nL — Energy limited (Zone 2)',
+    nL:  'Ex nL — Energy limited (Zone 2) — withdrawn from current IEC 60079-15; superseded by Ex ic. Shown for reference on legacy equipment only.',
     px:  'Ex px — Pressurisation type px (reduces Zone 1 to non-hazardous)',
     py:  'Ex py — Pressurisation type py (maintains Zone 1)',
     pz:  'Ex pz — Pressurisation type pz (reduces Zone 2 to non-hazardous)',
@@ -36,7 +38,7 @@ const ATEX_DB = {
     q:   'Ex q — Powder/sand filling (quartz sand filling)',
     t:   'Ex t — Protection by enclosure (dust, replaces older Ex tD)',
     h:   'Ex h — Special/miscellaneous protection (per IEC 60079-33)',
-    s:   'Ex s — Special protection (older standard, site-specific)',
+    s:   'Ex s — Special protection (legacy marking, largely superseded by Ex s per IEC 60079-33; treat as site-specific/certificate-defined)',
     op_is: 'Ex op is — Optical radiation intrinsically safe',
     op_pr: 'Ex op pr — Optical radiation with pressurisation',
     op_sh: 'Ex op sh — Optical radiation with protected optical system'

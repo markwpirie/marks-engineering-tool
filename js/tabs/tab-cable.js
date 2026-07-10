@@ -13,6 +13,18 @@ function switchGlandTab(tab) {
 
 function updateCableApp() { updateCableCores(); }
 
+// Cores select values are always strings (HTML option values). Power/Earth 'cores' can be a
+// plain number (e.g. "3") or a Draka 'NG' earth-variant code (e.g. "3G") — never coerce the
+// latter with parseInt, it must match the string exactly.
+function parseCoresVal(v) { return /G$/i.test(v) ? v : parseInt(v, 10); }
+
+function sortCores(a, b) {
+  const na = parseInt(a, 10), nb = parseInt(b, 10);
+  if (na !== nb) return na - nb;
+  // same leading number: plain core count before its 'G' earth variant
+  return String(a).length - String(b).length;
+}
+
 function updateCableCores() {
   const rating = document.getElementById('c_rating').value;
   const app = document.getElementById('c_app').value;
@@ -20,10 +32,10 @@ function updateCableCores() {
   sel.innerHTML = '';
 
   if (app === 'Earth') {
-    const csas = [6,10,16,25,35,50,70,95,120,150,185,240,300];
+    const csas = [...new Set(CABLE_DATA[rating].Earth.entries.map(e => e.csa))].sort((a,b)=>a-b);
     csas.forEach(c => sel.add(new Option(c + ' mm²', c)));
-    document.getElementById('c_csa').innerHTML = '<option>—</option>';
-    showCableResult();
+    if (sel.options.length > 0) sel.value = sel.options[0].value;
+    updateCableCSA();
     return;
   }
 
@@ -32,13 +44,17 @@ function updateCableCores() {
   const isPower = app === 'Power';
 
   if (isPower) {
-    const cores = [...new Set(data.entries.map(e => e[0]))].sort((a,b)=>a-b);
-    cores.forEach(c => sel.add(new Option(c + ' core(s)', c)));
+    const cores = [...new Set(data.entries.map(e => e.cores))].sort(sortCores);
+    cores.forEach(c => {
+      const label = /G$/i.test(c) ? `${c} (earth core)` : `${c} core(s)`;
+      sel.add(new Option(label, c));
+    });
   } else {
-    const combos = [...new Set(data.entries.map(e => `${e[0]}-${e[1]}`))];
+    const combos = [...new Set(data.entries.map(e => `${e.type}-${e.elements}`))];
+    combos.sort((a,b) => parseInt(a.split('-')[1],10) - parseInt(b.split('-')[1],10));
     combos.forEach(c => {
       const [type,count] = c.split('-');
-      sel.add(new Option(`${count} ${type==='PR'?'Pair':'Triple'}(s)`, c));
+      sel.add(new Option(`${count} ${type==='PR'?'Pair':type==='TR'?'Triple':'Quad'}(s)`, c));
     });
   }
   if (sel.options.length > 0) sel.value = sel.options[0].value;
@@ -53,7 +69,8 @@ function updateCableCSA() {
   csaSel.innerHTML = '';
 
   if (app === 'Earth') {
-    csaSel.add(new Option(coresVal + ' mm²', coresVal));
+    const csa = parseFloat(coresVal);
+    csaSel.add(new Option(csa + ' mm²', csa));
     showCableResult(); return;
   }
 
@@ -62,11 +79,11 @@ function updateCableCSA() {
   const isPower = app === 'Power';
 
   if (isPower) {
-    const cores = parseInt(coresVal);
-    data.entries.filter(e=>e[0]===cores).forEach(e => csaSel.add(new Option(e[1]+' mm²', e[1])));
+    const cores = parseCoresVal(coresVal);
+    data.entries.filter(e=>e.cores===cores).forEach(e => csaSel.add(new Option(e.csa+' mm²', e.csa)));
   } else {
     const [type,count] = coresVal.split('-');
-    data.entries.filter(e=>e[0]===type&&e[1]===parseInt(count)).forEach(e => csaSel.add(new Option(e[2]+' mm²', e[2])));
+    data.entries.filter(e=>e.type===type&&e.elements===parseInt(count,10)).forEach(e => csaSel.add(new Option(e.csa+' mm²', e.csa)));
   }
   if (csaSel.options.length > 0) csaSel.value = csaSel.options[0].value;
   showCableResult();
@@ -77,161 +94,113 @@ function showCableResult() {
   const app = document.getElementById('c_app').value;
   const coresVal = document.getElementById('c_cores').value;
   const csa = parseFloat(document.getElementById('c_csa').value);
-  const data = app==='Earth' ? CABLE_DATA.BFOU.Earth : CABLE_DATA[rating][app];
+  // UX P15 earth conductor is a standalone Draka product, independent of RFOU/BFOU fire rating —
+  // read it from the selected rating's own Earth entry (both point at the same dataset).
+  const data = CABLE_DATA[rating][app];
   if (!data) return;
 
   let entry, OD, innerOD, weight, current;
   const isPower = app==='Power';
+  const isEarth = app==='Earth';
 
-  if (app==='Earth') {
-    entry = CABLE_DATA.BFOU.Earth.entries.find(e=>e[1]===csa);
+  if (isEarth) {
+    entry = data.entries.find(e=>e.csa===csa);
     if (!entry) return;
-    OD=entry[2]; weight=entry[3]; current=null; innerOD=null;
+    OD=entry.od; weight=entry.weight; current=entry.current; innerOD=null;
   } else if (isPower) {
-    const cores=parseInt(coresVal);
-    entry=data.entries.find(e=>e[0]===cores&&e[1]===csa);
+    const cores=parseCoresVal(coresVal);
+    entry=data.entries.find(e=>e.cores===cores&&e.csa===csa);
     if (!entry) return;
-    OD=entry[2]; weight=entry[3]; current=entry[4]; innerOD=entry[5];
+    OD=entry.od; weight=entry.weight; current=entry.current; innerOD=entry.innerOD;
   } else {
     const [type,count]=coresVal.split('-');
-    entry=data.entries.find(e=>e[0]===type&&e[1]===parseInt(count)&&e[2]===csa);
+    entry=data.entries.find(e=>e.type===type&&e.elements===parseInt(count,10)&&e.csa===csa);
     if (!entry) return;
-    OD=entry[3]; weight=entry[4]; current=null; innerOD=entry[5];
+    OD=entry.od; weight=entry.weight; current=null; innerOD=entry.innerOD;
   }
 
   const minBend=(OD*8).toFixed(0);
+  const fixedBend=(OD*6).toFixed(0);
+  let extras = '';
+  if (isPower || isEarth) {
+    if (entry.copper) extras += `<div class="gland-info-item"><div class="key">Copper Content</div><div class="val">${entry.copper} kg/km</div></div>`;
+    if (entry.braidCsa) extras += `<div class="gland-info-item"><div class="key">Braid CSA</div><div class="val">${entry.braidCsa} mm²</div></div>`;
+    if (entry.r20!=null) extras += `<div class="gland-info-item"><div class="key">Conductor R (20°C / 90°C)</div><div class="val">${entry.r20} / ${entry.r90} Ω/km</div></div>`;
+    if (entry.x50!=null) extras += `<div class="gland-info-item"><div class="key">Reactance (50Hz / 60Hz)</div><div class="val">${entry.x50} / ${entry.x60} Ω/km</div></div>`;
+    if (entry.sc1s) extras += `<div class="gland-info-item"><div class="key">Short-circuit (1s)</div><div class="val">${entry.sc1s} A</div></div>`;
+  } else if (data.electrical) {
+    const elec = (INSTR_ELECTRICAL[data.electrical] || {})[csa];
+    if (elec) {
+      extras += `<div class="gland-info-item"><div class="key">Capacitance</div><div class="val">${elec.cap} nF/km</div></div>`;
+      extras += `<div class="gland-info-item"><div class="key">Inductance</div><div class="val">${elec.ind} mH/km</div></div>`;
+      extras += `<div class="gland-info-item"><div class="key">Loop Resistance</div><div class="val">${elec.r} Ω/km</div></div>`;
+      extras += `<div class="gland-info-item"><div class="key">L/R Ratio</div><div class="val">${elec.lr} µH/Ω</div></div>`;
+    }
+  }
+
   let html=`<div class="gland-info-grid">
     <div class="gland-info-item"><div class="key">Cable Type</div><div class="val" style="font-size:0.8rem">${data.label}</div></div>
-    <div class="gland-info-item"><div class="key">Overall OD</div><div class="val" style="color:var(--accent);font-size:1.1rem">${OD} mm</div></div>
-    ${innerOD ? `<div class="gland-info-item"><div class="key">OD over inner insulation</div><div class="val" style="color:var(--accent4)">${innerOD} mm</div></div>` : ''}
+    <div class="gland-info-item"><div class="key">Overall OD</div><div class="val" style="color:var(--accent);font-size:1.1rem">${OD}${entry.odTol?' ± '+entry.odTol:''} mm</div></div>
+    ${innerOD ? `<div class="gland-info-item"><div class="key">OD over inner insulation</div><div class="val" style="color:var(--accent4)">${innerOD}${entry.innerODTol?' ± '+entry.innerODTol:''} mm</div></div>` : ''}
     <div class="gland-info-item"><div class="key">Weight</div><div class="val">${weight} kg/km</div></div>
     ${current?`<div class="gland-info-item"><div class="key">Current @45°C</div><div class="val">${current} A</div></div>`:''}
     <div class="gland-info-item"><div class="key">Voltage Rating</div><div class="val">${data.voltage}</div></div>
-    <div class="gland-info-item"><div class="key">Min. Bend Radius</div><div class="val">${minBend} mm (8×OD)</div></div>
+    <div class="gland-info-item"><div class="key">Min. Bend Radius</div><div class="val">${minBend} mm (8×OD install) / ${fixedBend} mm (6×OD fixed)</div></div>
+    ${extras}
     <div class="gland-info-item" style="grid-column:1/-1"><div class="key">Colour Code</div><div class="val" style="font-size:0.8rem">${data.colourCode}</div></div>
+    ${entry.unverified ? `<div class="gland-info-item" style="grid-column:1/-1"><div class="val" style="color:var(--warn)">⚠️ Unverified — not present in the Draka NEK 606 datasheet; retained from the previous dataset. Confirm with manufacturer before use.</div></div>` : ''}
   </div>`;
 
   document.getElementById('cableResult').innerHTML = html;
   const tcSec = document.getElementById('tempCorrSection');
-  tcSec.style.display = (isPower && current) ? 'block' : 'none';
-  if (isPower && current) { window._baseCurrent=current; applyTempCorr(); }
+  const hasNumericCurrent = (isPower || isEarth) && typeof current === 'number';
+  tcSec.style.display = hasNumericCurrent ? 'block' : 'none';
+  if (hasNumericCurrent) { window._baseCurrent=current; applyTempCorr(); }
 
-  showGlandRec(OD);
+  showGlandRec(OD, entry.odTol);
 }
 
 function applyTempCorr() {
   const factor = parseFloat(document.getElementById('ambTemp').value);
   const base = window._baseCurrent;
-  if (!base) return;
+  if (base==null || typeof base !== 'number') return;
   const corrected = (base*factor).toFixed(1);
   document.getElementById('tempCorrResult').innerHTML = `<div class="result-box">Corrected: <strong style="color:var(--accent);font-size:1.1rem">${corrected} A</strong> (base ${base}A × ${factor})</div>`;
 }
 
-function showGlandRec(OD) {
+function showGlandRec(OD, odTol) {
   const useNPT = currentGlandTab==='npt';
   let html='';
 
-  // ── 501/453/UNIV first ──
-  const g453=GLAND_453.find(g=>OD>=g.outerMin&&OD<=g.outerMax);
-  if (g453) {
-    const entry=useNPT?g453.npt.split(' ')[0]:g453.metric;
-    const orderCode=getGlandOrderCode('453',g453.size,useNPT?'npt':'metric',entry);
-    const nptEx=`501/453/UNIV/${g453.size}/${g453.npt.split(' ')[0].replace('"','').replace('/','')+'NP'}`;
-    const metEx=`501/453/UNIV/${g453.size}/${g453.metric.replace('/','-')}`;
-    html+=`<div class="gland-card">
-      <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:10px">
-        <img src="${'jpg/501-453.jpg'}" alt="Hawke 501/453/UNIV" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
-        <div style="flex:1">
-          <div class="gland-card-header" style="margin-bottom:6px">Hawke 501/453/UNIV — Coldflow, Armoured/Braided <span class="tag tag-blue">ARMOURED</span></div>
-          <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. Passive diaphragm seal for cold flow cables. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.</p>
-        </div>
-      </div>
-      <div class="gland-info-grid">
-        <div class="gland-info-item"><div class="key">Size Ref</div><div class="val">${g453.size}</div></div>
-        <div class="gland-info-item"><div class="key">${useNPT?'NPT Entry':'Metric Entry'}</div><div class="val">${useNPT?g453.npt:g453.metric}</div></div>
-        <div class="gland-info-item"><div class="key">Inner Sheath Range</div><div class="val">${g453.innerMin}–${g453.innerMax} mm</div></div>
-        <div class="gland-info-item"><div class="key">Outer Sheath Range</div><div class="val">${g453.outerMin}–${g453.outerMax} mm</div></div>
-        <div class="gland-info-item"><div class="key">Armour Wire Ø</div><div class="val">${g453.arm1} mm</div></div>
-        <div class="gland-info-item"><div class="key">Cable OD ${OD}mm</div><div class="val"><span class="tag tag-green">FITS</span></div></div>
-        <div class="gland-info-item"><div class="key">Example Order Code</div><div class="val" style="font-family:var(--mono);font-size:0.8rem">${orderCode} <button class="copy-btn" style="position:relative;top:0;right:0" onclick="copyText('${orderCode}')">⎘</button></div></div>
-      </div>
-      <div style="margin-top:8px;font-size:0.75rem;color:var(--text2)">
-        Metric ex: <code>${metEx}</code> &nbsp;|&nbsp; NPT ex: <code>${nptEx}</code>
-      </div>
-      ${useNPT?'<div style="margin-top:8px;font-size:0.75rem;color:var(--warn)">⚠️ NPT entries in ATEX zones require certified adapters — check MOC implications</div>':''}
-    </div>`;
-  } else {
-    html+=`<div class="gland-card"><div class="gland-card-header">Hawke 501/453/UNIV — Coldflow, Armoured <span class="tag tag-red">NO MATCH</span></div><p style="color:var(--text2)">Cable OD ${OD}mm is outside the 501/453 outer sheath range.</p></div>`;
-  }
+  // ── 501/453/UNIV first (armoured/braided) ──
+  html += `<div class="gland-family-header" style="display:flex;gap:16px;align-items:flex-start;margin-bottom:10px">
+    <img src="jpg/501-453.jpg" alt="Hawke 501/453/UNIV" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
+    <div style="flex:1">
+      <div class="gland-card-header" style="margin-bottom:6px">Hawke 501/453/UNIV — Coldflow, Armoured/Braided <span class="tag tag-blue">ARMOURED</span></div>
+      <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. Passive diaphragm seal for cold flow cables. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.</p>
+    </div>
+  </div>`;
+  html += renderGlandSizeList('453', findFittingGlands(GLAND_453, OD, odTol), useNPT);
 
-  // ── ICG/653/UNIV second ──
-  const g653=GLAND_653.find(g=>OD>=g.outerMin&&OD<=g.outerMax);
-  if (g653) {
-    const entry=useNPT?g653.npt.split(' ')[0]:g653.metric;
-    const orderCode=getGlandOrderCode('653',g653.size,useNPT?'npt':'metric',entry);
-    const nptEx=`ICG/653/UNIV/${g653.size}/${g653.npt.split(' ')[0].replace('"','').replace('/','')+'NP'}`;
-    const metEx=`ICG/653/UNIV/${g653.size}/${g653.metric}`;
-    html+=`<div class="gland-card">
-      <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:10px">
-        <img src="${'jpg/icg653.jpg'}" alt="Hawke ICG/653/UNIV" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
-        <div style="flex:1">
-          <div class="gland-card-header" style="margin-bottom:6px">Hawke ICG/653/UNIV — Barrier Gland <span class="tag tag-orange">BARRIER</span></div>
-          <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. Seals around individual cores. Cold flow, hygroscopic fillers, fibre optic cables. ExPress resin standard (30 min cure). QSP available (suffix Q).</p>
-        </div>
-      </div>
-      <div class="gland-info-grid">
-        <div class="gland-info-item"><div class="key">Size Ref</div><div class="val">${g653.size}</div></div>
-        <div class="gland-info-item"><div class="key">${useNPT?'NPT Entry':'Metric Entry'}</div><div class="val">${useNPT?g653.npt:g653.metric}</div></div>
-        <div class="gland-info-item"><div class="key">Max Inner Sheath</div><div class="val">${g653.innerMax} mm</div></div>
-        <div class="gland-info-item"><div class="key">Max Over Core Ø</div><div class="val">${g653.coreMax} mm</div></div>
-        <div class="gland-info-item"><div class="key">Outer Sheath Range</div><div class="val">${g653.outerMin}–${g653.outerMax} mm</div></div>
-        <div class="gland-info-item"><div class="key">Cable OD ${OD}mm</div><div class="val"><span class="tag tag-green">FITS</span></div></div>
-        <div class="gland-info-item"><div class="key">Example Order Code</div><div class="val" style="font-family:var(--mono);font-size:0.8rem">${orderCode} <button class="copy-btn" style="position:relative;top:0;right:0" onclick="copyText('${orderCode}')">⎘</button></div></div>
-      </div>
-      <div style="margin-top:8px;font-size:0.75rem;color:var(--text2)">
-        Metric ex: <code>${metEx}</code> &nbsp;|&nbsp; NPT ex: <code>${nptEx}</code>
-      </div>
-      ${useNPT?'<div style="margin-top:6px;font-size:0.75rem;color:var(--warn)">⚠️ NPT entries in ATEX zones require certified adapters — check MOC implications</div>':''}
-    </div>`;
-  } else {
-    html+=`<div class="gland-card"><div class="gland-card-header">Hawke ICG/653/UNIV — Barrier Gland <span class="tag tag-red">NO MATCH</span></div><p style="color:var(--text2)">Cable OD ${OD}mm is outside the ICG/653 outer sheath range.</p></div>`;
-  }
+  // ── ICG/653/UNIV second (barrier) ──
+  html += `<div class="gland-family-header" style="display:flex;gap:16px;align-items:flex-start;margin:20px 0 10px">
+    <img src="jpg/icg653.jpg" alt="Hawke ICG/653/UNIV" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
+    <div style="flex:1">
+      <div class="gland-card-header" style="margin-bottom:6px">Hawke ICG/653/UNIV — Barrier Gland <span class="tag tag-orange">BARRIER</span></div>
+      <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. Seals around individual cores. Cold flow, hygroscopic fillers, fibre optic cables. ExPress resin standard (30 min cure). QSP available (suffix Q).</p>
+    </div>
+  </div>`;
+  html += renderGlandSizeList('653', findFittingGlands(GLAND_653, OD, odTol), useNPT);
 
-  // ── 501/421 last ──
-  const g421=GLAND_421.find(g=>OD>=g.stdMin&&OD<=g.stdMax);
-  const g421alt=g421?null:GLAND_421.find(g=>g.altMin&&OD>=g.altMin&&OD<=g.altMax);
-  const gland421=g421||g421alt;
-  if (gland421) {
-    const isSeal=g421?'Standard Seal':'Alternative Seal (S)';
-    const sealColor=g421?'tag-green':'tag-yellow';
-    const entry=useNPT?gland421.npt.split(' ')[0]:gland421.metric;
-    const orderCode=getGlandOrderCode('421',gland421.size,useNPT?'npt':'metric',entry)+(g421alt?'S':'');
-    const nptEx=`501/421/UNIV/${gland421.size}/${gland421.npt.split(' ')[0].replace('"','').replace('/','')+'NP'}`;
-    const metEx=`501/421/UNIV/${gland421.size}/${gland421.metric}`;
-    html+=`<div class="gland-card">
-      <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:10px">
-        <img src="${'jpg/501-421.jpg'}" alt="Hawke 501/421" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
-        <div style="flex:1">
-          <div class="gland-card-header" style="margin-bottom:6px">Hawke 501/421/UNIV — Compression, Non-Armoured <span class="tag ${sealColor}">${isSeal}</span></div>
-          <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. For non-armoured elastomer and plastic insulated cables. Braid cables: braid passes into enclosure and terminates inside.</p>
-        </div>
-      </div>
-      <div class="gland-info-grid">
-        <div class="gland-info-item"><div class="key">Size Ref</div><div class="val">${gland421.size}</div></div>
-        <div class="gland-info-item"><div class="key">${useNPT?'NPT Entry':'Metric Entry'}</div><div class="val">${useNPT?gland421.npt:gland421.metric}</div></div>
-        <div class="gland-info-item"><div class="key">Std Seal OD Range</div><div class="val">${gland421.stdMin}–${gland421.stdMax} mm</div></div>
-        ${gland421.altMin?`<div class="gland-info-item"><div class="key">Alt Seal OD Range</div><div class="val">${gland421.altMin}–${gland421.altMax} mm</div></div>`:''}
-        <div class="gland-info-item"><div class="key">Cable OD ${OD}mm</div><div class="val"><span class="tag ${g421?'tag-green':g421alt?'tag-yellow':'tag-red'}">${g421?'STD FIT':g421alt?'ALT FIT':'NO FIT'}</span></div></div>
-        <div class="gland-info-item"><div class="key">Example Order Code</div><div class="val" style="font-family:var(--mono);font-size:0.8rem">${orderCode} <button class="copy-btn" style="position:relative;top:0;right:0" onclick="copyText('${orderCode}')">⎘</button></div></div>
-      </div>
-      <div style="margin-top:8px;font-size:0.75rem;color:var(--text2)">
-        Metric ex: <code>${metEx}</code> &nbsp;|&nbsp; NPT ex: <code>${nptEx}</code>
-      </div>
-      ${useNPT?'<div style="margin-top:8px;font-size:0.75rem;color:var(--warn)">⚠️ NPT entries in ATEX zones require certified adapters — check MOC implications</div>':''}
-    </div>`;
-  } else {
-    html+=`<div class="gland-card"><div class="gland-card-header">Hawke 501/421/UNIV — Compression, Non-Armoured <span class="tag tag-red">NO MATCH</span></div><p style="color:var(--text2)">Cable OD ${OD}mm is outside the 501/421 selection range.</p></div>`;
-  }
+  // ── 501/421 last (compression, non-armoured) ──
+  html += `<div class="gland-family-header" style="display:flex;gap:16px;align-items:flex-start;margin:20px 0 10px">
+    <img src="jpg/501-421.jpg" alt="Hawke 501/421" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
+    <div style="flex:1">
+      <div class="gland-card-header" style="margin-bottom:6px">Hawke 501/421/UNIV — Compression, Non-Armoured</div>
+      <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. For non-armoured elastomer and plastic insulated cables. Braid cables: braid passes into enclosure and terminates inside.</p>
+    </div>
+  </div>`;
+  html += renderGland421SizeList(findFitting421(OD, odTol), useNPT);
 
   document.getElementById('glandResults').innerHTML=html;
 }
