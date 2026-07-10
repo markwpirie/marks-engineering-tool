@@ -830,8 +830,13 @@ header.app {
   font-family: var(--head); font-weight: 600; font-size: 0.72rem;
   letter-spacing: 0.18em; text-transform: uppercase; color: var(--text3);
 }
-.mast-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.mast-right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mast-right .btn { padding: 5px 10px; font-size: 0.72rem; }
 .ver { font-family: var(--mono); font-size: 0.7rem; color: var(--text3); }
+@media (max-width: 640px) {
+  .masthead { flex-wrap: wrap; }
+  .mast-right { margin-left: 0; width: 100%; margin-top: 10px; }
+}
 .iconbtn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: var(--r-ctl);

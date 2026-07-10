@@ -2,7 +2,7 @@
 // M.E.T. — MAIN APP
 // ══════════════════════════════════════════════════════════
 
-const APP_VERSION = '3.8';
+const APP_VERSION = '4.0';
 
 // ── Utility ──
 function toast(msg) {
