@@ -68,9 +68,17 @@ function wtProjKeys() {
   return Object.keys(localStorage).filter(k => k.startsWith('met_wt_proj_'));
 }
 
+// IS Loop fields (met_is_*) are collected by prefix scan the same way — covers
+// the static barrier/instrument/project fields plus the per-segment cable keys.
+function isLoopKeys() {
+  return Object.keys(localStorage).filter(k => k.startsWith('met_is_'));
+}
+
 function exportData() {
   const wtProj = {};
   wtProjKeys().forEach(k => { wtProj[k] = localStorage.getItem(k); });
+  const isLoop = {};
+  isLoopKeys().forEach(k => { isLoop[k] = localStorage.getItem(k); });
   const data = {
     version: APP_VERSION,
     exported: new Date().toISOString(),
@@ -83,6 +91,7 @@ function exportData() {
     theme:           localStorage.getItem('met_theme') || 'dark',
     calcState:       JSON.parse(localStorage.getItem('met_calc_state') || '{}'),
     wonderToolProject: wtProj,
+    isLoop,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -111,6 +120,7 @@ function importData() {
         if (data.theme)            localStorage.setItem('met_theme',      data.theme);
         if (data.calcState)        localStorage.setItem('met_calc_state', JSON.stringify(data.calcState));
         if (data.wonderToolProject) Object.entries(data.wonderToolProject).forEach(([k,v]) => localStorage.setItem(k, v));
+        if (data.isLoop)            Object.entries(data.isLoop).forEach(([k,v]) => localStorage.setItem(k, v));
         // Reload live state
         snippets         = JSON.parse(localStorage.getItem('met_snippets')   || '[]');
         customSections   = JSON.parse(localStorage.getItem('met_customsecs') || '[]');
@@ -120,6 +130,7 @@ function importData() {
         cardOrder        = JSON.parse(localStorage.getItem('met_cardorder')  || '{}');
         renderSymbols(); renderSnippets(); renderRecycleBin();
         if (typeof initWonderTool === 'function') initWonderTool();
+        if (typeof initIsLoop === 'function') initIsLoop();
         if (typeof initCardReorder === 'function') initCardReorder();
         toast('Imported');
       } catch(err) { toast('Import failed: invalid file'); }
@@ -140,6 +151,8 @@ function resetAllState() {
   if (typeof resetUnitConverter === 'function') resetUnitConverter();
   // Clear Wonder Tool project fields
   Object.keys(localStorage).filter(k => k.startsWith('met_wt_proj_')).forEach(k => localStorage.removeItem(k));
+  // Clear IS Loop fields (project/loop, barrier, instrument, cable segments)
+  Object.keys(localStorage).filter(k => k.startsWith('met_is_')).forEach(k => localStorage.removeItem(k));
   toast('All inputs reset to defaults');
   // Re-init all tabs
   if (typeof initUnitConverter === 'function') initUnitConverter();
@@ -147,6 +160,7 @@ function resetAllState() {
   if (typeof calcSI === 'function') calcSI();
   if (typeof initCalcs === 'function') initCalcs();
   if (typeof initWonderTool === 'function') initWonderTool();
+  if (typeof initIsLoop === 'function') initIsLoop();
 }
 
 // ── Prompt generator ──
@@ -207,6 +221,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Tab 5b — Wonder Tool
   initWonderTool();
+
+  // Tab 5c — IS Loop
+  initIsLoop();
 
   // Tab 6 — NPT
   showNPTInfo();

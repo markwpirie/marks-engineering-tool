@@ -44,6 +44,7 @@
       <button class="nav-tab"        data-tab="calcs"    onclick="switchTab('calcs')">Calcs</button>
       <button class="nav-tab"        data-tab="cable"    onclick="switchTab('cable')">Cable & Gland</button>
       <button class="nav-tab"        data-tab="wonder"   onclick="switchTab('wonder')">Wonder Tool <span class="beta-badge">BETA</span></button>
+      <button class="nav-tab"        data-tab="isloop"   onclick="switchTab('isloop')">IS Loop</button>
       <button class="nav-tab"        data-tab="npt"      onclick="switchTab('npt')">NPT</button>
       <button class="nav-tab"        data-tab="prompts"  onclick="switchTab('prompts')">Prompts</button>
       <button class="nav-tab"        data-tab="recycle"  onclick="switchTab('recycle')">Recycle Bin</button>
@@ -715,6 +716,113 @@
 </div>
 
 <!-- ════════════════════════════════════════════
+     TAB 5c — IS LOOP CALCULATION
+════════════════════════════════════════════ -->
+<div id="tab-isloop" class="tab-content">
+  <h2>IS Loop Calculation</h2>
+  <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">Entity parameter check for an intrinsically safe loop — barrier/isolator vs field instrument vs cable, per IEC 60079-25. Based on the standard MTL-style entity comparison method.</p>
+
+  <!-- Loop / Project Details -->
+  <div class="card" id="card-isloop-project">
+    <div class="kicker"><span class="n">7.1</span> Loop / Project Details <span style="font-size:0.72rem;font-weight:400;color:var(--text3)">— all fields saved automatically</span></div>
+    <div class="grid2">
+      <div class="field"><label>Loop Tag</label><input type="text" id="is_proj_tag" placeholder="e.g. XZSH/L-001" oninput="isSaveField('proj_tag');isCalc()"></div>
+      <div class="field"><label>Description</label><input type="text" id="is_proj_desc" placeholder="e.g. Valve feedback proximity sensor" oninput="isSaveField('proj_desc');isCalc()"></div>
+      <div class="field"><label>Project Number</label><input type="text" id="is_proj_num" placeholder="e.g. WCE-ES-146" oninput="isSaveField('proj_num')"></div>
+      <div class="field"><label>Document Number</label><input type="text" id="is_proj_doc" placeholder="e.g. WCE-ES-146-C19-0001" oninput="isSaveField('proj_doc')"></div>
+      <div class="field"><label>Revision</label><input type="text" id="is_proj_rev" placeholder="01" oninput="isSaveField('proj_rev')"></div>
+      <div class="field"><label>Date</label><input type="date" id="is_proj_date" oninput="isSaveField('proj_date')"></div>
+      <div class="field"><label>Prepared By</label><input type="text" id="is_proj_by" placeholder="Name" oninput="isSaveField('proj_by')"></div>
+    </div>
+  </div>
+
+  <!-- Barrier / Isolator -->
+  <div class="card" id="card-isloop-barrier">
+    <div class="kicker"><span class="n">7.2</span> Barrier / Isolator (Source)</div>
+    <div class="grid2">
+      <div class="field"><label>Manufacturer</label><input type="text" id="is_bar_mfr" placeholder="e.g. Siemens" oninput="isSaveField('bar_mfr')"></div>
+      <div class="field"><label>Model</label><input type="text" id="is_bar_model" placeholder="e.g. 6ES7 321-7RD00-0AB0" oninput="isSaveField('bar_model')"></div>
+      <div class="field"><label>Certificate Number</label><input type="text" id="is_bar_cert" placeholder="e.g. KEMA 01 ATEX 1057 X" oninput="isSaveField('bar_cert')"></div>
+      <div class="field"><label>Channel Config. Note</label><input type="text" id="is_bar_note" placeholder="e.g. single channel" oninput="isSaveField('bar_note')"></div>
+    </div>
+    <div class="flex-row" style="flex-wrap:wrap;gap:12px;margin-top:8px">
+      <div class="field" style="flex:1;min-width:100px"><label>Uo (V)</label><input type="number" id="is_bar_uo" step="any" oninput="isSaveField('bar_uo');isCalc()"></div>
+      <div class="field" style="flex:1;min-width:100px"><label>Io (mA)</label><input type="number" id="is_bar_io" step="any" oninput="isSaveField('bar_io');isCalc()"></div>
+      <div class="field" style="flex:1;min-width:100px"><label>Po (W)</label><input type="number" id="is_bar_po" step="any" oninput="isSaveField('bar_po');isCalc()"></div>
+      <div class="field" style="flex:1;min-width:140px"><label>Co</label>
+        <div style="display:flex;gap:6px">
+          <input type="number" id="is_bar_co" step="any" oninput="isSaveField('bar_co');isCalc()" style="flex:1">
+          <select id="is_bar_co_unit" onchange="isSaveField('bar_co_unit');isCalc()" style="flex:0 0 68px">
+            <option value="pF">pF</option><option value="nF" selected>nF</option><option value="uF">µF</option>
+          </select>
+        </div>
+        <div id="is_bar_co_norm" style="font-size:0.72rem;color:var(--text3);margin-top:3px"></div>
+      </div>
+      <div class="field" style="flex:1;min-width:140px"><label>Lo</label>
+        <div style="display:flex;gap:6px">
+          <input type="number" id="is_bar_lo" step="any" oninput="isSaveField('bar_lo');isCalc()" style="flex:1">
+          <select id="is_bar_lo_unit" onchange="isSaveField('bar_lo_unit');isCalc()" style="flex:0 0 68px">
+            <option value="uH">µH</option><option value="mH" selected>mH</option>
+          </select>
+        </div>
+        <div id="is_bar_lo_norm" style="font-size:0.72rem;color:var(--text3);margin-top:3px"></div>
+      </div>
+      <div class="field" style="flex:1;min-width:120px"><label>Lo/Ro (µH/Ω) <span style="font-size:0.72rem;color:var(--text3);font-weight:400">optional</span></label><input type="number" id="is_bar_loro" step="any" placeholder="e.g. 45" oninput="isSaveField('bar_loro');isCalc()"></div>
+    </div>
+  </div>
+
+  <!-- Field Instrument -->
+  <div class="card" id="card-isloop-instrument">
+    <div class="kicker"><span class="n">7.3</span> Field Instrument (Load)</div>
+    <div class="grid2">
+      <div class="field"><label>Tag</label><input type="text" id="is_inst_tag" placeholder="e.g. XZSH-001" oninput="isSaveField('inst_tag')"></div>
+      <div class="field"><label>Manufacturer</label><input type="text" id="is_inst_mfr" placeholder="e.g. Pepperl+Fuchs" oninput="isSaveField('inst_mfr')"></div>
+      <div class="field"><label>Model</label><input type="text" id="is_inst_model" placeholder="e.g. NJ2-V3-N" oninput="isSaveField('inst_model')"></div>
+      <div class="field"><label>Certificate Number</label><input type="text" id="is_inst_cert" placeholder="e.g. Nemko 04ATEX1233 X" oninput="isSaveField('inst_cert')"></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;margin:8px 0 4px">
+      <input type="checkbox" id="is_inst_simple" onchange="isSaveField('inst_simple');isCalc()"> Simple apparatus? <span style="font-size:0.75rem;color:var(--text3);font-weight:400">(passive device per IEC 60079-11 — Ui/Ii/Pi checks not required)</span>
+    </label>
+    <div class="flex-row" style="flex-wrap:wrap;gap:12px;margin-top:8px" id="is_inst_vip_row">
+      <div class="field" style="flex:1;min-width:100px"><label>Ui (V)</label><input type="number" id="is_inst_ui" step="any" oninput="isSaveField('inst_ui');isCalc()"></div>
+      <div class="field" style="flex:1;min-width:100px"><label>Ii (mA)</label><input type="number" id="is_inst_ii" step="any" oninput="isSaveField('inst_ii');isCalc()"></div>
+      <div class="field" style="flex:1;min-width:100px"><label>Pi (W)</label><input type="number" id="is_inst_pi" step="any" oninput="isSaveField('inst_pi');isCalc()"></div>
+      <div class="field" style="flex:1;min-width:140px"><label>Ci</label>
+        <div style="display:flex;gap:6px">
+          <input type="number" id="is_inst_ci" step="any" oninput="isSaveField('inst_ci');isCalc()" style="flex:1">
+          <select id="is_inst_ci_unit" onchange="isSaveField('inst_ci_unit');isCalc()" style="flex:0 0 68px">
+            <option value="pF">pF</option><option value="nF" selected>nF</option><option value="uF">µF</option>
+          </select>
+        </div>
+        <div id="is_inst_ci_norm" style="font-size:0.72rem;color:var(--text3);margin-top:3px"></div>
+      </div>
+      <div class="field" style="flex:1;min-width:140px"><label>Li</label>
+        <div style="display:flex;gap:6px">
+          <input type="number" id="is_inst_li" step="any" oninput="isSaveField('inst_li');isCalc()" style="flex:1">
+          <select id="is_inst_li_unit" onchange="isSaveField('inst_li_unit');isCalc()" style="flex:0 0 68px">
+            <option value="uH" selected>µH</option><option value="mH">mH</option>
+          </select>
+        </div>
+        <div id="is_inst_li_norm" style="font-size:0.72rem;color:var(--text3);margin-top:3px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cable Segments -->
+  <div class="card" id="card-isloop-cable">
+    <div class="kicker"><span class="n">7.4</span> Cable — up to 3 Segments</div>
+    <div id="isCableSegments"></div>
+    <div class="source">Cable dropdown values from Cable Solutions NEK 606 instrument-cable electrical data (Cable &amp; Gland tab). Select "Manual entry" for non-NEK606 cables.</div>
+  </div>
+
+  <!-- Entity Comparison & Verdict -->
+  <div class="card" id="card-isloop-result">
+    <div class="kicker"><span class="n">7.5</span> Entity Comparison &amp; Verdict</div>
+    <div id="isResult"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
      TAB 6 — NPT REFERENCE
 ════════════════════════════════════════════ -->
 <div id="tab-npt" class="tab-content">
@@ -724,7 +832,7 @@
     <div>
       <!-- NPT Size Lookup -->
       <div class="card" id="card-npt-lookup">
-        <div class="kicker"><span class="n">7.1</span> NPT Size Lookup</div>
+        <div class="kicker"><span class="n">8.1</span> NPT Size Lookup</div>
         <div class="field">
           <label>NPT Size</label>
           <select id="nptSelect" onchange="showNPTInfo()">
@@ -746,7 +854,7 @@
 
       <!-- Thread Identifier -->
       <div class="card" id="card-npt-threadid">
-        <div class="kicker"><span class="n">7.2</span> Thread Identifier (from caliper OD)</div>
+        <div class="kicker"><span class="n">8.2</span> Thread Identifier (from caliper OD)</div>
         <div class="flex-row">
           <div class="field" style="flex:1"><label>Measured Thread OD (mm)</label><input type="number" id="nptOD" placeholder="e.g. 26.4" oninput="identifyNPT()"></div>
           <button class="btn primary" onclick="identifyNPT()">Identify</button>
@@ -758,7 +866,7 @@
     <div>
       <!-- Adapter Cross-Reference -->
       <div class="card" id="card-npt-adapter">
-        <div class="kicker"><span class="n">7.3</span> Adapter Cross-Reference</div>
+        <div class="kicker"><span class="n">8.3</span> Adapter Cross-Reference</div>
         <div class="field"><label>NPT Size</label>
           <select id="adapterNPT" onchange="showAdapterInfo()">
             <option value="1/2">½" NPT → M20</option>
@@ -774,7 +882,7 @@
 
       <!-- Why NPT naming -->
       <div class="card" id="card-npt-whynpt">
-        <div class="kicker"><span class="n">7.4</span> Why ¾" NPT ≠ ¾" Anything Measurable</div>
+        <div class="kicker"><span class="n">8.4</span> Why ¾" NPT ≠ ¾" Anything Measurable</div>
         <div style="font-size:0.85rem;line-height:1.7;color:var(--text2)">
           <p>NPT size designations refer to the <strong style="color:var(--text)">nominal bore</strong> of the pipe the thread was designed for — <em>not</em> any directly measurable thread dimension.</p>
           <br>
@@ -793,18 +901,18 @@
 
   <!-- Full NPT reference table -->
   <div class="card" id="card-npt-fulltable">
-    <div class="kicker"><span class="n">7.5</span> Full NPT Reference Table</div>
+    <div class="kicker"><span class="n">8.5</span> Full NPT Reference Table</div>
     <div id="nptFullTable"></div>
   </div>
 
   <!-- Stubs -->
   <div class="grid2">
     <div class="card" style="opacity:0.5;pointer-events:none">
-      <div class="kicker"><span class="n">7.6</span> MOC / Derogation Builder <span class="badge mut">COMING SOON</span></div>
+      <div class="kicker"><span class="n">8.6</span> MOC / Derogation Builder <span class="badge mut">COMING SOON</span></div>
       <p style="font-size:0.82rem;color:var(--text2)">Template builder for NPT adapter MOC documentation.</p>
     </div>
     <div class="card" style="opacity:0.5;pointer-events:none">
-      <div class="kicker"><span class="n">7.7</span> Gland Torque Reference <span class="badge mut">COMING SOON</span></div>
+      <div class="kicker"><span class="n">8.7</span> Gland Torque Reference <span class="badge mut">COMING SOON</span></div>
       <p style="font-size:0.82rem;color:var(--text2)">Hawke recommended installation torque by size and material.</p>
     </div>
   </div>
@@ -905,6 +1013,7 @@
 <script src="js/tabs/tab-calcs.js"></script>
 <script src="js/tabs/tab-cable.js"></script>
 <script src="js/tabs/tab-wonder.js"></script>
+<script src="js/tabs/tab-isloop.js"></script>
 <script src="js/tabs/tab-npt.js"></script>
 <script src="js/tabs/tab-prompts.js"></script>
 <script src="js/reorder.js"></script>
