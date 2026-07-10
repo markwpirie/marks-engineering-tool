@@ -540,7 +540,7 @@ table.data tr:hover td { background: var(--surface2); }
   .wt-section-header { color: #000; border-color: #000; }
 }
 
-/* About modal — styled to match brigelectric.com (left as-is, brand-matched on purpose) */
+/* About modal */
 #aboutModal {
   display: none; position: fixed; inset: 0; z-index: 10000;
   background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
@@ -558,10 +558,6 @@ table.data tr:hover td { background: var(--surface2); }
   position: relative;
   box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
   font-family: ui-sans-serif, system-ui, sans-serif;
-}
-#aboutModal .be-label {
-  font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em;
-  text-transform: uppercase; color: #14b8a6; margin-bottom: 12px;
 }
 #aboutModal .met-title {
   font-size: 2rem; font-weight: 700; color: #2dd4bf;
