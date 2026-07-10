@@ -123,31 +123,31 @@ function showCableResult() {
   const fixedBend=(OD*6).toFixed(0);
   let extras = '';
   if (isPower || isEarth) {
-    if (entry.copper) extras += `<div class="gland-info-item"><div class="key">Copper Content</div><div class="val">${entry.copper} kg/km</div></div>`;
-    if (entry.braidCsa) extras += `<div class="gland-info-item"><div class="key">Braid CSA</div><div class="val">${entry.braidCsa} mm²</div></div>`;
-    if (entry.r20!=null) extras += `<div class="gland-info-item"><div class="key">Conductor R (20°C / 90°C)</div><div class="val">${entry.r20} / ${entry.r90} Ω/km</div></div>`;
-    if (entry.x50!=null) extras += `<div class="gland-info-item"><div class="key">Reactance (50Hz / 60Hz)</div><div class="val">${entry.x50} / ${entry.x60} Ω/km</div></div>`;
-    if (entry.sc1s) extras += `<div class="gland-info-item"><div class="key">Short-circuit (1s)</div><div class="val">${entry.sc1s} A</div></div>`;
+    if (entry.copper) extras += `<div><div class="k">Copper Content</div><div class="v">${entry.copper} <small>kg/km</small></div></div>`;
+    if (entry.braidCsa) extras += `<div><div class="k">Braid CSA</div><div class="v">${entry.braidCsa} <small>mm²</small></div></div>`;
+    if (entry.r20!=null) extras += `<div><div class="k">Conductor R (20°C / 90°C)</div><div class="v">${entry.r20} / ${entry.r90} <small>Ω/km</small></div></div>`;
+    if (entry.x50!=null) extras += `<div><div class="k">Reactance (50Hz / 60Hz)</div><div class="v">${entry.x50} / ${entry.x60} <small>Ω/km</small></div></div>`;
+    if (entry.sc1s) extras += `<div><div class="k">Short-circuit (1s)</div><div class="v">${entry.sc1s} <small>A</small></div></div>`;
   } else if (data.electrical) {
     const elec = (INSTR_ELECTRICAL[data.electrical] || {})[csa];
     if (elec) {
-      extras += `<div class="gland-info-item"><div class="key">Capacitance</div><div class="val">${elec.cap} nF/km</div></div>`;
-      extras += `<div class="gland-info-item"><div class="key">Inductance</div><div class="val">${elec.ind} mH/km</div></div>`;
-      extras += `<div class="gland-info-item"><div class="key">Loop Resistance</div><div class="val">${elec.r} Ω/km</div></div>`;
-      extras += `<div class="gland-info-item"><div class="key">L/R Ratio</div><div class="val">${elec.lr} µH/Ω</div></div>`;
+      extras += `<div><div class="k">Capacitance</div><div class="v">${elec.cap} <small>nF/km</small></div></div>`;
+      extras += `<div><div class="k">Inductance</div><div class="v">${elec.ind} <small>mH/km</small></div></div>`;
+      extras += `<div><div class="k">Loop Resistance</div><div class="v">${elec.r} <small>Ω/km</small></div></div>`;
+      extras += `<div><div class="k">L/R Ratio</div><div class="v">${elec.lr} <small>µH/Ω</small></div></div>`;
     }
   }
 
-  let html=`<div class="gland-info-grid">
-    <div class="gland-info-item"><div class="key">Cable Type</div><div class="val" style="font-size:0.8rem">${data.label}</div></div>
-    <div class="gland-info-item"><div class="key">Overall OD</div><div class="val" style="color:var(--accent);font-size:1.1rem">${OD}${entry.odTol?' ± '+entry.odTol:''} mm</div></div>
-    ${innerOD ? `<div class="gland-info-item"><div class="key">OD over inner insulation</div><div class="val" style="color:var(--accent4)">${innerOD}${entry.innerODTol?' ± '+entry.innerODTol:''} mm</div></div>` : ''}
-    <div class="gland-info-item"><div class="key">Weight</div><div class="val">${weight} kg/km</div></div>
-    ${current?`<div class="gland-info-item"><div class="key">Current @45°C</div><div class="val">${current} A</div></div>`:''}
-    <div class="gland-info-item"><div class="key">Voltage Rating</div><div class="val">${data.voltage}</div></div>
-    <div class="gland-info-item"><div class="key">Min. Bend Radius</div><div class="val">${minBend} mm (8×OD install) / ${fixedBend} mm (6×OD fixed)</div></div>
+  let html=`<div class="spec">
+    <div class="full"><div class="k">Cable Type</div><div class="v plain">${data.label}</div></div>
+    <div><div class="k">Overall OD</div><div class="v hi">${OD}${entry.odTol?' ± '+entry.odTol:''} <small>mm</small></div></div>
+    ${innerOD ? `<div><div class="k">OD over inner insulation</div><div class="v">${innerOD}${entry.innerODTol?' ± '+entry.innerODTol:''} <small>mm</small></div></div>` : ''}
+    <div><div class="k">Weight</div><div class="v">${weight} <small>kg/km</small></div></div>
+    ${current?`<div><div class="k">Current @45°C</div><div class="v hi">${current} <small>A</small></div></div>`:''}
+    <div><div class="k">Voltage Rating</div><div class="v">${data.voltage}</div></div>
+    <div><div class="k">Min. Bend Radius</div><div class="v">${minBend} <small>mm install</small> / ${fixedBend} <small>mm fixed</small></div></div>
     ${extras}
-    <div class="gland-info-item" style="grid-column:1/-1"><div class="key">Colour Code</div><div class="val" style="font-size:0.8rem">${data.colourCode}</div></div>
+    <div class="full"><div class="k">Colour Code</div><div class="v plain">${data.colourCode}</div></div>
   </div>
   ${entry.unverified ? `<div class="notice"><svg><use href="#i-warn"/></svg><span>Unverified — not present in the Draka NEK 606 datasheet; retained from the previous dataset. Confirm with manufacturer before use.</span></div>` : ''}`;
 
@@ -173,31 +173,31 @@ function showGlandRec(OD, odTol) {
   let html='';
 
   // ── 501/453/UNIV first (armoured/braided) ──
-  html += `<div class="gland-family-header" style="display:flex;gap:16px;align-items:flex-start;margin-bottom:10px">
-    <img src="jpg/501-453.jpg" alt="Hawke 501/453/UNIV" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
-    <div style="flex:1">
-      <div class="gland-card-header" style="margin-bottom:6px">Hawke 501/453/UNIV — Coldflow, Armoured/Braided <span class="tag tag-blue">ARMOURED</span></div>
-      <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. Passive diaphragm seal for cold flow cables. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.</p>
+  html += `<div class="family">
+    <img src="jpg/501-453.jpg" alt="Hawke 501/453/UNIV cable gland cross-section">
+    <div>
+      <h3>Hawke 501/453/UNIV — Coldflow, Armoured/Braided</h3>
+      <p>Dual certified Exe/Exd. Passive diaphragm seal for cold flow cables. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.</p>
     </div>
   </div>`;
   html += renderGlandSizeList('453', findFittingGlands(GLAND_453, OD, odTol), useNPT);
 
   // ── ICG/653/UNIV second (barrier) ──
-  html += `<div class="gland-family-header" style="display:flex;gap:16px;align-items:flex-start;margin:20px 0 10px">
-    <img src="jpg/icg653.jpg" alt="Hawke ICG/653/UNIV" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
-    <div style="flex:1">
-      <div class="gland-card-header" style="margin-bottom:6px">Hawke ICG/653/UNIV — Barrier Gland <span class="tag tag-orange">BARRIER</span></div>
-      <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. Seals around individual cores. Cold flow, hygroscopic fillers, fibre optic cables. ExPress resin standard (30 min cure). QSP available (suffix Q).</p>
+  html += `<div class="family">
+    <img src="jpg/icg653.jpg" alt="Hawke ICG/653/UNIV barrier gland cross-section">
+    <div>
+      <h3>Hawke ICG/653/UNIV — Barrier</h3>
+      <p>Dual certified Exe/Exd. Seals around individual cores. Cold flow, hygroscopic fillers, fibre optic cables. ExPress resin standard (30 min cure). QSP available (suffix Q).</p>
     </div>
   </div>`;
   html += renderGlandSizeList('653', findFittingGlands(GLAND_653, OD, odTol), useNPT);
 
   // ── 501/421 last (compression, non-armoured) ──
-  html += `<div class="gland-family-header" style="display:flex;gap:16px;align-items:flex-start;margin:20px 0 10px">
-    <img src="jpg/501-421.jpg" alt="Hawke 501/421" style="width:180px;border-radius:6px;border:1px solid var(--border);flex-shrink:0">
-    <div style="flex:1">
-      <div class="gland-card-header" style="margin-bottom:6px">Hawke 501/421/UNIV — Compression, Non-Armoured</div>
-      <p style="font-size:0.78rem;color:var(--text2)">Dual certified Exe/Exd. For non-armoured elastomer and plastic insulated cables. Braid cables: braid passes into enclosure and terminates inside.</p>
+  html += `<div class="family">
+    <img src="jpg/501-421.jpg" alt="Hawke 501/421 cable gland cross-section">
+    <div>
+      <h3>Hawke 501/421/UNIV — Compression, Non-Armoured</h3>
+      <p>Dual certified Exe/Exd. For non-armoured elastomer and plastic insulated cables. Braid cables: braid passes into enclosure and terminates inside.</p>
     </div>
   </div>`;
   html += renderGland421SizeList(findFitting421(OD, odTol), useNPT);

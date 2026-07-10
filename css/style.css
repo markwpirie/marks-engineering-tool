@@ -350,31 +350,6 @@ table.data tr:hover td { background: var(--surface2); }
   padding: 16px;
   margin-bottom: 12px;
 }
-.gland-card-header {
-  font-family: var(--head);
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 10px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.gland-info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px,1fr));
-  border-top: 1px solid var(--border);
-  margin-top: 8px;
-  gap: 0;
-}
-.gland-info-item {
-  padding: 6px 14px 6px 0;
-  border-bottom: 1px solid var(--border);
-}
-.gland-info-item .key {
-  font-size: 0.68rem; font-weight: 500; letter-spacing: 0.05em;
-  color: var(--text3); text-transform: uppercase; margin-bottom: 1px;
-}
-.gland-info-item .val { font-family: var(--mono); font-size: 0.86rem; color: var(--text); margin-top: 2px; }
-
 .pass { color: var(--pass); }
 .fail { color: var(--fail); }
 .warn { color: var(--warn); }

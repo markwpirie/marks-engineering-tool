@@ -93,17 +93,19 @@ function pickRecommendedGland(matches) {
 
 // ── Shared HTML rendering (used by tab-cable.js and tab-wonder.js) ─────────
 function glandFitBadgesHTML(fit) {
-  const nomBadge = `<span class="tag tag-green">✓ Fits book value</span>`;
-  if (!fit.tol) return nomBadge + ` <span class="tag tag-blue">No tolerance data</span>`;
+  const nomBadge = `<span class="badge pass"><svg><use href="#i-check"/></svg>Fits book value</span>`;
+  if (!fit.tol) return nomBadge + ` <span class="badge mut">No tolerance data</span>`;
   const tolBadge = fit.fitsFullTol
-    ? `<span class="tag tag-green">✓ Fits full tolerance (±${fit.tol}mm)</span>`
-    : `<span class="tag tag-yellow">⚠ Book value only — undersized at max tolerance (+${fit.tol}mm)</span>`;
+    ? `<span class="badge pass"><svg><use href="#i-check"/></svg>Fits full tolerance (±${fit.tol}mm)</span>`
+    : `<span class="badge warn"><svg><use href="#i-warn"/></svg>Book value only — undersized at max tolerance (+${fit.tol}mm)</span>`;
   return nomBadge + ' ' + tolBadge;
 }
 
 function glandNptExample(size, prefix, npt) {
   return `${prefix}/${size}/${npt.split(' ')[0].replace('"','').replace('/','')+'NP'}`;
 }
+
+const GLAND_NPT_ATEX_NOTICE = `<div class="notice" style="margin-bottom:14px"><svg><use href="#i-warn"/></svg><span>NPT entries in ATEX zones require certified adapters — check MOC implications</span></div>`;
 
 // Renders the list-of-matching-sizes body for the 453 (armoured) or 653 (barrier) families.
 // `type` is '453' or '653'; `matches` comes from findFittingGlands(GLAND_453|GLAND_653, od, odTol).
@@ -113,29 +115,34 @@ function renderGlandSizeList(type, matches, useNPT, codeTransform) {
   if (!matches.length) return `<p style="color:var(--text2)">No size in this family covers the given cable OD.</p>`;
   const prefix = type === '453' ? '501/453/UNIV' : 'ICG/653/UNIV';
   const recommended = pickRecommendedGland(matches);
-  return matches.map((g) => {
+  const rows = matches.map((g) => {
     const entry = useNPT ? g.npt.split(' ')[0] : g.metric;
     const orderCode = codeTransform(getGlandOrderCode(type, g.size, useNPT ? 'npt' : 'metric', entry));
     const metEx = `${prefix}/${g.size}/${type === '453' ? g.metric.replace('/','-') : g.metric}`;
     const nptEx = glandNptExample(g.size, prefix, g.npt);
-    const rangeRow = type === '453'
-      ? `<div class="gland-info-item"><div class="key">Inner Sheath Range</div><div class="val">${g.innerMin}–${g.innerMax} mm</div></div>`
-      : `<div class="gland-info-item"><div class="key">Max Inner Sheath / Max Over Core</div><div class="val">${g.innerMax} / ${g.coreMax} mm</div></div>`;
+    const rangeSpan = type === '453'
+      ? `<span>Inner sheath <b>${g.innerMin}–${g.innerMax} mm</b></span>`
+      : `<span>Max inner sheath <b>${g.innerMax} mm</b></span><span>Max over cores <b>${g.coreMax} mm</b></span>`;
     const isRec = g === recommended;
-    const recTag = isRec ? `<span class="tag tag-blue">RECOMMENDED${g.fitsFullTol ? '' : ' — book value only, verify tolerance'}</span>` : '';
-    return `<div class="gland-card">
-      <div class="gland-card-header" style="margin-bottom:6px">Size ${g.size} ${recTag}</div>
-      <div class="gland-info-grid">
-        <div class="gland-info-item"><div class="key">${useNPT?'NPT Entry':'Metric Entry'}</div><div class="val">${useNPT?g.npt:g.metric}</div></div>
-        ${rangeRow}
-        <div class="gland-info-item"><div class="key">Outer Sheath Range</div><div class="val">${g.outerMin}–${g.outerMax} mm</div></div>
-        <div class="gland-info-item" style="grid-column:1/-1"><div class="key">Fit vs Cable OD</div><div class="val">${glandFitBadgesHTML(g)}</div></div>
-        <div class="gland-info-item" style="grid-column:1/-1"><div class="key">Example Order Code</div><div class="val" style="font-family:var(--mono);font-size:0.8rem">${orderCode} <button class="copy-btn" style="position:relative;top:0;right:0" onclick="copyText('${orderCode}')">⎘</button></div></div>
+    return `<div class="gsize${isRec ? ' rec' : ''}">
+      <div class="sizeref">${g.size}<small>Size ref</small></div>
+      <div class="meta">
+        <span>${useNPT?'NPT Entry':'Metric Entry'} <b>${useNPT?g.npt:g.metric}</b></span>
+        ${rangeSpan}
+        <span>Outer sheath <b>${g.outerMin}–${g.outerMax} mm</b></span>
       </div>
-      <div style="margin-top:8px;font-size:0.75rem;color:var(--text2)">Metric ex: <code>${metEx}</code> &nbsp;|&nbsp; NPT ex: <code>${nptEx}</code></div>
-      ${useNPT?'<div style="margin-top:6px;font-size:0.75rem;color:var(--warn)">⚠️ NPT entries in ATEX zones require certified adapters — check MOC implications</div>':''}
-    </div>`;
+      <div class="fit">
+        ${isRec ? `<span class="badge rec">Recommended</span>` : ''}
+        ${glandFitBadgesHTML(g)}
+      </div>
+      <div class="code">
+        <div class="k">Order code</div>
+        <span class="oc">${orderCode} <button class="copy" title="Copy order code" aria-label="Copy order code" onclick="copyText('${orderCode}')"><svg><use href="#i-copy"/></svg></button></span>
+      </div>
+    </div>
+    <div style="margin:4px 0 10px;font-size:0.72rem;color:var(--text3)">Metric ex: <span class="mono" style="font-family:var(--mono)">${metEx}</span> &nbsp;|&nbsp; NPT ex: <span class="mono" style="font-family:var(--mono)">${nptEx}</span></div>`;
   }).join('');
+  return rows + (useNPT ? GLAND_NPT_ATEX_NOTICE : '');
 }
 
 // Renders the list-of-matching-sizes body for the 421 (compression) family.
@@ -145,27 +152,33 @@ function renderGland421SizeList(matches, useNPT, codeTransform) {
   if (!matches.length) return `<p style="color:var(--text2)">No size in this family covers the given cable OD (std or alternative seal).</p>`;
   const prefix = '501/421/UNIV';
   const recommended = pickRecommendedGland(matches);
-  return matches.map((g) => {
+  const rows = matches.map((g) => {
     const isAlt = g.seal === 'alt';
     const entry = useNPT ? g.npt.split(' ')[0] : g.metric;
     const orderCode = codeTransform(getGlandOrderCode('421', g.size, useNPT ? 'npt' : 'metric', entry) + (isAlt ? 'S' : ''));
     const metEx = `${prefix}/${g.size}/${g.metric}`;
     const nptEx = glandNptExample(g.size, prefix, g.npt);
     const isRec = g === recommended;
-    const recTag = isRec ? `<span class="tag tag-blue">RECOMMENDED${g.fitsFullTol ? '' : ' — book value only, verify tolerance'}</span>` : '';
-    return `<div class="gland-card">
-      <div class="gland-card-header" style="margin-bottom:6px">Size ${g.size} <span class="tag ${isAlt?'tag-yellow':'tag-green'}">${isAlt?'Alternative Seal (S)':'Standard Seal'}</span> ${recTag}</div>
-      <div class="gland-info-grid">
-        <div class="gland-info-item"><div class="key">${useNPT?'NPT Entry':'Metric Entry'}</div><div class="val">${useNPT?g.npt:g.metric}</div></div>
-        <div class="gland-info-item"><div class="key">Std Seal OD Range</div><div class="val">${g.stdMin}–${g.stdMax} mm</div></div>
-        ${g.altMin!=null?`<div class="gland-info-item"><div class="key">Alt Seal OD Range</div><div class="val">${g.altMin}–${g.altMax} mm</div></div>`:''}
-        <div class="gland-info-item" style="grid-column:1/-1"><div class="key">Fit vs Cable OD</div><div class="val">${glandFitBadgesHTML(g)}</div></div>
-        <div class="gland-info-item" style="grid-column:1/-1"><div class="key">Example Order Code</div><div class="val" style="font-family:var(--mono);font-size:0.8rem">${orderCode} <button class="copy-btn" style="position:relative;top:0;right:0" onclick="copyText('${orderCode}')">⎘</button></div></div>
+    return `<div class="gsize${isRec ? ' rec' : ''}">
+      <div class="sizeref">${g.size}<small>Size ref</small></div>
+      <div class="meta">
+        <span>${useNPT?'NPT Entry':'Metric Entry'} <b>${useNPT?g.npt:g.metric}</b></span>
+        <span>Std seal OD <b>${g.stdMin}–${g.stdMax} mm</b></span>
+        ${g.altMin!=null?`<span>Alt seal OD <b>${g.altMin}–${g.altMax} mm</b></span>`:''}
       </div>
-      <div style="margin-top:8px;font-size:0.75rem;color:var(--text2)">Metric ex: <code>${metEx}</code> &nbsp;|&nbsp; NPT ex: <code>${nptEx}</code></div>
-      ${useNPT?'<div style="margin-top:6px;font-size:0.75rem;color:var(--warn)">⚠️ NPT entries in ATEX zones require certified adapters — check MOC implications</div>':''}
-    </div>`;
+      <div class="fit">
+        ${isRec ? `<span class="badge rec">Recommended</span>` : ''}
+        <span class="badge mut">${isAlt?'Alternative Seal (S)':'Standard Seal'}</span>
+        ${glandFitBadgesHTML(g)}
+      </div>
+      <div class="code">
+        <div class="k">Order code</div>
+        <span class="oc">${orderCode} <button class="copy" title="Copy order code" aria-label="Copy order code" onclick="copyText('${orderCode}')"><svg><use href="#i-copy"/></svg></button></span>
+      </div>
+    </div>
+    <div style="margin:4px 0 10px;font-size:0.72rem;color:var(--text3)">Metric ex: <span class="mono" style="font-family:var(--mono)">${metEx}</span> &nbsp;|&nbsp; NPT ex: <span class="mono" style="font-family:var(--mono)">${nptEx}</span></div>`;
   }).join('');
+  return rows + (useNPT ? GLAND_NPT_ATEX_NOTICE : '');
 }
 
 // Full Hawke order code format: 501/453/UNIV/SIZE/ENTRY
