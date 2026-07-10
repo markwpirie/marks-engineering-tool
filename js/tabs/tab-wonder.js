@@ -18,19 +18,19 @@ function wtGeneratePDF() {
     const ratio    = cmp / d.fla;
     const isSel    = csa === d.selCSA;
     const thr = d.borderlineThreshold || 0.10;
-    let bg, status;
-    if (ratio >= 1 + thr)  { bg = '#dcfce7'; status = '✓ OK'; }
-    else if (ratio >= 1.0) { bg = '#fef9c3'; status = '~ Borderline'; }
-    else                   { bg = '#fee2e2'; status = '✗ Under'; }
+    let badgeClass, status;
+    if (ratio >= 1 + thr)  { badgeClass = 'pdf-badge-pass'; status = 'OK'; }
+    else if (ratio >= 1.0) { badgeClass = 'pdf-badge-warn'; status = 'Borderline'; }
+    else                   { badgeClass = 'pdf-badge-fail'; status = 'Under'; }
     const weight = isSel ? '700' : '400';
-    const border = isSel ? 'border-left:3px solid #14b8a6;' : '';
-    return `<tr style="background:${bg};${border}font-weight:${weight}">
+    const border = isSel ? 'border-left:3px solid #2E7CC0;' : '';
+    return `<tr style="${border}font-weight:${weight}">
       <td>${isSel ? '▶ ' : ''}${cores}C × ${csa} mm²</td>
       <td>${rated} A</td>
       <td>${derated} A</td>
       ${d.showTotal ? `<td>${totalCap} A</td>` : ''}
       <td>${od} mm</td>
-      <td>${status}</td>
+      <td><span class="pdf-badge ${badgeClass}">${status}</span></td>
     </tr>`;
   }).join('');
 
@@ -86,11 +86,11 @@ function wtGeneratePDF() {
   body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 9pt; color: #1e293b; background: #fff; }
 
   /* Header */
-  .hdr { background: #0f172a; color: #fff; padding: 9px 16px; margin-bottom: 0; }
-  .hdr-brand { font-size: 13pt; font-weight: 700; color: #2dd4bf; letter-spacing: 1px; }
+  .hdr { border-bottom: 3px solid #2E7CC0; padding: 0 0 9px; margin-bottom: 14px; }
+  .hdr-brand { font-size: 13pt; font-weight: 700; color: #1B4B72; letter-spacing: 1px; }
 
   /* Title block */
-  .title-block { border: 1px solid #cbd5e1; border-top: 3px solid #14b8a6;
+  .title-block { border: 1px solid #cbd5e1; border-top: 3px solid #2E7CC0;
     margin-bottom: 14px; }
   .title-block table { width: 100%; border-collapse: collapse; }
   .title-block td { padding: 5px 10px; border-bottom: 1px solid #e2e8f0;
@@ -100,12 +100,12 @@ function wtGeneratePDF() {
   .title-block td.val { color: #0f172a; font-weight: 500; }
   .title-block tr:last-child td { border-bottom: none; }
 
-  /* Section headers */
+  /* Section headers — small-caps kicker with clause number, system-font approximation of Rajdhani */
   .sec { font-size: 9pt; font-weight: 700; color: #0f172a; text-transform: uppercase;
-    letter-spacing: 0.08em; padding: 5px 0 4px 8px; border-left: 3px solid #14b8a6;
+    letter-spacing: 0.1em; padding: 5px 0 4px 8px; border-left: 3px solid #2E7CC0;
     margin: 14px 0 8px; }
 
-  /* Data grids */
+  /* Data grids — hairline-rule spec treatment */
   .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0;
     border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden; margin-bottom: 10px; }
   .data-item { padding: 5px 10px; border-bottom: 1px solid #f1f5f9; }
@@ -114,32 +114,34 @@ function wtGeneratePDF() {
     letter-spacing: 0.05em; font-weight: 600; }
   .data-item .v { font-size: 9pt; color: #0f172a; font-weight: 500; margin-top: 1px; }
   .data-item.full { grid-column: 1/-1; border-right: none; }
-  .data-item.accent .v { color: #0d9488; font-weight: 700; }
+  .data-item.accent .v { color: #1B4B72; font-weight: 700; }
 
-  /* Order code box */
-  .order-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 4px;
+  /* Order code box (success — order code resolved) */
+  .order-box { background: rgba(36,119,78,0.07); border: 1px solid rgba(36,119,78,0.35); border-radius: 4px;
     padding: 8px 14px; margin: 8px 0; display: flex; align-items: center; gap: 12px; }
-  .order-label { font-size: 7.5pt; color: #166534; text-transform: uppercase;
+  .order-label { font-size: 7.5pt; color: #24774E; text-transform: uppercase;
     font-weight: 600; letter-spacing: 0.05em; white-space: nowrap; }
   .order-code { font-family: 'Courier New', monospace; font-size: 12pt;
-    font-weight: 700; color: #15803d; letter-spacing: 1px; }
+    font-weight: 700; color: #24774E; letter-spacing: 1px; }
 
   /* Comparison table */
   .cmp-table { width: 100%; border-collapse: collapse; font-size: 8.5pt;
     margin-bottom: 10px; }
-  .cmp-table th { background: #1e293b; color: #e2e8f0; padding: 5px 8px;
+  .cmp-table th { background: #1B4B72; color: #e2e8f0; padding: 5px 8px;
     text-align: left; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.05em; }
   .cmp-table td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; }
 
-  /* Summary box */
-  .summary { background: #f8fafc; border: 1px solid #e2e8f0;
-    border-left: 3px solid #14b8a6; padding: 10px 14px; margin-bottom: 12px;
-    font-size: 9pt; line-height: 1.7; }
+  /* Pass/warn/fail — tinted badges, not raw background fills */
+  .pdf-badge { display: inline-block; font-weight: 700; font-size: 7.5pt;
+    letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; }
+  .pdf-badge-pass { color: #24774E; background: rgba(36,119,78,0.12); }
+  .pdf-badge-warn { color: #96690F; background: rgba(150,105,15,0.12); }
+  .pdf-badge-fail { color: #B33F31; background: rgba(179,63,49,0.12); }
 
   /* FLA formula */
   .fla-formula { font-family: 'Courier New', monospace; font-size: 8pt;
     color: #475569; margin-bottom: 3px; }
-  .fla-result { font-size: 12pt; font-weight: 700; color: #14b8a6; }
+  .fla-result { font-size: 12pt; font-weight: 700; color: #2E7CC0; }
 
   /* Disclaimer */
   .disclaimer { border-top: 1px solid #e2e8f0; margin-top: 14px; padding-top: 10px;
@@ -150,7 +152,6 @@ function wtGeneratePDF() {
     display: flex; justify-content: space-between; align-items: center;
     padding: 6px 18mm; background: #f8fafc; border-top: 1px solid #e2e8f0;
     font-size: 7pt; color: #94a3b8; }
-  .footer .be { color: #14b8a6; font-weight: 600; }
 
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -225,7 +226,7 @@ function wtGeneratePDF() {
   <tbody>${tableRows}</tbody>
 </table>
 
-${d.isUpsized ? `<div style="background:#eff6ff;border:1px solid #93c5fd;border-left:3px solid #3b82f6;border-radius:4px;padding:8px 12px;margin-bottom:10px;font-size:8.5pt;color:#1e40af">
+${d.isUpsized ? `<div style="background:rgba(46,124,192,0.07);border:1px solid rgba(46,124,192,0.4);border-left:3px solid #2E7CC0;border-radius:4px;padding:8px 12px;margin-bottom:10px;font-size:8.5pt;color:#1B4B72">
   ⬆ <strong>Upsized at engineer's discretion</strong> — minimum cable was ${d.prevCableCSA}mm² (borderline).
   Selected ${d.cCSA}mm² to achieve adequate headroom.
 </div>` : ''}
@@ -256,9 +257,9 @@ ${gm ? `
 <div class="data-grid">
   <div class="data-item full"><div class="k">Gland Type</div><div class="v">${glandTypeName}</div></div>
   ${glandRows}
-  <div class="data-item"><div class="k">Cable OD ${d.cOD}mm</div><div class="v">✓ Fits</div></div>
+  <div class="data-item"><div class="k">Cable OD ${d.cOD}mm</div><div class="v"><span class="pdf-badge pdf-badge-pass">Fits</span></div></div>
   <div class="data-item"><div class="k">Entry Thread</div><div class="v">${d.useNPT ? 'NPT' : 'Metric'}</div></div>
-</div>` : `<p style="color:#ef4444;padding:8px 0">No ${glandTypeName} gland found for OD ${d.cOD}mm — select manually.</p>`}
+</div>` : `<p style="color:#B33F31;padding:8px 0">No ${glandTypeName} gland found for OD ${d.cOD}mm — select manually.</p>`}
 
 <!-- Disclaimer -->
 <div class="disclaimer">
@@ -272,14 +273,10 @@ ${gm ? `
   <span>${dateStr}</span>
 </div>
 
-<script>window.onload = () => window.print();<\/script>
 </body>
 </html>`;
 
-  const w = window.open('', '_blank');
-  if (!w) { alert('Pop-up blocked — please allow pop-ups for this site.'); return; }
-  w.document.write(html);
-  w.document.close();
+  printHtmlDocument(html);
 }
 
 // IEC 60092-352 ambient temperature correction factors
