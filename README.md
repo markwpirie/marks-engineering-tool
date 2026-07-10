@@ -12,6 +12,15 @@ Mark's Engineering Tool is a browser-based engineering helper for electrical and
 - Prompt-generation helpers
 - Local storage for user-created snippets and custom sections
 
+## Demo
+
+Live: [tools.brigelectric.com](https://tools.brigelectric.com/)
+
+<!-- Add a screenshot or short GIF of the app here, e.g.: -->
+<!-- ![M.E.T. screenshot](jpg/screenshot.png) -->
+
+To try it yourself, visit the live link above, or open [index.html](index.html) directly in a browser / serve the folder locally (see [Local use](#local-use) below) and click through the tabs — no setup or account required.
+
 ## Project structure
 
 - index.html — main single-page app shell
@@ -36,7 +45,7 @@ Then open http://localhost:8000.
 
 ## Git and deployment
 
-This project is already connected to GitHub and is set up for deployment from the main branch. If Cloudflare is already configured to deploy from main, simply push your changes there when ready.
+This project is already connected to GitHub and is set up for deployment from the main branch. Cloudflare deploys from main to [tools.brigelectric.com](https://tools.brigelectric.com/), so simply push your changes there when ready.
 
 A GitHub Pages workflow is also included as a fallback in [.github/workflows/deploy-pages.yml](.github/workflows/deploy-pages.yml).
 
