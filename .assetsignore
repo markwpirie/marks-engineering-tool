@@ -1,0 +1,13 @@
+.git/
+.claude/
+Plan/
+design-preview.html
+README.md
+CLAUDE.md
+TODO.md
+DEPLOYMENT_CHECKLIST.md
+wrangler.jsonc
+.assetsignore
+.github/
+.gitattributes
+.gitignore
