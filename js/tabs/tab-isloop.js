@@ -7,9 +7,9 @@
 
 const IS_STATIC_KEYS = [
   'proj_tag','proj_desc','proj_num','proj_doc','proj_rev','proj_date','proj_by',
-  'bar_mfr','bar_model','bar_cert','bar_note','bar_uo','bar_io','bar_po',
+  'bar_preset','bar_mfr','bar_model','bar_cert','bar_note','bar_uo','bar_io','bar_po',
   'bar_co','bar_co_unit','bar_lo','bar_lo_unit','bar_loro',
-  'inst_tag','inst_mfr','inst_model','inst_cert','inst_simple',
+  'inst_preset','inst_tag','inst_mfr','inst_model','inst_cert','inst_simple',
   'inst_ui','inst_ii','inst_pi','inst_ci','inst_ci_unit','inst_li','inst_li_unit',
 ];
 
@@ -33,6 +33,78 @@ function isLoadFields() {
   if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
   const revEl = document.getElementById('is_proj_rev');
   if (revEl && !revEl.value) revEl.value = '01';
+}
+
+// ── Barrier / Instrument presets (data-is.js) ───────────────
+// Autofills the entity-parameter fields from a known barrier/instrument so a repeated
+// device doesn't have to be retyped every loop. Values are transcribed from a previous
+// project's IS loop register — always re-verify against the equipment's current
+// certificate before relying on this for a new project.
+function isPresetOptionsHtml(presets, labelFn) {
+  return '<option value="">— Select to autofill, or enter manually —</option>' +
+    presets.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(labelFn(p))}</option>`).join('');
+}
+
+function renderIsPresets() {
+  const barSel = document.getElementById('is_bar_preset');
+  if (barSel) {
+    barSel.innerHTML = isPresetOptionsHtml(IS_BARRIER_PRESETS,
+      p => `${p.mfr} ${p.model} — ${p.uo}V / ${p.io}mA / ${p.po}W / ${p.co}${p.coUnit === 'uF' ? 'µF' : p.coUnit} / ${p.lo}${p.loUnit}`);
+  }
+  const instSel = document.getElementById('is_inst_preset');
+  if (instSel) {
+    instSel.innerHTML = isPresetOptionsHtml(IS_INSTRUMENT_PRESETS,
+      p => `${p.mfr} ${p.model}${p.desc ? ' — ' + p.desc : ''}`);
+  }
+}
+
+// Sets a field's value and persists it, without needing an existing element reference.
+// `null` means the source certificate stated no limit for that parameter — leave the field
+// blank rather than writing the literal string "null" or fabricating a number.
+function isSetField(field, val) {
+  const el = document.getElementById('is_' + field);
+  if (!el) return;
+  el.value = (val === null || val === undefined) ? '' : val;
+  isSaveField(field);
+}
+
+function isApplyBarrierPreset() {
+  isSaveField('bar_preset');
+  const p = IS_BARRIER_PRESETS.find(x => x.id === document.getElementById('is_bar_preset')?.value);
+  if (!p) return;
+  isSetField('bar_mfr', p.mfr);
+  isSetField('bar_model', p.model);
+  isSetField('bar_cert', p.cert);
+  isSetField('bar_uo', p.uo);
+  isSetField('bar_io', p.io);
+  isSetField('bar_po', p.po);
+  isSetField('bar_co', p.co);
+  isSetField('bar_co_unit', p.coUnit);
+  isSetField('bar_lo', p.lo);
+  isSetField('bar_lo_unit', p.loUnit);
+  isCalc();
+}
+
+function isApplyInstrumentPreset() {
+  isSaveField('inst_preset');
+  const p = IS_INSTRUMENT_PRESETS.find(x => x.id === document.getElementById('is_inst_preset')?.value);
+  if (!p) return;
+  // Tag is loop-specific, not part of the device preset — left untouched.
+  isSetField('inst_mfr', p.mfr);
+  isSetField('inst_model', p.model);
+  isSetField('inst_cert', p.cert);
+  isSetField('inst_ui', p.ui);
+  isSetField('inst_ii', p.ii);
+  isSetField('inst_pi', p.pi);
+  isSetField('inst_ci', p.ci);
+  isSetField('inst_ci_unit', p.ciUnit);
+  isSetField('inst_li', p.li);
+  isSetField('inst_li_unit', p.liUnit);
+  isCalc();
+  // Ui/Ii left blank means the source certificate stated no limit — the comparison can't
+  // proceed until that's consciously resolved (a blank field elsewhere usually just means
+  // "not filled in yet", so the calc deliberately won't guess which case this is).
+  if (p.note) alert(p.note);
 }
 
 function isGetProj() {
@@ -425,6 +497,7 @@ function isGeneratePDF() {
 
 // ── INIT ──
 function initIsLoop() {
+  renderIsPresets();
   isLoadFields();
   renderCableSegments();
   isCalc();

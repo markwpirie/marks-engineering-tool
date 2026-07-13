@@ -739,6 +739,9 @@
   <!-- Barrier / Isolator -->
   <div class="card" id="card-isloop-barrier">
     <div class="kicker"><span class="n">7.2</span> Barrier / Isolator (Source)</div>
+    <div class="field" style="margin-bottom:10px"><label>Preset <span style="font-size:0.72rem;color:var(--text3);font-weight:400">(fills in the fields below — override anything as needed)</span></label>
+      <select id="is_bar_preset" onchange="isApplyBarrierPreset()"></select>
+    </div>
     <div class="grid2">
       <div class="field"><label>Manufacturer</label><input type="text" id="is_bar_mfr" placeholder="e.g. Siemens" oninput="isSaveField('bar_mfr')"></div>
       <div class="field"><label>Model</label><input type="text" id="is_bar_model" placeholder="e.g. 6ES7 321-7RD00-0AB0" oninput="isSaveField('bar_model')"></div>
@@ -774,6 +777,9 @@
   <!-- Field Instrument -->
   <div class="card" id="card-isloop-instrument">
     <div class="kicker"><span class="n">7.3</span> Field Instrument (Load)</div>
+    <div class="field" style="margin-bottom:10px"><label>Preset <span style="font-size:0.72rem;color:var(--text3);font-weight:400">(fills in the fields below — override anything as needed)</span></label>
+      <select id="is_inst_preset" onchange="isApplyInstrumentPreset()"></select>
+    </div>
     <div class="grid2">
       <div class="field"><label>Tag</label><input type="text" id="is_inst_tag" placeholder="e.g. XZSH-001" oninput="isSaveField('inst_tag')"></div>
       <div class="field"><label>Manufacturer</label><input type="text" id="is_inst_mfr" placeholder="e.g. Pepperl+Fuchs" oninput="isSaveField('inst_mfr')"></div>
@@ -1004,6 +1010,7 @@
 <script src="js/data-atex.js"></script>
 <script src="js/data-glands.js"></script>
 <script src="js/data-cable.js"></script>
+<script src="js/data-is.js"></script>
 <script src="js/data-motors.js"></script>
 <script src="js/data-symbols.js"></script>
 <script src="js/data-docregister.js"></script>
