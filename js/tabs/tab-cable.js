@@ -157,7 +157,7 @@ function showCableResult() {
   tcSec.style.display = hasNumericCurrent ? 'block' : 'none';
   if (hasNumericCurrent) { window._baseCurrent=current; applyTempCorr(); }
 
-  showGlandRec(OD, entry.odTol);
+  showGlandRec(OD, entry.odTol, innerOD, entry.innerODTol);
 }
 
 function applyTempCorr() {
@@ -168,7 +168,7 @@ function applyTempCorr() {
   document.getElementById('tempCorrResult').innerHTML = `<div class="result-box">Corrected: <strong style="color:var(--accent);font-size:1.1rem">${corrected} A</strong> (base ${base}A × ${factor})</div>`;
 }
 
-function showGlandRec(OD, odTol) {
+function showGlandRec(OD, odTol, innerOD, innerODTol) {
   const useNPT = currentGlandTab==='npt';
   let html='';
 
@@ -180,7 +180,7 @@ function showGlandRec(OD, odTol) {
       <p>Dual certified Exe/Exd. Passive diaphragm seal for cold flow cables. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.</p>
     </div>
   </div>`;
-  html += renderGlandSizeList('453', findFittingGlands(GLAND_453, OD, odTol), useNPT);
+  html += renderGlandSizeList('453', findFittingGlands(GLAND_453, OD, odTol, innerOD, innerODTol), useNPT);
 
   // ── ICG/653/UNIV second (barrier) ──
   html += `<div class="family">
@@ -190,7 +190,7 @@ function showGlandRec(OD, odTol) {
       <p>Dual certified Exe/Exd. Seals around individual cores. Cold flow, hygroscopic fillers, fibre optic cables. ExPress resin standard (30 min cure). QSP available (suffix Q).</p>
     </div>
   </div>`;
-  html += renderGlandSizeList('653', findFittingGlands(GLAND_653, OD, odTol), useNPT);
+  html += renderGlandSizeList('653', findFittingGlands(GLAND_653, OD, odTol, innerOD, innerODTol), useNPT);
 
   // ── 501/421 last (compression, non-armoured) ──
   html += `<div class="family">
