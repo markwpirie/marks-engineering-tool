@@ -14,6 +14,16 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
+// Restores `prevVal` on a <select> after its options have been repopulated, if it's still a
+// valid option — otherwise falls back to the first option. Used by every cascading dropdown
+// in the app (Cable & Gland selector, Gland Part Number Generator) so switching one dropdown
+// (e.g. Fire Rating) doesn't reset a dependent dropdown (e.g. Cores/CSA) back to the top of
+// the list when the previous choice is still valid for the new combination.
+function restoreSelectValue(sel, prevVal) {
+  if (sel.options.length === 0) return;
+  sel.value = [...sel.options].some(o => o.value === prevVal) ? prevVal : sel.options[0].value;
+}
+
 // Prints a standalone HTML document via a hidden same-origin iframe rather
 // than window.open() + document.write() — that pair is routinely killed by
 // pop-up blockers since it opens a new window/tab. An iframe append isn't a

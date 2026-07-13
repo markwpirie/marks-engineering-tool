@@ -29,12 +29,13 @@ function updateCableCores() {
   const rating = document.getElementById('c_rating').value;
   const app = document.getElementById('c_app').value;
   const sel = document.getElementById('c_cores');
+  const prevVal = sel.value;
   sel.innerHTML = '';
 
   if (app === 'Earth') {
     const csas = [...new Set(CABLE_DATA[rating].Earth.entries.map(e => e.csa))].sort((a,b)=>a-b);
     csas.forEach(c => sel.add(new Option(c + ' mm²', c)));
-    if (sel.options.length > 0) sel.value = sel.options[0].value;
+    restoreSelectValue(sel, prevVal);
     updateCableCSA();
     return;
   }
@@ -57,7 +58,7 @@ function updateCableCores() {
       sel.add(new Option(`${count} ${type==='PR'?'Pair':type==='TR'?'Triple':'Quad'}(s)`, c));
     });
   }
-  if (sel.options.length > 0) sel.value = sel.options[0].value;
+  restoreSelectValue(sel, prevVal);
   updateCableCSA();
 }
 
@@ -66,6 +67,7 @@ function updateCableCSA() {
   const app = document.getElementById('c_app').value;
   const coresVal = document.getElementById('c_cores').value;
   const csaSel = document.getElementById('c_csa');
+  const prevVal = csaSel.value;
   csaSel.innerHTML = '';
 
   if (app === 'Earth') {
@@ -85,7 +87,7 @@ function updateCableCSA() {
     const [type,count] = coresVal.split('-');
     data.entries.filter(e=>e.type===type&&e.elements===parseInt(count,10)).forEach(e => csaSel.add(new Option(e.csa+' mm²', e.csa)));
   }
-  if (csaSel.options.length > 0) csaSel.value = csaSel.options[0].value;
+  restoreSelectValue(csaSel, prevVal);
   showCableResult();
 }
 

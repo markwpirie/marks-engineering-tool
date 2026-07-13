@@ -606,9 +606,7 @@ function updateGgenSizes() {
   sel.innerHTML = '';
   const gsrc = type==='421' ? GLAND_421 : type==='453' ? GLAND_453 : GLAND_653;
   gsrc.forEach(g => sel.add(new Option(g.size, g.size)));
-  // Restore previous or default to first option
-  if (prev && [...sel.options].find(o => o.value===prev)) sel.value = prev;
-  else if (sel.options.length > 0) sel.value = sel.options[0].value;
+  restoreSelectValue(sel, prev);
   updateGgenEntries();
 }
 
@@ -627,8 +625,7 @@ function updateGgenEntries() {
   } else {
     (g.npt||'').split(' or ').map(n => n.trim()).filter(n => n && n!=='-').forEach(n => sel.add(new Option(n,n)));
   }
-  if (prev && [...sel.options].find(o => o.value===prev)) sel.value = prev;
-  else if (sel.options.length > 0) sel.value = sel.options[0].value;
+  restoreSelectValue(sel, prev);
   genGlandCode();
 }
 

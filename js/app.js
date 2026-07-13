@@ -215,6 +215,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Tab 5 — Cable
   updateCableCores();
+  // Default to a representative RFOU 3-core 2.5mm² cable rather than the list's first entry
+  document.getElementById('c_cores').value = '3';
+  updateCableCSA();
+  document.getElementById('c_csa').value = '2.5';
+  showCableResult();
   renderAWGSection();
   updateGgenSizes();        // init gland generator dropdowns
   updateCgenUI();           // init cable descriptor generator
