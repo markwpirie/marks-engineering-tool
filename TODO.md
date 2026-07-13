@@ -15,7 +15,7 @@
 - [ ] Review the ATEX and cable/gland datasets for accuracy
 - [ ] Consider adding a small version history banner in the app UI
 - [ ] Add a simple backup/export reminder for users
-- [x] The generate pdf button in workder tool no longer works. get it working to generate a profesional output that would look good in a documentation package to a large oil company. *(v4.1 — replaced window.open+document.write with an iframe print helper, restyled to steel-blue v4 datasheet look)*
+- [x] The generate pdf button in workder tool no longer works. get it working to generate a profesional output that would look good in a documentation package to a large oil company. *(v4.1 — replaced window.open+document.write with an iframe print helper, restyled to steel-blue v4 datasheet look; the restyle itself briefly re-broke the button with an array-destructuring crash and a garbled gland-section table — caught by actually running the app and fixed same day)*
 - [x] Prompt engineering tab - overhaul for 2026 with quick prompt generation ideas for engineering - each of the existig sections persona, role, task, context, format should ahve clickable buttons like how the persona buttons currently work. The out put should have a click to copy button (check it works) *(v4.1)*
 - [x] The symobls section has handles to reorder the boxes. This is then saved in the export json so I can move to new pc if i make drastic changes. All boxes in the site should have these handles. *(v4.1 — site-wide card drag-reorder via js/reorder.js)*
 - [x] There are no "x" in the section headers to send to recycle bin. this should be re-introduced. *(v4.1 — built-in Symbols sections now get ✕ too, restore-only since there's no data to delete)*
