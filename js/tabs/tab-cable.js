@@ -172,39 +172,7 @@ function applyTempCorr() {
 
 function showGlandRec(OD, odTol, innerOD, innerODTol) {
   const useNPT = currentGlandTab==='npt';
-  let html='';
-
-  // ── 501/453/UNIV first (armoured/braided) ──
-  html += `<div class="family">
-    <img src="jpg/501-453.jpg" alt="Hawke 501/453/UNIV cable gland cross-section">
-    <div>
-      <h3>Hawke 501/453/UNIV — Coldflow, Armoured/Braided</h3>
-      <p>Dual certified Exe/Exd. Passive diaphragm seal for cold flow cables. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.</p>
-    </div>
-  </div>`;
-  html += renderGlandSizeList('453', findFittingGlands(GLAND_453, OD, odTol, innerOD, innerODTol), useNPT);
-
-  // ── ICG/653/UNIV second (barrier) ──
-  html += `<div class="family">
-    <img src="jpg/icg653.jpg" alt="Hawke ICG/653/UNIV barrier gland cross-section">
-    <div>
-      <h3>Hawke ICG/653/UNIV — Barrier</h3>
-      <p>Dual certified Exe/Exd. Seals around individual cores. Cold flow, hygroscopic fillers, fibre optic cables. ExPress resin standard (30 min cure). QSP available (suffix Q).</p>
-    </div>
-  </div>`;
-  html += renderGlandSizeList('653', findFittingGlands(GLAND_653, OD, odTol, innerOD, innerODTol), useNPT);
-
-  // ── 501/421 last (compression, non-armoured) ──
-  html += `<div class="family">
-    <img src="jpg/501-421.jpg" alt="Hawke 501/421 cable gland cross-section">
-    <div>
-      <h3>Hawke 501/421/UNIV — Compression, Non-Armoured</h3>
-      <p>Dual certified Exe/Exd. For non-armoured elastomer and plastic insulated cables. Braid cables: braid passes into enclosure and terminates inside.</p>
-    </div>
-  </div>`;
-  html += renderGland421SizeList(findFitting421(OD, odTol), useNPT);
-
-  document.getElementById('glandResults').innerHTML=html;
+  document.getElementById('glandResults').innerHTML = renderAllGlandFamilies(OD, odTol, innerOD, innerODTol, useNPT);
 }
 
 function renderAWGSection() {

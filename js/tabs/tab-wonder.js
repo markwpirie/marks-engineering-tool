@@ -34,22 +34,29 @@ function wtGeneratePDF() {
     </tr>`;
   }).join('');
 
-  // Gland data rows
-  const gm = d.glandMatch;
+  // Gland data — one block per family (braided/armoured, barrier, compression), each with
+  // its own best-fit size and the same directional fit wording as the Cable & Gland tab.
   const glandItem = (k, v) => `<div class="data-item"><div class="k">${k}</div><div class="v">${v}</div></div>`;
-  let glandRows = '';
-  if (gm) {
-    const fitRow = glandItem('Fit vs Cable OD', gm.fitsFullTol ? 'Fits full tolerance band (±'+gm.tol+'mm)' : gm.tol ? 'Fits book value only — verify against max tolerance (+'+gm.tol+'mm)' : 'Fits book value (no tolerance data)');
-    if (d.glandPref === '453') {
-      glandRows =
+  const glandBlocks = ['453','653','421'].map(type => {
+    const g = d.glandFamilies[type];
+    const name = glandFamilyName(type);
+    if (!g.match) {
+      return `<div class="sec" style="margin-top:10px;font-size:9pt">${name}</div>
+<p style="color:#B33F31;padding:4px 0">No gland found for OD ${d.cOD}mm — select manually.</p>`;
+    }
+    const gm = g.match;
+    const fitRow = glandItem('Fit vs Cable OD', glandFitSummaryText(gm));
+    let rows;
+    if (type === '453') {
+      rows =
         glandItem('Size Ref', gm.size) +
         glandItem(d.useNPT?'NPT Entry':'Metric Entry', d.useNPT?gm.npt:gm.metric) +
         glandItem('Inner Sheath Range', `${gm.innerMin}–${gm.innerMax} mm`) +
         glandItem('Outer Sheath Range', `${gm.outerMin}–${gm.outerMax} mm`) +
         glandItem('Armour Wire Ø', `${gm.arm1} mm`) +
         fitRow;
-    } else if (d.glandPref === '653') {
-      glandRows =
+    } else if (type === '653') {
+      rows =
         glandItem('Size Ref', gm.size) +
         glandItem(d.useNPT?'NPT Entry':'Metric Entry', d.useNPT?gm.npt:gm.metric) +
         glandItem('Max Inner Sheath', `${gm.innerMax} mm`) +
@@ -57,18 +64,20 @@ function wtGeneratePDF() {
         glandItem('Outer Sheath Range', `${gm.outerMin}–${gm.outerMax} mm`) +
         fitRow;
     } else {
-      glandRows =
+      rows =
         glandItem('Size Ref', gm.size) +
         glandItem(d.useNPT?'NPT Entry':'Metric Entry', d.useNPT?gm.npt:gm.metric) +
         glandItem('Std Seal OD Range', `${gm.stdMin}–${gm.stdMax} mm`) +
         (gm.altMin ? glandItem('Alt Seal OD Range', `${gm.altMin}–${gm.altMax} mm`) : '') +
         fitRow;
     }
-  }
-
-  const glandTypeName = d.glandPref==='453' ? 'Hawke Braided Gland (501/453/UNIV)'
-    : d.glandPref==='653' ? 'Hawke Barrier Gland (ICG/653/UNIV)'
-    : 'Hawke Compression Gland (501/421/UNIV)';
+    return `<div class="sec" style="margin-top:10px;font-size:9pt">${name}</div>
+<div class="order-box">
+  <div class="order-label">Order Code</div>
+  <div class="order-code">${g.orderCode}</div>
+</div>
+<div class="data-grid">${rows}</div>`;
+  }).join('');
 
   const flaLine = d.flaIsOverride
     ? `Nameplate override — ${d.fla.toFixed(2)} A`
@@ -161,17 +170,10 @@ ${d.isUpsized ? `<div style="background:rgba(46,124,192,0.07);border:1px solid r
 
 <!-- Gland -->
 <div class="sec">5 — Gland Recommendation</div>
-${gm ? `
-<div class="order-box">
-  <div class="order-label">Order Code</div>
-  <div class="order-code">${d.glandCode}</div>
-</div>
-<div class="data-grid">
-  <div class="data-item full"><div class="k">Gland Type</div><div class="v">${glandTypeName}</div></div>
-  ${glandRows}
-  <div class="data-item"><div class="k">Cable OD ${d.cOD}mm</div><div class="v"><span class="pdf-badge pdf-badge-pass">Fits</span></div></div>
+<div class="data-grid" style="margin-bottom:6px">
   <div class="data-item"><div class="k">Entry Thread</div><div class="v">${d.useNPT ? 'NPT' : 'Metric'}</div></div>
-</div>` : `<p style="color:#B33F31;padding:8px 0">No ${glandTypeName} gland found for OD ${d.cOD}mm — select manually.</p>`}
+</div>
+${glandBlocks}
 
 <!-- Disclaimer -->
 <div class="disclaimer">
@@ -418,7 +420,6 @@ function wtCalc() {
   const cableType   = document.getElementById('wt_cabletype')?.value  || 'RFOU';
   const cores       = parseInt(document.getElementById('wt_cores')?.value    || 4);
   const parallel    = parseInt(document.getElementById('wt_parallel')?.value || 1);
-  const glandPref   = document.getElementById('wt_glandtype')?.value  || '453';
   const useNPT      = document.getElementById('wt_entry')?.value === 'npt';
   const corrFactor  = parseFloat(document.getElementById('wt_corr_factor')?.value || 1.2);
 
@@ -524,14 +525,20 @@ function wtCalc() {
   const selIdx     = allEntries.findIndex(e => e.csa === cCSA);
   const tableSlice = allEntries.slice(Math.max(0, selIdx-2), Math.min(allEntries.length, selIdx+3));
 
-  // ── Gland ──
-  const glandResult = wtFindGland(glandPref, cOD, cOdTol, cInnerOD, cable.innerODTol);
+  // ── Gland — best fit from each of the three Hawke families, same recommender as the
+  //    Cable & Gland tab (js/data-glands.js) ──
+  const glandFamilies = bestGlandPerFamily(cOD, cOdTol, cInnerOD, cable.innerODTol);
   const tempObj    = WT_TEMP.find(t => Math.abs(t.factor - tempFactor) < 0.001);
   const tempLabel  = tempObj ? `${tempObj.temp}°C` : `×${tempFactor}`;
   const groupLabel = groupFactor === 1.00 ? '≤6 cables' : '>6 cables';
   const pCode      = (powerData.label.match(/\(([^)]+)\)/)?.[1]) || '';
   const cableDesc  = `${cCores}-core ${cCSA}mm² ${cableType}${pCode?' ('+pCode+')':''} 600/1000V`;
-  const glandCode  = glandResult.match ? glandResult.orderCode : 'No match';
+  const glandSummaryLines = ['453','653','421'].map(type => {
+    const g = glandFamilies[type];
+    return g.match
+      ? `  ${glandFamilyName(type)}: ${g.orderCode} — Size ${g.match.size}, Entry ${useNPT ? g.match.npt : g.match.metric}`
+      : `  ${glandFamilyName(type)}: no fit for OD ${cOD}mm`;
+  }).join('\n');
 
   // ── Summary (stored globally to avoid quote-in-onclick issues) ──
   window._wtSummary =
@@ -547,8 +554,8 @@ Cable:    ${parallel>1?parallel+' × ':''}${cableDesc}
   Rated ${cRating} A — Derated ${cDerated} A — OD ${cOD} mm — ${cWeight} kg/km
   ${headroom}% headroom over FLA${parallel>1?` (total ${totalCap} A)`:''}
 
-Gland:    ${glandCode}  (${wtGlandTypeName(glandPref)})${glandResult.match?`
-  Size ${glandResult.match.size} | Entry: ${useNPT?glandResult.match.npt:glandResult.match.metric}`:''}
+Gland recommendations (best fit per family):
+${glandSummaryLines}
 
 Generated by M.E.T. v${APP_VERSION}`;
 
@@ -565,7 +572,7 @@ Generated by M.E.T. v${APP_VERSION}`;
     cCores, cCSA, cOD, cWeight, cRating, cDerated, totalCap, headroom,
     cableDesc, pCode, innerOD: cInnerOD,
     powerDataLabel: powerData.label, powerDataVoltage: powerData.voltage, powerDataColour: powerData.colourCode,
-    glandPref, glandCode, useNPT, glandMatch: glandResult.match,
+    useNPT, glandFamilies,
     tableSlice, selCSA: cCSA, flaForTable: fla,
     isUpsized, prevCableCSA: prevCable?.csa, borderlineThreshold
   };
@@ -600,9 +607,9 @@ Generated by M.E.T. v${APP_VERSION}`;
         Ambient ${tempLabel}, grouping ${groupLabel}: combined derating <strong>×${combinedDerating.toFixed(3)}</strong>.
         ${parallel>1?`<strong>${parallel} parallel runs</strong> — `:''}
         Select <strong>${parallel>1?parallel+' × ':''}${cableDesc}</strong>, rated ${cRating} A, ${capLine}, giving <strong>+${headroom}% headroom</strong>.
-        ${glandResult.match
-          ? `Gland: <span class="wt-inline-code">${glandCode}</span>.`
-          : `<span style="color:var(--danger)">No ${wtGlandTypeName(glandPref)} gland found for OD ${cOD} mm.</span>`}
+        Glands: ${['453','653','421'].map(t => glandFamilies[t].match
+          ? `<span class="wt-inline-code">${glandFamilies[t].orderCode}</span> (${glandFamilyName(t)})`
+          : `<span style="color:var(--danger)">no ${glandFamilyName(t)} fit</span>`).join(', ')}.
       </p>
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn" style="font-size:0.8rem" onclick="copyText(window._wtSummary)">Copy Summary</button>
@@ -629,8 +636,8 @@ Generated by M.E.T. v${APP_VERSION}`;
       ${wtCableCard(cCores, cCSA, cOD, cWeight, cRating, cInnerOD, powerData, combinedDerating, parallel, cableDesc)}
     </div>
 
-    <div class="kicker" style="margin-top:24px">Gland — ${wtGlandTypeName(glandPref)}</div>
-    ${wtGlandCard(glandPref, cOD, useNPT, cOdTol, cInnerOD, cable.innerODTol)}
+    <div class="kicker" style="margin-top:24px">Gland Selection — Hawke ATEX/IECEx</div>
+    ${renderAllGlandFamilies(cOD, cOdTol, cInnerOD, cable.innerODTol, useNPT, useNPT ? wtNptCode : undefined)}
 
     <div class="wt-disclaimer">
       Indicative results only. Always verify FLA against motor nameplate, confirm cable
@@ -645,33 +652,6 @@ function wtPrompt() {
   window._wtData = null;
   document.getElementById('wt_pdf_btn')?.setAttribute('disabled', '');
   return `<p style="color:var(--text2);padding:16px 0">Enter motor power and voltage above to get a recommendation.</p>`;
-}
-
-// ── Gland helpers ────────────────────────────────────────────
-// Returns the single best "recommended" gland for the summary/PDF (smallest size that fits
-// the full tolerance band, falling back to smallest book-value-only fit) — see data-glands.js
-// for the shared fit logic also used by the Cable & Gland tab's full-list view.
-function wtFindGland(glandPref, OD, odTol, innerOD, innerODTol) {
-  let m;
-  let type = glandPref;
-  if (glandPref === '453') {
-    m = pickRecommendedGland(findFittingGlands(GLAND_453, OD, odTol, innerOD, innerODTol));
-  } else if (glandPref === '653') {
-    m = pickRecommendedGland(findFittingGlands(GLAND_653, OD, odTol, innerOD, innerODTol));
-  } else {
-    type = '421';
-    m = pickRecommendedGland(findFitting421(OD, odTol));
-  }
-  if (!m) return { match: null, orderCode: null };
-  const entry = m.metric;
-  const orderCode = getGlandOrderCode(type, m.size, 'metric', entry) + (m.seal === 'alt' ? 'S' : '');
-  return { match: m, orderCode };
-}
-
-function wtGlandTypeName(pref) {
-  return pref==='453' ? 'Hawke Braided Gland (501/453/UNIV)'
-       : pref==='653' ? 'Hawke Barrier Gland (ICG/653/UNIV)'
-       : 'Hawke Compression Gland (501/421/UNIV)';
 }
 
 // ── Cable comparison table ────────────────────────────────────
@@ -743,19 +723,8 @@ function wtCableCard(cores, csa, od, weight, rating, innerOD, powerData, deratin
     </div>`;
 }
 
-// ── Gland card ────────────────────────────────────────────────
+// Convert Hawke NP suffix to NPT as preferred by supplier — used as the codeTransform
+// passed into the shared gland renderers (js/data-glands.js) when NPT entry is selected.
 function wtNptCode(raw) {
-  // Convert Hawke NP suffix to NPT as preferred by supplier
   return raw.replace(/NP$/, 'NPT');
-}
-
-function wtGlandCard(glandPref, OD, useNPT, odTol, innerOD, innerODTol) {
-  const codeTransform = useNPT ? wtNptCode : (c => c);
-  if (glandPref === '453') {
-    return renderGlandSizeList('453', findFittingGlands(GLAND_453, OD, odTol, innerOD, innerODTol), useNPT, codeTransform);
-  } else if (glandPref === '653') {
-    return renderGlandSizeList('653', findFittingGlands(GLAND_653, OD, odTol, innerOD, innerODTol), useNPT, codeTransform);
-  } else {
-    return renderGland421SizeList(findFitting421(OD, odTol), useNPT, codeTransform);
-  }
 }

@@ -8,7 +8,7 @@ const CALC_REGISTRY = {
   hvac:       { label: 'HVAC',       calcs: ['heat_load','ach','duct','chilled_water','pressure_conv'] },
   mechanical: { label: 'Mechanical', calcs: ['torque','pump','pipe_velocity','pipe_pressure','thermal_exp'] },
   offshore:   { label: 'Offshore',   calcs: ['hydrostatic','boyles','vacuum','ventilation'] },
-  general:    { label: 'General',    calcs: ['pct_error','date_calc','vol_shapes','bmi'] }
+  general:    { label: 'General',    calcs: ['pct_error','vol_shapes','bmi'] }
 };
 const CALC_META = {
   amps:{label:'Amps Calculator',instant:true},ohm:{label:'Ohm\'s Law',instant:true},
@@ -27,7 +27,7 @@ const CALC_META = {
   hydrostatic:{label:'Hydrostatic Pressure',instant:true},boyles:{label:'Boyle\'s Law',instant:true},
   vacuum:{label:'Vacuum Converter',instant:true},ventilation:{label:'Ventilation Rate',instant:true},
   pct_error:{label:'% Error / Tolerance',instant:true},three_phase:{label:'3-Phase Power',instant:true},
-  date_calc:{label:'Day/Date Calculator',instant:true},vol_shapes:{label:'Volume Calculator',instant:true},bmi:{label:'BMI Calculator',instant:true}
+  vol_shapes:{label:'Volume Calculator',instant:true},bmi:{label:'BMI Calculator',instant:true}
 };
 const CALC_DESC = {
   amps:'Solve for current (Amps) from kW, kVA or kVAR at any voltage. Supports DC, single-phase and three-phase. Three-phase assumes balanced load. Power factor required for kW→A conversion.',
@@ -60,7 +60,6 @@ const CALC_DESC = {
   ventilation:'Q(m³/hr) = Volume × ACH. Also outputs m³/s and CFM. Offshore minimum: 0.5 m³/s per kW heat load in electrical rooms.',
   pct_error:'% Error = |Measured − Actual| / Actual × 100. Checks against a tolerance band. Useful for instrument calibration and sensor verification.',
   three_phase:'P = √3 × VL × IL × cosφ. Assumes balanced load — for unbalanced systems calculate each phase separately.',
-  date_calc:'Calculate difference between two dates, or add/subtract days/weeks/months. Includes inclusive day count and Saturday/Sunday tally. Useful for rotation planning, lieu days, cert expiry, and project milestones.',
   vol_shapes:'Calculate volume of common geometric shapes: cube/cuboid, cylinder, cone, sphere, rectangular prism. Enter dimensions in mm, cm, or m.',
   bmi:'Body Mass Index calculator. BMI = weight(kg) / height(m)². WHO classification: <18.5 underweight, 18.5–24.9 normal, 25–29.9 overweight, ≥30 obese.',
   kw_kva_kvar:'Solve the kW / kVA / kVAR relationship. Enter any two to find the third plus power factor angle. Essential for PFC and generator sizing.'
@@ -113,7 +112,7 @@ function runInstantCalc(id) {
     pressure_conv:calcPressureConv, torque:calcTorque, pump:calcPump,
     pipe_velocity:calcPipeVelocity, thermal_exp:calcThermalExp, hydrostatic:calcHydrostatic,
     boyles:calcBoyles, vacuum:calcVacuum, ventilation:calcVentilation,
-    pct_error:calcPctError, three_phase:calcThreePhase, date_calc:initCalendar,
+    pct_error:calcPctError, three_phase:calcThreePhase,
     vol_shapes:calcVolShapes, bmi:calcBMI, kw_kva_kvar:calcPowerTriangle
   };
   if (map[id]) map[id]();
@@ -215,7 +214,7 @@ function buildCalcHTML(id) {
     pressure_conv:htmlPressureConv, torque:htmlTorque, pump:htmlPump,
     pipe_velocity:htmlPipeVelocity, pipe_pressure:htmlPipePressure, thermal_exp:htmlThermalExp,
     hydrostatic:htmlHydrostatic, boyles:htmlBoyles, vacuum:htmlVacuum, ventilation:htmlVentilation,
-    pct_error:htmlPctError, three_phase:htmlThreePhase, date_calc:htmlDateCalc,
+    pct_error:htmlPctError, three_phase:htmlThreePhase,
     vol_shapes:htmlVolShapes, bmi:htmlBMI, kw_kva_kvar:htmlPowerTriangle
   };
   return map[id] ? map[id]() : '<p>Calculator not found.</p>';
@@ -1181,106 +1180,8 @@ function calcThreePhase(){
 
 // IP Rating lookup lives in tab-atex.js (IP_FIRST_DESC / IP_SECOND_DESC)
 
-// ── Date Calculator ───────────────────────────────────────
-let calState={viewYear:new Date().getFullYear(),viewMonth:new Date().getMonth(),selectedDate:null,selectedDate2:null,activeCalendar:1};
-
-function htmlDateCalc(){
-  return `<div class="grid2">
-    <div>
-      <div class="cal-pick-btns">
-        <button class="btn active" id="calPicking1" onclick="calSetActive(1)" style="border-color:var(--accent)">Set Date A</button>
-        <button class="btn" id="calPicking2" onclick="calSetActive(2)">Set Date B</button>
-      </div>
-      <div id="calWidget" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px"></div>
-      <p style="margin-top:8px;font-size:0.75rem;color:var(--text2)">Click to set <span style="color:var(--accent)">Date A</span>, then <span style="color:var(--accent2)">Date B</span>. Today = <span style="color:var(--accent4)">amber</span>.</p>
-    </div>
-    <div>
-      <h4 style="margin-bottom:10px">Add / Subtract from Date A</h4>
-      <div class="flex-row" style="margin-bottom:12px">
-        <div class="field" style="flex:1"><label>Amount (negative = back)</label><input type="number" id="daysNum" value="30" oninput="updateDateCalcResults()"></div>
-        <div class="field" style="flex:0 0 auto"><label>Unit</label>
-          <select id="daysUnit" onchange="updateDateCalcResults()">
-            <option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months</option>
-          </select></div>
-      </div>
-      <div id="dateFwdResult"></div>
-      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
-      <h4 style="margin-bottom:10px">Difference — Date A → Date B</h4>
-      <p style="font-size:0.8rem;color:var(--text2);margin-bottom:10px">Set both A and B on the calendar above.</p>
-      <div id="dateDiffResult"></div>
-    </div>
-  </div>`;
-}
-
-function renderCalendar(){
-  const cal=calState,y=cal.viewYear,m=cal.viewMonth;
-  const mNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const dNames=['Su','Mo','Tu','We','Th','Fr','Sa'];
-  const firstDay=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
-  const today=new Date();today.setHours(0,0,0,0);
-  const s1=cal.selectedDate,s2=cal.selectedDate2;
-  let html=`<div class="cal-header"><button class="btn" onclick="calNav(-1)" style="padding:4px 10px">‹</button>
-    <span style="font-family:var(--head);font-weight:700;color:var(--text)">${mNames[m]} ${y}</span>
-    <button class="btn" onclick="calNav(1)" style="padding:4px 10px">›</button></div>
-  <div class="cal-grid">${dNames.map(d=>`<div class="cal-dayname">${d}</div>`).join('')}`;
-  for(let i=0;i<firstDay;i++) html+=`<div class="cal-cell empty"></div>`;
-  for(let d=1;d<=dim;d++){
-    const dt=new Date(y,m,d);
-    const cls=['cal-cell',dt.getTime()===today.getTime()?'cal-today':'',s1&&dt.getTime()===s1.getTime()?'cal-sel1':'',s2&&dt.getTime()===s2.getTime()?'cal-sel2':''].filter(Boolean).join(' ');
-    html+=`<div class="${cls}" onclick="calPickDate(${y},${m},${d})">${d}</div>`;
-  }
-  html+=`</div>`;
-  const el=document.getElementById('calWidget');
-  if(el) el.innerHTML=html;
-  updateDateCalcResults();
-}
-
-function calNav(dir){calState.viewMonth+=dir;if(calState.viewMonth>11){calState.viewMonth=0;calState.viewYear++;}if(calState.viewMonth<0){calState.viewMonth=11;calState.viewYear--;}renderCalendar();}
-function calPickDate(y,m,d){const dt=new Date(y,m,d);if(calState.activeCalendar===1)calState.selectedDate=dt;else calState.selectedDate2=dt;calState.activeCalendar=calState.activeCalendar===1?2:1;renderCalendar();}
-function calSetActive(n){calState.activeCalendar=n;document.getElementById('calPicking1')?.classList.toggle('active',n===1);document.getElementById('calPicking2')?.classList.toggle('active',n===2);}
-
-function updateDateCalcResults(){
-  const s1=calState.selectedDate,s2=calState.selectedDate2;
-  const fwd=parseInt(document.getElementById('daysNum')?.value||0);
-  const unit=document.getElementById('daysUnit')?.value||'days';
-  if(s1&&fwd!==0){
-    const dt=new Date(s1);
-    if(unit==='days')dt.setDate(dt.getDate()+fwd);
-    else if(unit==='weeks')dt.setDate(dt.getDate()+fwd*7);
-    else dt.setMonth(dt.getMonth()+fwd);
-    const el=document.getElementById('dateFwdResult');
-    if(el)el.innerHTML=`<div class="npt-info-item"><div class="key">${fwd>0?fwd+' '+unit+' forward':Math.abs(fwd)+' '+unit+' back'}</div><div class="val" style="color:var(--accent)">${dt.toISOString().split('T')[0]} (${dt.toLocaleDateString('en-GB',{weekday:'long'})})</div></div>`;
-  }
-  if(s1&&s2){
-    // Inclusive — count both start and end day
-    const days = Math.round(Math.abs(s2-s1)/86400000) + 1;
-    // Count Sat/Sun in inclusive range
-    const earlier = s1 <= s2 ? s1 : s2;
-    const later   = s1 <= s2 ? s2 : s1;
-    let sats=0, suns=0;
-    const cur = new Date(earlier);
-    while(cur <= later) {
-      const d = cur.getDay();
-      if(d===6) sats++;
-      if(d===0) suns++;
-      cur.setDate(cur.getDate()+1);
-    }
-    const weekendDays = sats+suns;
-    const weekdays = days - weekendDays;
-    const el=document.getElementById('dateDiffResult');
-    if(el)el.innerHTML=resultGrid([
-      ['Total days (inclusive)', days,'','var(--accent)'],
-      ['Weeks + extra days', Math.floor((days)/7)+'w + '+(days%7)+'d',''],
-      ['Approx months', fmtN(days/30.44,1),''],
-      ['Saturdays', sats,'','var(--warn)'],
-      ['Sundays', suns,'','var(--warn)'],
-      ['Weekend days total', weekendDays,' (potential lieu days)','var(--warn)'],
-      ['Weekdays', weekdays,'']
-    ]);
-  }
-}
-
-function initCalendar(){calState.selectedDate=new Date();calState.selectedDate.setHours(0,0,0,0);renderCalendar();}
+// Day/Date Calculator moved to the Symbols tab's Date & Time section (js/tabs/tab-symbols.js)
+// — see calState, htmlDateCalc, renderCalendar, initCalendar there.
 
 // ══════════════════════════════════════════════════════════
 // MOTOR DATA TABLE

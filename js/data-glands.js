@@ -54,31 +54,40 @@ const GLAND_421 = [
 
 // ── Fit checking (book value vs book value + datasheet tolerance) ──────────
 // A cable's actual OD can land anywhere in [od-odTol, od+odTol]. A gland that fits the
-// nominal (book) OD may still be too small for a cable that comes out at the top of its
-// tolerance band — this flags that "book value only" case rather than silently hiding it.
+// nominal (book) OD may still fail at one edge of that band — either because the top of
+// the band exceeds the gland's max bore (cable too big at +tol) or because the bottom of
+// the band falls below the gland's min bore (cable too small / under-clamped at -tol).
+// lowFail/highFail record which edge caused a "book value only" result so the UI can say
+// which one, rather than a single generic "undersized" message that doesn't say which way.
 function fitStatus(od, odTol, min, max) {
   const tol = odTol || 0;
   const fitsNominal = od >= min && od <= max;
-  const fitsFullTol = fitsNominal && (od - tol) >= min && (od + tol) <= max;
-  return { fitsNominal, fitsFullTol, tol };
+  const lowFail = fitsNominal && (od - tol) < min;
+  const highFail = fitsNominal && (od + tol) > max;
+  const fitsFullTol = fitsNominal && !lowFail && !highFail;
+  return { fitsNominal, fitsFullTol, tol, lowFail, highFail };
 }
 
 // 453/653 glands clamp the cable's OUTER diameter at the armour/braid entry AND separately
 // need their inner sheath bore (453: full min/max range; 653: max-only "Max Inner Sheath")
 // to accept the cable's under-sheath diameter — a candidate size only really fits if BOTH
 // checks pass, mirroring the DATA tab's dual-lookup gland formulas. innerMin is optional
-// since 653 doesn't publish a lower bound for its inner-sheath bore.
+// since 653 doesn't publish a lower bound for its inner-sheath bore. outerFit/innerFit are
+// kept on the result (alongside the combined fitsNominal/fitsFullTol/tol) so the UI can
+// point at whichever specific dimension caused a "book value only" result.
 function fitStatusDual(od, odTol, outerMin, outerMax, innerOD, innerODTol, innerMin, innerMax) {
   const outer = fitStatus(od, odTol, outerMin, outerMax);
-  if (innerOD == null || innerMax == null) return outer;
-  const iTol = innerODTol || 0;
+  if (innerOD == null || innerMax == null) {
+    return Object.assign({}, outer, { outerFit: outer, innerFit: null });
+  }
   const iMin = innerMin != null ? innerMin : -Infinity;
-  const innerFitsNominal = innerOD >= iMin && innerOD <= innerMax;
-  const innerFitsFullTol = innerFitsNominal && (innerOD - iTol) >= iMin && (innerOD + iTol) <= innerMax;
+  const inner = fitStatus(innerOD, innerODTol, iMin, innerMax);
   return {
-    fitsNominal: outer.fitsNominal && innerFitsNominal,
-    fitsFullTol: outer.fitsFullTol && innerFitsFullTol,
+    fitsNominal: outer.fitsNominal && inner.fitsNominal,
+    fitsFullTol: outer.fitsFullTol && inner.fitsFullTol,
     tol: outer.tol,
+    outerFit: outer,
+    innerFit: inner,
   };
 }
 
@@ -116,13 +125,47 @@ function pickRecommendedGland(matches) {
 }
 
 // ── Shared HTML rendering (used by tab-cable.js and tab-wonder.js) ─────────
+// Describes which specific dimension(s) failed the full-tolerance check and in which
+// direction: "exceeds max" (cable at +tol is bigger than the gland's bore) or "below min"
+// (cable at -tol is smaller than the gland's bore — risk of an under-clamped/loose fit).
+// Dual fits (453/653) name the dimension (outer/inner sheath); single fits (421) don't need
+// to since there's only one OD check.
+function glandFitFailures(fit) {
+  const describe = dim => dim.highFail ? `exceeds max at +${dim.tol}mm` : `below min at -${dim.tol}mm`;
+  if (fit.outerFit !== undefined) {
+    const fails = [];
+    if (fit.outerFit && !fit.outerFit.fitsFullTol) fails.push(`outer sheath ${describe(fit.outerFit)}`);
+    if (fit.innerFit && !fit.innerFit.fitsFullTol) fails.push(`inner sheath ${describe(fit.innerFit)}`);
+    return fails;
+  }
+  return [describe(fit)];
+}
+
+function glandFitSummaryText(fit) {
+  if (!fit.tol) return 'Fits book value (no tolerance data)';
+  if (fit.fitsFullTol) return `Fits full tolerance band (±${fit.tol}mm)`;
+  return `Book value only — ${glandFitFailures(fit).join('; ')}`;
+}
+
 function glandFitBadgesHTML(fit) {
   const nomBadge = `<span class="badge pass"><svg><use href="#i-check"/></svg>Fits book value</span>`;
   if (!fit.tol) return nomBadge + ` <span class="badge mut">No tolerance data</span>`;
-  const tolBadge = fit.fitsFullTol
-    ? `<span class="badge pass"><svg><use href="#i-check"/></svg>Fits full tolerance (±${fit.tol}mm)</span>`
-    : `<span class="badge warn"><svg><use href="#i-warn"/></svg>Book value only — undersized at max tolerance (+${fit.tol}mm)</span>`;
-  return nomBadge + ' ' + tolBadge;
+  if (fit.fitsFullTol) {
+    return nomBadge + ` <span class="badge pass"><svg><use href="#i-check"/></svg>Fits full tolerance (±${fit.tol}mm)</span>`;
+  }
+  const detail = glandFitFailures(fit).join('; ');
+  return nomBadge + ` <span class="badge warn"><svg><use href="#i-warn"/></svg>Book value only — ${detail}</span>`;
+}
+
+// Wraps a dimension's raw text (e.g. "23.1–32.5 mm") in a warning colour when that specific
+// dimension is the one that failed the full-tolerance check, plus an inline "+Xmm exceeds
+// max" / "-Xmm below min" tag — so the failing figure is visually obvious without doing the
+// mm arithmetic by hand. `dim` is an outerFit/innerFit sub-object, or undefined/null if this
+// dimension wasn't checked or isn't relevant to the candidate being rendered.
+function glandDimValueHTML(text, dim) {
+  if (!dim || !dim.fitsNominal || dim.fitsFullTol) return `<b>${text}</b>`;
+  const tag = dim.highFail ? `+${dim.tol}mm exceeds max` : `-${dim.tol}mm below min`;
+  return `<b style="color:var(--warn)">${text}</b> <span style="color:var(--warn);font-size:0.72rem;font-weight:600">(${tag})</span>`;
 }
 
 function glandNptExample(size, prefix, npt) {
@@ -145,15 +188,15 @@ function renderGlandSizeList(type, matches, useNPT, codeTransform) {
     const metEx = `${prefix}/${g.size}/${type === '453' ? g.metric.replace('/','-') : g.metric}`;
     const nptEx = glandNptExample(g.size, prefix, g.npt);
     const rangeSpan = type === '453'
-      ? `<span>Inner sheath <b>${g.innerMin}–${g.innerMax} mm</b></span>`
-      : `<span>Max inner sheath <b>${g.innerMax} mm</b></span><span>Max over cores <b>${g.coreMax} mm</b></span>`;
+      ? `<span>Inner sheath ${glandDimValueHTML(`${g.innerMin}–${g.innerMax} mm`, g.innerFit)}</span>`
+      : `<span>Max inner sheath ${glandDimValueHTML(`${g.innerMax} mm`, g.innerFit)}</span><span>Max over cores <b>${g.coreMax} mm</b></span>`;
     const isRec = g === recommended;
     return `<div class="gsize${isRec ? ' rec' : ''}">
       <div class="sizeref">${g.size}<small>Size ref</small></div>
       <div class="meta">
         <span>${useNPT?'NPT Entry':'Metric Entry'} <b>${useNPT?g.npt:g.metric}</b></span>
         ${rangeSpan}
-        <span>Outer sheath <b>${g.outerMin}–${g.outerMax} mm</b></span>
+        <span>Outer sheath ${glandDimValueHTML(`${g.outerMin}–${g.outerMax} mm`, g.outerFit)}</span>
       </div>
       <div class="fit">
         ${isRec ? `<span class="badge rec">Recommended</span>` : ''}
@@ -187,8 +230,8 @@ function renderGland421SizeList(matches, useNPT, codeTransform) {
       <div class="sizeref">${g.size}<small>Size ref</small></div>
       <div class="meta">
         <span>${useNPT?'NPT Entry':'Metric Entry'} <b>${useNPT?g.npt:g.metric}</b></span>
-        <span>Std seal OD <b>${g.stdMin}–${g.stdMax} mm</b></span>
-        ${g.altMin!=null?`<span>Alt seal OD <b>${g.altMin}–${g.altMax} mm</b></span>`:''}
+        <span>Std seal OD ${glandDimValueHTML(`${g.stdMin}–${g.stdMax} mm`, isAlt ? null : g)}</span>
+        ${g.altMin!=null?`<span>Alt seal OD ${glandDimValueHTML(`${g.altMin}–${g.altMax} mm`, isAlt ? g : null)}</span>`:''}
       </div>
       <div class="fit">
         ${isRec ? `<span class="badge rec">Recommended</span>` : ''}
@@ -219,4 +262,66 @@ function getGlandOrderCode(type, size, entryType, entryVal) {
     return `501/421/UNIV/${size}/${entry}`;
   }
   return '';
+}
+
+// Renders all three Hawke gland families (braided/armoured 453, barrier 653, compression 421)
+// for a given cable OD — the single shared render path for both the Cable & Gland tab's
+// full-list view and the Wonder Tool, so the two can no longer drift apart (they previously
+// had separate implementations, which is how the Wonder Tool shipped an ICG/653 bug that the
+// Cable & Gland tab never had). `codeTransform` optionally post-processes order codes (e.g.
+// Wonder Tool's Hawke "NP" suffix -> "NPT").
+function renderAllGlandFamilies(OD, odTol, innerOD, innerODTol, useNPT, codeTransform) {
+  let html = `<div class="family">
+    <img src="jpg/501-453.jpg" alt="Hawke 501/453/UNIV cable gland cross-section">
+    <div>
+      <h3>Hawke 501/453/UNIV — Coldflow, Armoured/Braided</h3>
+      <p>Dual certified Exe/Exd. Passive diaphragm seal for cold flow cables. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.</p>
+    </div>
+  </div>`;
+  html += renderGlandSizeList('453', findFittingGlands(GLAND_453, OD, odTol, innerOD, innerODTol), useNPT, codeTransform);
+
+  html += `<div class="family">
+    <img src="jpg/icg653.jpg" alt="Hawke ICG/653/UNIV barrier gland cross-section">
+    <div>
+      <h3>Hawke ICG/653/UNIV — Barrier</h3>
+      <p>Dual certified Exe/Exd. Seals around individual cores. Cold flow, hygroscopic fillers, fibre optic cables. ExPress resin standard (30 min cure). QSP available (suffix Q).</p>
+    </div>
+  </div>`;
+  html += renderGlandSizeList('653', findFittingGlands(GLAND_653, OD, odTol, innerOD, innerODTol), useNPT, codeTransform);
+
+  html += `<div class="family">
+    <img src="jpg/501-421.jpg" alt="Hawke 501/421 cable gland cross-section">
+    <div>
+      <h3>Hawke 501/421/UNIV — Compression, Non-Armoured</h3>
+      <p>Dual certified Exe/Exd. For non-armoured elastomer and plastic insulated cables. Braid cables: braid passes into enclosure and terminates inside.</p>
+    </div>
+  </div>`;
+  html += renderGland421SizeList(findFitting421(OD, odTol), useNPT, codeTransform);
+
+  return html;
+}
+
+// Best-fit gland from each of the three families for a given cable OD — used where a single
+// summary line/row per family is wanted (Wonder Tool's result summary and PDF) rather than
+// the full per-size list. Returns { '453': {match, orderCode}, '653': {...}, '421': {...} }.
+function bestGlandPerFamily(OD, odTol, innerOD, innerODTol) {
+  const build = (type, matches, getOrderCode) => {
+    const match = pickRecommendedGland(matches);
+    if (!match) return { type, match: null, orderCode: null };
+    return { type, match, orderCode: getOrderCode(match) };
+  };
+  return {
+    '453': build('453', findFittingGlands(GLAND_453, OD, odTol, innerOD, innerODTol),
+      m => getGlandOrderCode('453', m.size, 'metric', m.metric)),
+    '653': build('653', findFittingGlands(GLAND_653, OD, odTol, innerOD, innerODTol),
+      m => getGlandOrderCode('653', m.size, 'metric', m.metric)),
+    '421': build('421', findFitting421(OD, odTol),
+      m => getGlandOrderCode('421', m.size, 'metric', m.metric) + (m.seal === 'alt' ? 'S' : '')),
+  };
+}
+
+function glandFamilyName(type) {
+  return type === '453' ? 'Hawke Braided Gland (501/453/UNIV)'
+       : type === '653' ? 'Hawke Barrier Gland (ICG/653/UNIV)'
+       : 'Hawke Compression Gland (501/421/UNIV)';
 }

@@ -149,7 +149,7 @@
           </div>
           <div class="field" style="flex:1">
             <label>Sheet No.</label>
-            <input type="number" id="docSheet" value="1" min="1" max="99" oninput="genDocNumber()">
+            <input type="number" id="docSheet" value="1" min="0" max="99" oninput="genDocNumber()">
           </div>
           <div class="field" style="flex:1">
             <label>Revision</label>
@@ -691,22 +691,13 @@
 
   <div class="card" id="card-wonder-gland">
     <div class="kicker"><span class="n">6.4</span> Gland Selection</div>
-    <div class="grid2">
-      <div class="field">
-        <label>Gland Type</label>
-        <select id="wt_glandtype" onchange="wtCalc()">
-          <option value="453" selected>Hawke Braided Gland (501/453)</option>
-          <option value="653">Hawke Barrier Gland (ICG/653)</option>
-          <option value="421">Hawke Compression Gland (501/421)</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Entry Thread</label>
-        <select id="wt_entry" onchange="wtCalc()">
-          <option value="metric" selected>Metric</option>
-          <option value="npt">NPT</option>
-        </select>
-      </div>
+    <p style="color:var(--text2);font-size:0.8rem;margin-bottom:10px">Shows the best-fit Hawke gland from all three families (braided/armoured, barrier, compression) — same recommender as the Cable &amp; Gland tab.</p>
+    <div class="field">
+      <label>Entry Thread</label>
+      <select id="wt_entry" onchange="wtCalc()">
+        <option value="metric" selected>Metric</option>
+        <option value="npt">NPT</option>
+      </select>
     </div>
   </div>
 

@@ -33,8 +33,15 @@ function makeSymCard(symbol, label) {
 }
 
 // ── Date/Time section ──
-function getTodayFormats() {
-  const d = new Date();
+// dtPickedDate: null = live "now" (today, real clock); otherwise a Date pinned to midnight
+// of the picked day — time-of-day formats then show 00:00:00 rather than mixing today's
+// clock into another date.
+let dtPickedDate = null;
+
+function dtActiveDate() { return dtPickedDate || new Date(); }
+
+function getTodayFormats(d) {
+  d = d || new Date();
   const pad = n => String(n).padStart(2,'0');
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const monthsShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -74,12 +81,22 @@ function getTodayFormats() {
 // ── Special built-in sections ──
 const SPECIAL_SECTIONS = {
   datetime: {
-    key: 'datetime', emoji: '📅', name: 'Date & Time — Today',
+    key: 'datetime', emoji: '📅', name: 'Date & Time',
     render(q) {
-      const items = getTodayFormats().filter(f => !q || f.label.toLowerCase().includes(q) || f.val.toLowerCase().includes(q));
+      const active = dtActiveDate();
+      const isToday = !dtPickedDate;
+      const items = getTodayFormats(active).filter(f => !q || f.label.toLowerCase().includes(q) || f.val.toLowerCase().includes(q));
       if (!items.length && q) return '';
-      return `<p style="font-size:0.75rem;color:var(--text3);margin-bottom:10px">Live — all formats show today's date. Click to copy.</p>
-        <div class="symbol-grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
+      const pad = n => String(n).padStart(2,'0');
+      const inputVal = `${active.getFullYear()}-${pad(active.getMonth()+1)}-${pad(active.getDate())}`;
+      const picker = `<div class="flex-row" style="align-items:flex-end;margin-bottom:12px">
+        <div class="field" style="flex:0 0 auto">
+          <label>Show date</label>
+          <input type="date" id="dtPickDate" value="${inputVal}" onchange="dtPickDate(this.value)">
+        </div>
+        <button class="btn${isToday ? ' active' : ''}" onclick="dtGoToday()">Today</button>
+      </div>`;
+      const grid = `<div class="symbol-grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
           ${items.map(f => {
             const safe = escapeHtml(f.val);
             return `<div class="sym-card" data-copy="${safe}" onclick="symCopy(this)" style="flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;padding:10px">
@@ -87,6 +104,13 @@ const SPECIAL_SECTIONS = {
               <div class="sym-label" style="text-align:left;margin-top:2px">${f.label}</div></div></div>`;
           }).join('')}
         </div>`;
+      // Hide the Day/Date Calculator while a search is active — renderSymbols() rebuilds
+      // this whole section's DOM on every keystroke, and re-mounting the calendar mid-search
+      // would otherwise wipe its live A/B selections for no benefit (the format grid above
+      // already filters by q).
+      const calcHtml = q ? '' : `<hr style="border:none;border-top:1px solid var(--border);margin:16px 0">${htmlDateCalc()}`;
+      return `<p style="font-size:0.75rem;color:var(--text3);margin-bottom:10px">${isToday ? "Live — all formats show today's date/time." : 'Showing formats for the selected date (time-of-day fields at midnight).'} Click a card to copy.</p>
+        ${picker}${grid}${calcHtml}`;
     }
   },
   emojipicker: {
@@ -101,6 +125,134 @@ const SPECIAL_SECTIONS = {
     }
   }
 };
+
+// Picking a date also re-centres the Day/Date Calculator's calendar on it and sets it as
+// Date A — the picker and the calculator both work off "which date am I looking at" so it's
+// more useful to link them lightly than to keep two entirely separate date-selection UIs.
+function dtPickDate(value) {
+  if (!value) {
+    dtPickedDate = null;
+  } else {
+    const [y, m, dd] = value.split('-').map(Number);
+    dtPickedDate = new Date(y, m - 1, dd);
+  }
+  const active = dtActiveDate();
+  calState.selectedDate = new Date(active.getFullYear(), active.getMonth(), active.getDate());
+  calState.viewYear = active.getFullYear();
+  calState.viewMonth = active.getMonth();
+  renderSymbols();
+}
+
+function dtGoToday() {
+  dtPickedDate = null;
+  const today = new Date();
+  calState.selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  calState.viewYear = today.getFullYear();
+  calState.viewMonth = today.getMonth();
+  renderSymbols();
+}
+
+// ── Day/Date Calculator (moved from the Calcs tab — lives here so it sits next to the
+//    live date/time formats and the "Show date" picker above can drive its calendar) ──
+let calState={viewYear:new Date().getFullYear(),viewMonth:new Date().getMonth(),selectedDate:null,selectedDate2:null,activeCalendar:1};
+
+function htmlDateCalc(){
+  return `<div class="grid2">
+    <div>
+      <div class="cal-pick-btns">
+        <button class="btn active" id="calPicking1" onclick="calSetActive(1)" style="border-color:var(--accent)">Set Date A</button>
+        <button class="btn" id="calPicking2" onclick="calSetActive(2)">Set Date B</button>
+      </div>
+      <div id="calWidget" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px"></div>
+      <p style="margin-top:8px;font-size:0.75rem;color:var(--text2)">Click to set <span style="color:var(--accent)">Date A</span>, then <span style="color:var(--accent2)">Date B</span>. Today = <span style="color:var(--accent4)">amber</span>.</p>
+    </div>
+    <div>
+      <h4 style="margin-bottom:10px">Add / Subtract from Date A</h4>
+      <div class="flex-row" style="margin-bottom:12px">
+        <div class="field" style="flex:1"><label>Amount (negative = back)</label><input type="number" id="daysNum" value="30" oninput="updateDateCalcResults()"></div>
+        <div class="field" style="flex:0 0 auto"><label>Unit</label>
+          <select id="daysUnit" onchange="updateDateCalcResults()">
+            <option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months</option>
+          </select></div>
+      </div>
+      <div id="dateFwdResult"></div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+      <h4 style="margin-bottom:10px">Difference — Date A → Date B</h4>
+      <p style="font-size:0.8rem;color:var(--text2);margin-bottom:10px">Set both A and B on the calendar above.</p>
+      <div id="dateDiffResult"></div>
+    </div>
+  </div>`;
+}
+
+function renderCalendar(){
+  const cal=calState,y=cal.viewYear,m=cal.viewMonth;
+  const mNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dNames=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const firstDay=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
+  const today=new Date();today.setHours(0,0,0,0);
+  const s1=cal.selectedDate,s2=cal.selectedDate2;
+  let html=`<div class="cal-header"><button class="btn" onclick="calNav(-1)" style="padding:4px 10px">‹</button>
+    <span style="font-family:var(--head);font-weight:700;color:var(--text)">${mNames[m]} ${y}</span>
+    <button class="btn" onclick="calNav(1)" style="padding:4px 10px">›</button></div>
+  <div class="cal-grid">${dNames.map(d=>`<div class="cal-dayname">${d}</div>`).join('')}`;
+  for(let i=0;i<firstDay;i++) html+=`<div class="cal-cell empty"></div>`;
+  for(let d=1;d<=dim;d++){
+    const dt=new Date(y,m,d);
+    const cls=['cal-cell',dt.getTime()===today.getTime()?'cal-today':'',s1&&dt.getTime()===s1.getTime()?'cal-sel1':'',s2&&dt.getTime()===s2.getTime()?'cal-sel2':''].filter(Boolean).join(' ');
+    html+=`<div class="${cls}" onclick="calPickDate(${y},${m},${d})">${d}</div>`;
+  }
+  html+=`</div>`;
+  const el=document.getElementById('calWidget');
+  if(el) el.innerHTML=html;
+  updateDateCalcResults();
+}
+
+function calNav(dir){calState.viewMonth+=dir;if(calState.viewMonth>11){calState.viewMonth=0;calState.viewYear++;}if(calState.viewMonth<0){calState.viewMonth=11;calState.viewYear--;}renderCalendar();}
+function calPickDate(y,m,d){const dt=new Date(y,m,d);if(calState.activeCalendar===1)calState.selectedDate=dt;else calState.selectedDate2=dt;calState.activeCalendar=calState.activeCalendar===1?2:1;renderCalendar();}
+function calSetActive(n){calState.activeCalendar=n;document.getElementById('calPicking1')?.classList.toggle('active',n===1);document.getElementById('calPicking2')?.classList.toggle('active',n===2);}
+
+function updateDateCalcResults(){
+  const s1=calState.selectedDate,s2=calState.selectedDate2;
+  const fwd=parseInt(document.getElementById('daysNum')?.value||0);
+  const unit=document.getElementById('daysUnit')?.value||'days';
+  if(s1&&fwd!==0){
+    const dt=new Date(s1);
+    if(unit==='days')dt.setDate(dt.getDate()+fwd);
+    else if(unit==='weeks')dt.setDate(dt.getDate()+fwd*7);
+    else dt.setMonth(dt.getMonth()+fwd);
+    const el=document.getElementById('dateFwdResult');
+    if(el)el.innerHTML=`<div class="npt-info-item"><div class="key">${fwd>0?fwd+' '+unit+' forward':Math.abs(fwd)+' '+unit+' back'}</div><div class="val" style="color:var(--accent)">${dt.toISOString().split('T')[0]} (${dt.toLocaleDateString('en-GB',{weekday:'long'})})</div></div>`;
+  }
+  if(s1&&s2){
+    // Inclusive — count both start and end day
+    const days = Math.round(Math.abs(s2-s1)/86400000) + 1;
+    // Count Sat/Sun in inclusive range
+    const earlier = s1 <= s2 ? s1 : s2;
+    const later   = s1 <= s2 ? s2 : s1;
+    let sats=0, suns=0;
+    const cur = new Date(earlier);
+    while(cur <= later) {
+      const d = cur.getDay();
+      if(d===6) sats++;
+      if(d===0) suns++;
+      cur.setDate(cur.getDate()+1);
+    }
+    const weekendDays = sats+suns;
+    const weekdays = days - weekendDays;
+    const el=document.getElementById('dateDiffResult');
+    if(el)el.innerHTML=resultGrid([
+      ['Total days (inclusive)', days,'','var(--accent)'],
+      ['Weeks + extra days', Math.floor((days)/7)+'w + '+(days%7)+'d',''],
+      ['Approx months', fmtN(days/30.44,1),''],
+      ['Saturdays', sats,'','var(--warn)'],
+      ['Sundays', suns,'','var(--warn)'],
+      ['Weekend days total', weekendDays,' (potential lieu days)','var(--warn)'],
+      ['Weekdays', weekdays,'']
+    ]);
+  }
+}
+
+function initCalendar(){calState.selectedDate=new Date();calState.selectedDate.setHours(0,0,0,0);renderCalendar();}
 
 // SYMBOL_CATS indices: 0=Fractions,1=Temperature,2=Electrical,3=Docs,4=Maths,5=Currency
 // 'datetime' and 'emojipicker' are special sections
@@ -173,6 +325,13 @@ function renderSymbols() {
 
   // Init emoji picker after render
   if (document.getElementById('emojiGrid')) initEmojiPicker();
+  // Re-populate the Day/Date Calculator's calendar grid — renderSymbols() just replaced the
+  // (empty) #calWidget container with fresh markup, same as the emoji grid above. Only
+  // auto-select today as Date A the first time the calendar appears in this session
+  // (calState.selectedDate still null) — after that, preserve whatever the user picked.
+  if (document.getElementById('calWidget')) {
+    if (calState.selectedDate) renderCalendar(); else initCalendar();
+  }
 }
 
 function makeDraggableSection(dataIdx, title, inner, isCustom, extraHeaderHtml='') {
@@ -694,7 +853,8 @@ function genDocNumber() {
   const project = document.getElementById('docProject').value.trim();
   const code    = document.getElementById('docCodeSelect')?.value || '';
   const seq     = String(parseInt(document.getElementById('docSeq').value)||1).padStart(4,'0');
-  const sheet   = String(parseInt(document.getElementById('docSheet').value)||1).padStart(2,'0');
+  const sheetNum = parseInt(document.getElementById('docSheet').value);
+  const sheet   = String(Number.isFinite(sheetNum) ? sheetNum : 1).padStart(2,'0');
   const rev     = (document.getElementById('docRev').value.trim()||'01').padStart(2,'0');
   const desc    = document.getElementById('docDesc').value.trim();
   const out     = document.getElementById('docNumOutput');
