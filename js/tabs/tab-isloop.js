@@ -482,7 +482,7 @@ function isGeneratePDF() {
 <div class="pdf-notice">For two-channel barriers the combined voltage, current and power must be calculated — refer to the barrier manufacturer if required.</div>
 
 <div class="disclaimer">
-  <strong>Disclaimer:</strong> This calculation is indicative only. IS loop approval requires verification by a competent person against the actual equipment certificates before installation or certification. Cable electrical data per Cable Solutions NEK TS 606 datasheets where selected from the standard list; manually entered cable data must be verified against the source datasheet.
+  <strong>Disclaimer:</strong> This calculation is indicative only. IS loop approval requires verification by a competent person against the actual equipment certificates before installation or certification. Cable electrical data per Draka/Prysmian NEK TS 606 datasheets where selected from the standard list; manually entered cable data must be verified against the source datasheet.
 </div>
 
 <div class="footer">

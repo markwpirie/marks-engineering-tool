@@ -47,7 +47,7 @@ function updateCableCores() {
   if (isPower) {
     const cores = [...new Set(data.entries.map(e => e.cores))].sort(sortCores);
     cores.forEach(c => {
-      const label = /G$/i.test(c) ? `${c} (earth core)` : `${c} core(s)`;
+      const label = /G$/i.test(c) ? `${c} (earth core)` : `${c} ${c===1?'core':'cores'}`;
       sel.add(new Option(label, c));
     });
   } else {
@@ -55,7 +55,9 @@ function updateCableCores() {
     combos.sort((a,b) => parseInt(a.split('-')[1],10) - parseInt(b.split('-')[1],10));
     combos.forEach(c => {
       const [type,count] = c.split('-');
-      sel.add(new Option(`${count} ${type==='PR'?'Pair':type==='TR'?'Triple':'Quad'}(s)`, c));
+      const plural = count!=='1';
+      const noun = type==='PR'?'Pair':type==='TR'?'Triple':'Quad';
+      sel.add(new Option(`${count} ${noun}${plural?'s':''}`, c));
     });
   }
   restoreSelectValue(sel, prevVal);
@@ -125,11 +127,13 @@ function showCableResult() {
   const fixedBend=(OD*6).toFixed(0);
   let extras = '';
   if (isPower || isEarth) {
-    if (entry.copper) extras += `<div><div class="k">Copper Content</div><div class="v">${entry.copper} <small>kg/km</small></div></div>`;
-    if (entry.braidCsa) extras += `<div><div class="k">Braid CSA</div><div class="v">${entry.braidCsa} <small>mm²</small></div></div>`;
+    if (entry.insDiam!=null) extras += `<div><div class="k">Conductor OD Over Insulation</div><div class="v">${entry.insDiam}${entry.insDiamTol?' ± '+entry.insDiamTol:''} <small>mm</small></div></div>`;
+    if (entry.condDiam!=null) extras += `<div><div class="k">Conductor OD</div><div class="v">${entry.condDiam} <small>mm</small></div></div>`;
     if (entry.r20!=null) extras += `<div><div class="k">Conductor R (20°C / 90°C)</div><div class="v">${entry.r20} / ${entry.r90} <small>Ω/km</small></div></div>`;
     if (entry.x50!=null) extras += `<div><div class="k">Reactance (50Hz / 60Hz)</div><div class="v">${entry.x50} / ${entry.x60} <small>Ω/km</small></div></div>`;
     if (entry.sc1s) extras += `<div><div class="k">Short-circuit (1s)</div><div class="v">${entry.sc1s} <small>A</small></div></div>`;
+    extras += `<div><div class="k">Weight</div><div class="v">${weight} <small>kg/km</small></div></div>`;
+    if (entry.copper) extras += `<div><div class="k">Copper Content</div><div class="v">${entry.copper} <small>kg/km</small></div></div>`;
   } else if (data.electrical) {
     const elec = (INSTR_ELECTRICAL[data.electrical] || {})[csa];
     if (elec) {
@@ -144,10 +148,9 @@ function showCableResult() {
     <div class="full"><div class="k">Cable Type</div><div class="v plain">${data.label}</div></div>
     <div><div class="k">Overall OD</div><div class="v hi">${OD}${entry.odTol?' ± '+entry.odTol:''} <small>mm</small></div></div>
     ${innerOD ? `<div><div class="k">OD over inner insulation</div><div class="v">${innerOD}${entry.innerODTol?' ± '+entry.innerODTol:''} <small>mm</small></div></div>` : ''}
-    <div><div class="k">Weight</div><div class="v">${weight} <small>kg/km</small></div></div>
+    <div><div class="k">Min. Bend Radius</div><div class="v">${minBend} <small>mm install</small> / ${fixedBend} <small>mm fixed</small></div></div>
     ${current?`<div><div class="k">Current @45°C</div><div class="v hi">${current} <small>A</small></div></div>`:''}
     <div><div class="k">Voltage Rating</div><div class="v">${data.voltage}</div></div>
-    <div><div class="k">Min. Bend Radius</div><div class="v">${minBend} <small>mm install</small> / ${fixedBend} <small>mm fixed</small></div></div>
     ${extras}
     <div class="full"><div class="k">Colour Code</div><div class="v plain">${data.colourCode}</div></div>
   </div>
