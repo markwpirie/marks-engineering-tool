@@ -325,3 +325,72 @@ function glandFamilyName(type) {
        : type === '653' ? 'Hawke Barrier Gland (ICG/653/UNIV)'
        : 'Hawke Compression Gland (501/421/UNIV)';
 }
+
+// ── Adjacent-size lookup (Glanding V2 sandbox tab) ──────────────────────────
+// Purely additive from here down — nothing above is modified, so the live Cable & Gland tab and
+// Wonder Tool (which call findFittingGlands/findFitting421/renderGlandSizeList etc. directly) are
+// unaffected. Supports Glanding V2's "show size below/above" and its zero-match case, e.g. a
+// barrier gland size that fits the outer sheath but not the inner sheath — nothing in the family
+// fits, but the near-miss is still useful to see instead of a bare "no size covers this".
+
+// Describes one dimension's fit against a single min/max bound, covering BOTH an outright nominal
+// (book-value) miss and a tolerance-band-only miss — unlike fitStatus()'s lowFail/highFail, which
+// are only meaningful once fitsNominal is already true. Returns null when the dimension fits its
+// full tolerance band (nothing to report).
+function glandDimFailReason(label, val, tol, min, max) {
+  if (val == null || max == null) return null;
+  const iMin = min != null ? min : -Infinity;
+  if (val > max) return { level: 'fail', text: `${label} ${val}mm exceeds this size's max of ${max}mm` };
+  if (val < iMin) return { level: 'fail', text: `${label} ${val}mm is below this size's min of ${iMin}mm` };
+  const t = tol || 0;
+  if ((val + t) > max) return { level: 'warn', text: `${label} fits book value, but +${t}mm tolerance would exceed max ${max}mm` };
+  if ((val - t) < iMin) return { level: 'warn', text: `${label} fits book value, but -${t}mm tolerance would fall below min ${iMin}mm` };
+  return null;
+}
+
+// [min, max] of the "primary" sizing dimension for a raw gland entry — the outer sheath bore for
+// 453/653 (both clamp the cable's outer diameter first), or whichever 421 seal range (std/alt)
+// actually contains `od`, falling back to std. Used both to find the "anchor" size when nothing
+// fits, and to describe a 421 candidate's own fit.
+function glandPrimaryRange(type, g, od) {
+  if (type === '421') {
+    const inStd = od >= g.stdMin && od <= g.stdMax;
+    if (inStd || g.altMin == null) return [g.stdMin, g.stdMax];
+    const inAlt = od >= g.altMin && od <= g.altMax;
+    return inAlt ? [g.altMin, g.altMax] : [g.stdMin, g.stdMax];
+  }
+  return [g.outerMin, g.outerMax];
+}
+
+// Finds the size immediately below and above a pick, by array position — `list` is one of
+// GLAND_453/GLAND_653/GLAND_421 (already stored smallest-to-largest). When `recommended` is given
+// (something fit), below/above are simply its neighbours in that order. When nothing fit, finds the
+// "anchor" — the size whose primary dimension nominally contains `od` even though some OTHER
+// dimension made it fail — and returns that anchor plus its neighbours, so a zero-match result can
+// still show the closest candidates instead of just "no size covers this".
+function glandAdjacentSizes(type, list, recommended, od) {
+  if (!list.length) return { below: null, above: null, anchor: null };
+  if (recommended) {
+    const idx = list.findIndex(g => g.size === recommended.size);
+    return {
+      below: idx > 0 ? list[idx - 1] : null,
+      above: idx > -1 && idx < list.length - 1 ? list[idx + 1] : null,
+      anchor: null,
+    };
+  }
+  const idx = list.findIndex(g => {
+    const [min, max] = glandPrimaryRange(type, g, od);
+    return od >= min && od <= max;
+  });
+  if (idx === -1) {
+    const [firstMin] = glandPrimaryRange(type, list[0], od);
+    return od < firstMin
+      ? { below: null, above: list[0], anchor: null }
+      : { below: list[list.length - 1], above: null, anchor: null };
+  }
+  return {
+    below: idx > 0 ? list[idx - 1] : null,
+    above: idx < list.length - 1 ? list[idx + 1] : null,
+    anchor: list[idx],
+  };
+}

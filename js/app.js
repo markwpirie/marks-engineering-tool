@@ -224,6 +224,13 @@ window.addEventListener('DOMContentLoaded', () => {
   updateGgenSizes();        // init gland generator dropdowns
   updateCgenUI();           // init cable descriptor generator
 
+  // Tab 5a — Glanding V2 (sandbox)
+  updateCableCoresV2();
+  document.getElementById('gv2_cores').value = '3';
+  updateCableCSAV2();
+  document.getElementById('gv2_csa').value = '2.5';
+  showCableResultV2();
+
   // Tab 5b — Wonder Tool
   initWonderTool();
 

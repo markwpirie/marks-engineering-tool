@@ -943,6 +943,7 @@ label.fl {
   align-items: start;
 }
 .gsize.rec { border-left: 3px solid var(--accent); padding-left: 14px; }
+.gsize.candidate { border-style: dashed; opacity: 0.88; }
 .gsize .sizeref {
   font-family: var(--mono); font-size: 1.5rem; font-weight: 700;
   color: var(--text); line-height: 1.1; grid-row: span 2;
