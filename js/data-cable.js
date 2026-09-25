@@ -564,6 +564,28 @@ const CABLE_DATA = {
   },
 };
 
+// ── Estimated diameter over the laid-up cores ─────────────────────────────
+// Standard lay-up factors for n equal circular cores stranded together (bundle Ø = k × core Ø).
+// Used only to give the ICG/653 barrier gland's "Max over cores" bore something to check against
+// — no NEK 606 datasheet publishes this dimension, so the result is always labelled "Estimated".
+// Counts not in the table use the next larger standard lay-up (conservative).
+const LAYUP_FACTORS = { 1:1, 2:2, 3:2.154, 4:2.414, 5:2.701, 6:3, 7:3, 8:3.304, 9:3.614, 10:4, 12:4.154,
+  14:4.414, 16:4.7, 19:5, 24:6, 27:6.154, 30:6.414, 33:6.7, 37:7 };
+
+// Returns { od, basis } for a Power entry (cores may be a number or a Draka 'NG' earth-variant
+// code — the earth core is the same size, so N cores either way), or null for constructions it
+// can't sensibly estimate (pairs/triples/quads, whose individually-twisted elements don't follow
+// a simple circular lay-up, or entries with no insDiam).
+function estimateCoreBundleOD(entry) {
+  if (!entry || entry.insDiam == null || entry.type) return null;
+  const n = parseInt(entry.cores, 10);
+  if (!(n >= 1)) return null;
+  const key = Object.keys(LAYUP_FACTORS).map(Number).sort((a, b) => a - b).find(k => k >= n);
+  if (key == null) return null;
+  const k = LAYUP_FACTORS[key];
+  return { od: +(k * entry.insDiam).toFixed(1), basis: `${n} × ${entry.insDiam} mm cores, lay-up factor ${k}` };
+}
+
 // Ambient temperature correction factors (IEC 60092-352, 90°C conductor / 45°C base) — identical
 // across all NEK606 families per the datasheets.
 const AMBIENT_CORRECTION = { 35: 1.10, 40: 1.05, 45: 1.00, 50: 0.94, 55: 0.88, 60: 0.82, 65: 0.74, 70: 0.67, 75: 0.58, 80: 0.47 };

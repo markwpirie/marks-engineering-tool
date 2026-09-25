@@ -165,19 +165,19 @@ function isCableSegmentHtml(n) {
       <div class="field" style="flex:2;min-width:220px"><label>Cable Type</label>
         <select id="is_cab${n}_type" onchange="isCableTypeChange(${n})">${isCableTypeOptionsHtml()}</select>
       </div>
-      <div class="field" style="flex:1;min-width:90px"><label>Length (m)</label>
+      <div class="field" style="flex:1;min-width:90px"><label>Length <span class="u">(m)</span></label>
         <input type="number" id="is_cab${n}_len" step="any" min="0" oninput="isSaveField('cab${n}_len');isCalc()">
       </div>
-      <div class="field" style="flex:1;min-width:100px"><label>Cap (nF/km)</label>
+      <div class="field" style="flex:1;min-width:100px"><label>Cap <span class="u">(nF/km)</span></label>
         <input type="number" id="is_cab${n}_cap" step="any" oninput="isSaveField('cab${n}_cap');isCalc()">
       </div>
-      <div class="field" style="flex:1;min-width:100px"><label>Ind (mH/km)</label>
+      <div class="field" style="flex:1;min-width:100px"><label>Ind <span class="u">(mH/km)</span></label>
         <input type="number" id="is_cab${n}_ind" step="any" oninput="isSaveField('cab${n}_ind');isCalc()">
       </div>
-      <div class="field" style="flex:1;min-width:90px"><label>R (Ω/km)</label>
+      <div class="field" style="flex:1;min-width:90px"><label>R <span class="u">(Ω/km)</span></label>
         <input type="number" id="is_cab${n}_r" step="any" oninput="isSaveField('cab${n}_r');isCalc()">
       </div>
-      <div class="field" style="flex:1;min-width:100px"><label>L/R (µH/Ω) <span style="font-size:0.7rem;color:var(--text3)">opt.</span></label>
+      <div class="field" style="flex:1;min-width:100px"><label>L/R <span class="u">(µH/Ω)</span> <span style="font-size:0.7rem;color:var(--text3)">opt.</span></label>
         <input type="number" id="is_cab${n}_lr" step="any" oninput="isSaveField('cab${n}_lr');isCalc()">
       </div>
     </div>
@@ -324,6 +324,25 @@ function isCalc() {
   const inductanceOk = checkL || (lr && lr.applicable && lr.pass);
   const overallPass = checkV && checkI && checkP && checkC && inductanceOk;
 
+  // ── Maximum permissible cable length ──
+  // Worked backwards from the spare Co/Lo left after the instrument's own Ci/Li, using the per-km
+  // figures of the first segment that has any (the reference cable). If that cable's L/R is within
+  // the barrier's Lo/Ro, the IEC 60079-14 L/R method applies and inductance stops limiting length.
+  const refSeg = [1, 2, 3].map(n => ({
+    n, cap: num(`is_cab${n}_cap`), ind: num(`is_cab${n}_ind`), lr: num(`is_cab${n}_lr`),
+  })).find(x => x.cap > 0 || x.ind > 0);
+  let maxLen = null;
+  if (refSeg) {
+    const spareC = co - ci, spareL = lo - li;
+    const byC = refSeg.cap > 0 ? Math.max(0, spareC) / refSeg.cap * 1000 : Infinity; // m
+    const lrApplies = !isNaN(loRo) && !isNaN(refSeg.lr) && refSeg.lr <= loRo;
+    const byL = lrApplies ? Infinity : (refSeg.ind > 0 ? Math.max(0, spareL) / (refSeg.ind * 1000) * 1000 : Infinity);
+    const total = segs.reduce((a, x) => a + x.len, 0);
+    const limit = Math.min(byC, byL);
+    maxLen = { ref: refSeg.n, byC, byL, lrApplies, limit, total,
+      governs: byC <= byL ? 'capacitance' : 'inductance', remaining: limit - total };
+  }
+
   const model = {
     proj: isGetProj(),
     barrier: {
@@ -342,15 +361,29 @@ function isCalc() {
     },
     segs, totalC, totalL, totalR,
     checkV, checkI, checkP, checkC, checkL, ciTotal, liTotal, lr,
-    inductanceOk, overallPass,
+    inductanceOk, overallPass, maxLen,
   };
   window._isData = model;
 
   out.innerHTML = renderIsResult(model);
 }
 
-function isSpecRow(label, lhs, rhs, pass, full) {
-  return `<div${full ? ' class="full"' : ''}><div class="k">${label}</div><div class="v">${lhs} ${pass ? '≤' : '>'} ${rhs} &nbsp; ${isBadge(pass)}</div></div>`;
+// `spare` is the headroom text (rhs − lhs) shown under the comparison, so the margin is visible
+// without doing the arithmetic — a pass by 0.1 V reads very differently from a pass by 10 V.
+function isSpecRow(label, lhs, rhs, pass, spare) {
+  return `<div><div class="k">${label}</div><div class="v">${lhs} ${pass ? '≤' : '>'} ${rhs} &nbsp; ${isBadge(pass)}</div>${spare ? `<div class="hint">${pass ? 'Spare' : 'Over by'} ${spare}</div>` : ''}</div>`;
+}
+
+function isSpare(lhs, rhs, dp, unit) {
+  if (!isFinite(lhs) || !isFinite(rhs)) return '';
+  const d = Math.abs(rhs - lhs);
+  const pct = rhs ? ` (${(d / rhs * 100).toFixed(0)}%)` : '';
+  return `${d.toFixed(dp)} ${unit}${pct}`;
+}
+
+function isFmtLen(m) {
+  if (!isFinite(m)) return 'not limiting';
+  return m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${m.toFixed(0)} m`;
 }
 
 function renderIsResult(m) {
@@ -362,14 +395,15 @@ function renderIsResult(m) {
 
   return `
     <div class="spec">
-      ${isSpecRow('Voltage — Uo ≤ Ui', b.uo + ' V', i.simple ? 'Ui (simple apparatus — n/a)' : i.ui + ' V', m.checkV)}
-      ${isSpecRow('Current — Io ≤ Ii', b.io + ' mA', i.simple ? 'Ii (simple apparatus — n/a)' : i.ii + ' mA', m.checkI)}
-      ${isSpecRow('Power — Po ≤ Pi', b.po + ' W', i.simple ? 'Pi (simple apparatus — n/a)' : i.pi + ' W', m.checkP)}
-      ${isSpecRow('Capacitance — Ci + ΣC(cable) ≤ Co', m.ciTotal.toFixed(3) + ' nF', b.co.toFixed(3) + ' nF', m.checkC)}
-      ${isSpecRow('Inductance — Li + ΣL(cable) ≤ Lo', m.liTotal.toFixed(1) + ' µH', b.lo.toFixed(1) + ' µH', m.checkL)}
+      ${isSpecRow('Voltage — Uo ≤ Ui', b.uo + ' V', i.simple ? 'Ui (simple apparatus — n/a)' : i.ui + ' V', m.checkV, i.simple ? '' : isSpare(b.uo, i.ui, 2, 'V'))}
+      ${isSpecRow('Current — Io ≤ Ii', b.io + ' mA', i.simple ? 'Ii (simple apparatus — n/a)' : i.ii + ' mA', m.checkI, i.simple ? '' : isSpare(b.io, i.ii, 1, 'mA'))}
+      ${isSpecRow('Power — Po ≤ Pi', b.po + ' W', i.simple ? 'Pi (simple apparatus — n/a)' : i.pi + ' W', m.checkP, i.simple ? '' : isSpare(b.po, i.pi, 3, 'W'))}
+      ${isSpecRow('Capacitance — Ci + ΣC(cable) ≤ Co', m.ciTotal.toFixed(3) + ' nF', b.co.toFixed(3) + ' nF', m.checkC, isSpare(m.ciTotal, b.co, 3, 'nF'))}
+      ${isSpecRow('Inductance — Li + ΣL(cable) ≤ Lo', m.liTotal.toFixed(1) + ' µH', b.lo.toFixed(1) + ' µH', m.checkL, isSpare(m.liTotal, b.lo, 1, 'µH'))}
       ${lrRow}
-      <div class="full"><div class="k">Total Cable Resistance <span style="font-weight:400;text-transform:none;letter-spacing:normal">(informative)</span></div><div class="v">${m.totalR.toFixed(2)} Ω</div></div>
+      <div class="full"><div class="k">Total Cable Resistance <span class="label-note">(informative)</span></div><div class="v">${m.totalR.toFixed(2)} Ω</div></div>
     </div>
+    ${isMaxLenHTML(m)}
 
     <div style="margin-top:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <span class="badge ${m.overallPass ? 'pass' : 'fail'}" style="font-size:0.85rem;padding:6px 14px">
@@ -385,6 +419,20 @@ function renderIsResult(m) {
     <div class="notice" style="margin-top:10px">
       <svg><use href="#i-warn"/></svg>
       <span>This calculation is indicative only. IS loop approval requires verification by a competent person against the actual equipment certificates before installation or certification.</span>
+    </div>`;
+}
+
+// Maximum cable length panel — the question engineers actually ask of an IS loop.
+function isMaxLenHTML(m) {
+  const x = m.maxLen;
+  if (!x) return `<div class="notice info mt-16"><svg><use href="#i-warn"/></svg><span>Select a cable type (or enter per-km C/L) on a segment to see the maximum permissible cable length for this loop.</span></div>`;
+  const ok = x.remaining >= 0;
+  return `<div class="kicker mt-16">Maximum Cable Length <span class="label-note">— reference cable: Segment ${x.ref}</span></div>
+    <div class="spec">
+      <div><div class="k">Limited by capacitance</div><div class="v">${isFmtLen(x.byC)}</div><div class="hint">(Co − Ci) ÷ cable C/km</div></div>
+      <div><div class="k">Limited by inductance</div><div class="v">${isFmtLen(x.byL)}</div><div class="hint">${x.lrApplies ? 'Cable L/R ≤ Lo/Ro — L/R method applies, inductance not limiting' : '(Lo − Li) ÷ cable L/km'}</div></div>
+      <div><div class="k">Maximum total length</div><div class="v hi">${isFmtLen(x.limit)}</div><div class="hint">Governed by ${x.lrApplies ? 'capacitance' : x.governs}</div></div>
+      <div><div class="k">Entered vs maximum</div><div class="v">${x.total.toFixed(0)} m ${isBadge(ok)}</div><div class="hint">${isFinite(x.remaining) ? (ok ? `${isFmtLen(x.remaining)} still available` : `${isFmtLen(-x.remaining)} too long`) : ''}</div></div>
     </div>`;
 }
 
@@ -472,6 +520,8 @@ function isGeneratePDF() {
   <thead><tr><th>Check</th><th>Source (Barrier)</th><th>Load (Instrument + Cable)</th><th>Verdict</th></tr></thead>
   <tbody>${entityRows}${lrRow}</tbody>
 </table>
+
+${m.maxLen ? `<p style="font-size:8pt;margin-bottom:8px">Maximum permissible cable length (reference: Segment ${m.maxLen.ref} cable): <strong>${isFmtLen(m.maxLen.limit)}</strong> — governed by ${m.maxLen.lrApplies ? 'capacitance (L/R method applies)' : m.maxLen.governs}. Entered total ${m.maxLen.total.toFixed(0)} m.</p>` : ''}
 
 <div class="sec">5 — Overall Verdict</div>
 <div class="order-box" style="${m.overallPass ? '' : 'background:rgba(179,63,49,0.07);border-color:rgba(179,63,49,0.35)'}">

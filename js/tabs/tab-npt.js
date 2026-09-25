@@ -46,20 +46,34 @@ function showNPTInfo() {
     </div>`;
 }
 
+// Always shows the two nearest sizes with their difference — a caliper reading halfway between two
+// sizes is itself useful information (wrong thread form? worn? metric?), not just "no match".
 function identifyNPT() {
   const od = parseFloat(document.getElementById('nptOD').value);
-  if (isNaN(od)) return;
-  const entries = Object.entries(NPT_DATA);
-  const match = entries.find(([k,v]) => Math.abs(v.threadOD-od)<1.5);
-  const close = entries.filter(([k,v]) => Math.abs(v.threadOD-od)<3).sort((a,b)=>Math.abs(a[1].threadOD-od)-Math.abs(b[1].threadOD-od));
-  let html='';
-  if (match) {
-    html=`<div class="result-box"><span style="color:var(--accent3)">Likely match: <strong>${match[0]}" NPT</strong> (thread OD ${match[1].threadOD}mm, diff: ${Math.abs(match[1].threadOD-od).toFixed(2)}mm)</span><button class="copy-btn" onclick="copyText('${match[0]}&quot; NPT')">Copy</button></div>`;
-  } else if (close.length) {
-    html=`<div class="result-box" style="color:var(--warn)">No exact match. Closest: ${close.map(([k,v])=>`${k}" NPT (${v.threadOD}mm)`).join(', ')}</div>`;
-  }
-  html+=`<p style="font-size:0.75rem;color:var(--text2);margin-top:6px">Tolerance ±1.5mm. NPT threads are tapered — measure at thread OD, not crests. Confirm with thread gauge.</p>`;
-  document.getElementById('nptIDResult').innerHTML=html;
+  const out = document.getElementById('nptIDResult');
+  if (isNaN(od)) { out.innerHTML = ''; return; }
+  const near = Object.entries(NPT_DATA)
+    .map(([k, v]) => ({ k, v, d: od - v.threadOD }))
+    .sort((a, b) => Math.abs(a.d) - Math.abs(b.d))
+    .slice(0, 2);
+  const TOL = 1.5;
+  const best = near[0];
+  const isMatch = Math.abs(best.d) < TOL;
+  const row = (n, i) => {
+    const ok = Math.abs(n.d) < TOL;
+    const sign = n.d >= 0 ? '+' : '−';
+    return `<div class="gsize${i === 0 && ok ? ' rec' : ' candidate'}">
+      <div class="sizeref">${n.k}"<small>${i === 0 ? 'Nearest' : 'Next nearest'}</small></div>
+      <div class="meta"><span>Thread OD <b>${n.v.threadOD} mm</b></span><span>TPI <b>${n.v.tpi}</b></span><span>Metric equiv. <b>${n.v.metric}</b></span></div>
+      <div class="fit">${ok ? `<span class="badge pass"><svg><use href="#i-check"/></svg>Within ±${TOL} mm</span>` : `<span class="badge fail"><svg><use href="#i-x"/></svg>Outside ±${TOL} mm</span>`}
+        <span class="gdim-reason ${ok ? '' : 'fail'}">Your reading is ${sign}${Math.abs(n.d).toFixed(2)} mm ${n.d >= 0 ? 'over' : 'under'} nominal</span></div>
+      <div class="code"><div class="k">Copy</div><span class="oc">${n.k}" NPT <button class="copy" title="Copy" aria-label="Copy size" data-copy="${escapeHtml(n.k + '" NPT')}" onclick="copyText(this.dataset.copy)"><svg><use href="#i-copy"/></svg></button></span></div>
+    </div>`;
+  };
+  let html = isMatch ? '' : `<div class="notice fail mt-0"><svg><use href="#i-warn"/></svg><span>No NPT size within ±${TOL} mm — check it isn't a metric (M) or BSP thread, and measure across the crests at the large end.</span></div>`;
+  html += near.map(row).join('');
+  html += `<p class="hint mt-6">Tolerance ±${TOL} mm. NPT threads are tapered — measure at thread OD, not crests. Confirm with a thread gauge (TPI) before ordering adapters.</p>`;
+  out.innerHTML = html;
 }
 
 function showAdapterInfo() {
@@ -71,7 +85,7 @@ function showAdapterInfo() {
       <div class="npt-info-item"><div class="key">Metric Equivalent</div><div class="val">${d.metric}</div></div>
       <div class="npt-info-item"><div class="key">Adapter Bore</div><div class="val">${d.bore}</div></div>
     </div>
-    <div style="margin-top:10px;font-size:0.82rem"><strong style="color:var(--text2)">Compatible Gland Sizes:</strong> <span>${d.glands}</span></div>
+    <div style="margin-top:10px;font-size:0.82rem"><strong class="muted">Compatible Gland Sizes:</strong> <span>${d.glands}</span></div>
     <div style="margin-top:8px;font-size:0.8rem;color:var(--accent2)">${d.note}</div>
     <div class="notice">
       <svg><use href="#i-warn"/></svg>

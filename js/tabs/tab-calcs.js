@@ -168,9 +168,11 @@ function clearAllCalcState() {
 const fmt = (x, dp=4) => isNaN(x)||!isFinite(x) ? '—' : parseFloat(x.toPrecision(dp)).toString();
 const fmtN = (x, dp=2) => isNaN(x)||!isFinite(x) ? '—' : x.toFixed(dp);
 
+// items: [label, value, unit?, colour?, note?] — `note` is a one-line reason shown under the value,
+// so an amber/red result says WHY it's amber/red instead of leaving the user to guess.
 function resultGrid(items) {
-  return `<div class="calc-result-grid">${items.map(([k,v,unit='',color=''])=>
-    `<div class="npt-info-item"><div class="key">${k}</div><div class="val"${color?` style="color:${color}"`:''}>${v}${unit?` <span style="font-size:0.8em;opacity:0.7">${unit}</span>`:''}</div></div>`
+  return `<div class="calc-result-grid">${items.map(([k,v,unit='',color='',note=''])=>
+    `<div class="npt-info-item"><div class="key">${k}</div><div class="val"${color?` style="color:${color}"`:''}>${v}${unit?` <span class="unit-sm">${unit}</span>`:''}</div>${note?`<div class="calc-note"${color?` style="color:${color}"`:''}>${note}</div>`:''}</div>`
   ).join('')}</div>`;
 }
 
@@ -180,6 +182,23 @@ function formulaNote(f) {
 
 function warnBand(val, lo, hi) {
   return val > hi ? 'var(--danger)' : val > lo ? 'var(--warn)' : 'var(--success)';
+}
+
+// Plain-English companion to warnBand(): which threshold the value sits against, and by how much.
+// loName/hiName describe what each limit is for (e.g. 'lighting', 'motors').
+function bandReason(val, lo, hi, unit, loName, hiName) {
+  const f = x => (+x.toFixed(2)).toString() + unit;
+  if (val > hi) return `${f(val)} exceeds the ${f(hi)} ${hiName} limit by ${f(val - hi)}`;
+  if (val > lo) return `Above the ${f(lo)} ${loName} limit, within ${f(hi)} ${hiName}`;
+  return `Within the ${f(lo)} ${loName} limit (${f(lo - val)} spare)`;
+}
+
+// "Next size down / up" around a picked standard size, so the choice has context.
+function adjacentStd(list, pick) {
+  const i = list.indexOf(pick);
+  if (i === -1) return '';
+  const dn = i > 0 ? list[i - 1] : null, up = i < list.length - 1 ? list[i + 1] : null;
+  return [dn != null ? `one down: ${dn}` : null, up != null ? `one up: ${up}` : null].filter(Boolean).join(' · ');
 }
 
 const VOLT_OPTS = [['110','110 V'],['230','230 V'],['400','400 V'],['415','415 V'],['440','440 V'],
@@ -235,7 +254,7 @@ function htmlAmps() {
   <div class="field"><label>Voltage</label>${voltSelect('amps_volt','calcAmps()',400)}</div>
   <div class="field" id="amps_pf_row"><label>Power Factor</label>
     <input type="number" id="amps_pf" value="0.85" min="0.01" max="1" step="0.01" oninput="calcAmps()"></div>
-  <div class="field"><label>Power (kW / kVA / kVAR)</label>
+  <div class="field"><label>Power <span class="u">(kW / kVA / kVAR)</span></label>
     <input type="number" id="amps_pwr" value="10" oninput="calcAmps()"></div>
   <div id="ampsResult"></div>
   ${formulaNote('I = P×1000/(V×PF) [1φ] | I = P×1000/(√3×V×PF) [3φ] | I = S×1000/V [1φ kVA] | I = S×1000/(√3×V) [3φ kVA]')}`;
@@ -250,7 +269,7 @@ function calcAmps() {
   const needsPF=mode&&mode.startsWith('kw');
   if(pfRow) pfRow.style.display=needsPF?'block':'none';
   const r=document.getElementById('ampsResult'); if(!r) return;
-  if(isNaN(volt)||volt<=0||isNaN(pwr)||pwr<=0){r.innerHTML='<span style="color:var(--text2)">Enter voltage and power</span>';return;}
+  if(isNaN(volt)||volt<=0||isNaN(pwr)||pwr<=0){r.innerHTML='<span class="muted">Enter voltage and power</span>';return;}
   const pw=pwr*1000;
   let amps,kva,kw,kvar,label;
   if(mode==='kw_dc'){amps=pw/volt;kw=pwr;label='DC';}
@@ -270,10 +289,10 @@ function calcAmps() {
 
 function htmlOhm() {
   return `<label style="display:block;margin-bottom:10px;color:var(--text2)">Enter any 2 values — leave others blank</label>
-  <div class="field"><label>Voltage V (volts)</label><input type="number" id="ohm_V" placeholder="" oninput="calcOhm()"></div>
-  <div class="field"><label>Current I (amps)</label><input type="number" id="ohm_I" placeholder="" oninput="calcOhm()"></div>
-  <div class="field"><label>Resistance R (ohms)</label><input type="number" id="ohm_R" placeholder="" oninput="calcOhm()"></div>
-  <div class="field"><label>Power P (watts)</label><input type="number" id="ohm_P" placeholder="" oninput="calcOhm()"></div>
+  <div class="field"><label>Voltage V <span class="u">(volts)</span></label><input type="number" id="ohm_V" placeholder="" oninput="calcOhm()"></div>
+  <div class="field"><label>Current I <span class="u">(amps)</span></label><input type="number" id="ohm_I" placeholder="" oninput="calcOhm()"></div>
+  <div class="field"><label>Resistance R <span class="u">(ohms)</span></label><input type="number" id="ohm_R" placeholder="" oninput="calcOhm()"></div>
+  <div class="field"><label>Power P <span class="u">(watts)</span></label><input type="number" id="ohm_P" placeholder="" oninput="calcOhm()"></div>
   <div id="ohmResult"></div>
   ${formulaNote('V = IR | P = VI = I²R = V²/R')}`;
 }
@@ -282,7 +301,7 @@ function calcOhm() {
   const V=parseFloat(document.getElementById('ohm_V')?.value),I=parseFloat(document.getElementById('ohm_I')?.value);
   const R=parseFloat(document.getElementById('ohm_R')?.value),P=parseFloat(document.getElementById('ohm_P')?.value);
   const r=document.getElementById('ohmResult'); if(!r) return;
-  if([!isNaN(V),!isNaN(I),!isNaN(R),!isNaN(P)].filter(Boolean).length<2){r.innerHTML='<span style="color:var(--text2)">Enter any 2 values</span>';return;}
+  if([!isNaN(V),!isNaN(I),!isNaN(R),!isNaN(P)].filter(Boolean).length<2){r.innerHTML='<span class="muted">Enter any 2 values</span>';return;}
   let res={};
   if(!isNaN(V)&&!isNaN(I)) res={V,I,R:V/I,P:V*I};
   else if(!isNaN(V)&&!isNaN(R)) res={V,R,I:V/R,P:V*V/R};
@@ -323,48 +342,116 @@ function htmlVoltDrop() {
       <option value="480">480V</option><option value="600">600V</option><option value="690">690V</option>
       <option value="6600">6.6kV</option><option value="11000">11kV</option>
     </select></div>
-  <div class="field"><label>Conductor CSA (mm²)</label>
-    <select id="vd_csa" onchange="calcVD()">
-      <option>1.5</option><option>2.5</option><option>4</option><option>6</option><option>10</option>
-      <option>16</option><option selected>25</option><option>35</option><option>50</option><option>70</option>
-      <option>95</option><option>120</option><option>150</option><option>185</option><option>240</option><option>300</option>
+  <div class="field"><label>Conductor Data</label>
+    <select id="vd_src" onchange="vdSrcChange()">
+      <option value="generic">Generic table (typical multicore, ~90 °C)</option>
+      <option value="nek">NEK 606 cable — Draka R₉₀ / X from the Cable &amp; Gland data</option>
     </select></div>
-  <div class="field"><label>Conductor Material</label>
-    <select id="vd_material" onchange="calcVD()"><option value="cu">Copper</option><option value="al">Aluminium</option></select></div>
+  <div id="vd_nek_box" class="hidden">
+    <div class="flex-row">
+      <div class="field flex-1"><label>Fire Rating</label>
+        <select id="vd_nek_rating" onchange="vdNekCores()"><option value="RFOU">RFOU</option><option value="BFOU">BFOU</option></select></div>
+      <div class="field flex-1"><label>Cores</label><select id="vd_nek_cores" onchange="vdNekCsa()">${vdNekCoreOpts('RFOU')}</select></div>
+      <div class="field flex-1"><label>CSA</label><select id="vd_nek_csa" onchange="calcVD()">${vdNekCsaOpts('RFOU', '3')}</select></div>
+      <div class="field flex-1"><label>Frequency</label>
+        <select id="vd_hz" onchange="calcVD()"><option value="50">50 Hz</option><option value="60">60 Hz</option></select></div>
+    </div>
+  </div>
+  <div id="vd_generic_box">
+    <div class="field"><label>Conductor CSA <span class="u">(mm²)</span></label>
+      <select id="vd_csa" onchange="calcVD()">
+        <option>1.5</option><option>2.5</option><option>4</option><option>6</option><option>10</option>
+        <option>16</option><option selected>25</option><option>35</option><option>50</option><option>70</option>
+        <option>95</option><option>120</option><option>150</option><option>185</option><option>240</option><option>300</option>
+      </select></div>
+    <div class="field"><label>Conductor Material</label>
+      <select id="vd_material" onchange="calcVD()"><option value="cu">Copper</option><option value="al">Aluminium</option></select></div>
+  </div>
   <div class="field"><label>Current (A)</label><input type="number" id="vd_current" value="20" oninput="calcVD()"></div>
-  <div class="field"><label>One-way cable length (m)</label><input type="number" id="vd_length" value="50" oninput="calcVD()"></div>
+  <div class="field"><label>One-way cable length <span class="u">(m)</span></label><input type="number" id="vd_length" value="50" oninput="calcVD()"></div>
   <div class="field"><label>Load Power Factor</label>
     <input type="number" id="vd_pf" value="0.85" min="0.01" max="1" step="0.01" oninput="calcVD()"></div>
   <div id="vdResult"></div>
   ${formulaNote('VD = Factor × I × L × (R·cosφ + X·sinφ) / 1000 | Factor: 2 (1-phase), √3 (3-phase)')}`;
 }
 
+// ── NEK 606 conductor data for the volt-drop calc (Power entries with published R₉₀/X) ──
+function vdNekEntries(rating) {
+  return (CABLE_DATA[rating]?.Power?.entries || []).filter(e => e.r90 != null && e.x50 != null);
+}
+function vdNekCoreOpts(rating, sel) {
+  const cores = [...new Set(vdNekEntries(rating).map(e => String(e.cores)))].sort(sortCores);
+  return cores.map(c => `<option value="${c}"${c === (sel || '3') ? ' selected' : ''}>${/G$/i.test(c) ? c + ' (earth core)' : c + (c === '1' ? ' core' : ' cores')}</option>`).join('');
+}
+function vdNekCsaOpts(rating, cores, sel) {
+  return vdNekEntries(rating).filter(e => String(e.cores) === String(cores))
+    .map(e => `<option value="${e.csa}"${String(e.csa) === String(sel) ? ' selected' : ''}>${e.csa} mm²</option>`).join('');
+}
+function vdNekEntry() {
+  const rating = document.getElementById('vd_nek_rating')?.value || 'RFOU';
+  const cores = document.getElementById('vd_nek_cores')?.value;
+  const csa = parseFloat(document.getElementById('vd_nek_csa')?.value);
+  return vdNekEntries(rating).find(e => String(e.cores) === cores && e.csa === csa);
+}
+function vdNekCores() {
+  const sel = document.getElementById('vd_nek_cores'); if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = vdNekCoreOpts(document.getElementById('vd_nek_rating').value, prev);
+  restoreSelectValue(sel, prev);
+  vdNekCsa();
+}
+function vdNekCsa() {
+  const sel = document.getElementById('vd_nek_csa'); if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = vdNekCsaOpts(document.getElementById('vd_nek_rating').value, document.getElementById('vd_nek_cores').value, prev);
+  restoreSelectValue(sel, prev);
+  calcVD();
+}
+function vdSrcChange() {
+  const nek = document.getElementById('vd_src')?.value === 'nek';
+  document.getElementById('vd_nek_box')?.classList.toggle('hidden', !nek);
+  document.getElementById('vd_generic_box')?.classList.toggle('hidden', nek);
+  calcVD();
+}
+
 let vdPhase=1;
 function setVDPhase(p){vdPhase=p;document.getElementById('vd-1ph')?.classList.toggle('active',p===1);document.getElementById('vd-3ph')?.classList.toggle('active',p===3);calcVD();}
 function calcVD(){
   const vnom=parseFloat(document.getElementById('vd_volt')?.value);
-  const csa=parseFloat(document.getElementById('vd_csa')?.value);
   const I=parseFloat(document.getElementById('vd_current')?.value);
   const L=parseFloat(document.getElementById('vd_length')?.value);
   const pf=parseFloat(document.getElementById('vd_pf')?.value);
   const r=document.getElementById('vdResult'); if(!r) return;
-  if([vnom,csa,I,L,pf].some(isNaN)){r.innerHTML='';return;}
-  const mat=document.getElementById('vd_material')?.value||'cu';
-  const rho=RESISTIVITY[csa]?RESISTIVITY[csa][mat]:17.241/csa;
-  const x=REACTANCE[csa]!=null?REACTANCE[csa]:0.08; // typical fallback for CSAs outside the table
+  const nek=document.getElementById('vd_src')?.value==='nek';
+  let rho, x, srcNote;
+  if(nek){
+    const e=vdNekEntry();
+    if(!e){r.innerHTML='';return;}
+    const hz=document.getElementById('vd_hz')?.value==='60'?60:50;
+    rho=e.r90; x=hz===60?e.x60:e.x50; // Ω/km ≡ mΩ/m
+    srcNote=`${document.getElementById('vd_nek_rating').value} ${e.cores}C × ${e.csa} mm² — Draka R at 90 °C and X at ${hz} Hz`;
+  } else {
+    const csa=parseFloat(document.getElementById('vd_csa')?.value);
+    if(isNaN(csa)){r.innerHTML='';return;}
+    const mat=document.getElementById('vd_material')?.value||'cu';
+    rho=RESISTIVITY[csa]?RESISTIVITY[csa][mat]:17.241/csa;
+    x=REACTANCE[csa]!=null?REACTANCE[csa]:0.08; // typical fallback for CSAs outside the table
+    srcNote='Generic multicore table';
+  }
+  if([vnom,I,L,pf].some(isNaN)){r.innerHTML='';return;}
   const sinPhi=Math.sqrt(Math.max(0,1-pf*pf));
   const factor=vdPhase===3?Math.sqrt(3):2;
   const vdrop=factor*I*L*(rho*pf+x*sinPhi)/1000;
   const pct=vdrop/vnom*100;
-  r.innerHTML=resultGrid([['Voltage Drop',fmtN(vdrop,2),'V','var(--accent)'],['% of Nominal',fmtN(pct,2)+'%','',warnBand(pct,3,5)],['Receiving End',fmtN(vnom-vdrop,1),'V'],['R / X used',fmtN(rho,3)+' / '+fmtN(x,3),'mΩ/m']])+
-    `<div style="margin-top:8px;font-size:0.78rem;color:var(--text2)">IEC 60364: ≤3% lighting, ≤5% motors. Includes reactance term (X·sinφ) — significant for larger CSAs and lower power factors.</div>`;
+  r.innerHTML=resultGrid([['Voltage Drop',fmtN(vdrop,2),'V','var(--accent)'],['% of Nominal',fmtN(pct,2)+'%','',warnBand(pct,3,5),bandReason(pct,3,5,'%','lighting','motors')],['Receiving End',fmtN(vnom-vdrop,1),'V'],['R / X used',fmtN(rho,3)+' / '+fmtN(x,3),'mΩ/m','',srcNote]])+
+    `<div class="hint mt-8">IEC 60364: ≤3% lighting, ≤5% motors. Includes reactance term (X·sinφ) — significant for larger CSAs and lower power factors.</div>`;
 }
 
 function htmlPowerTriangle(){
   return `<label style="display:block;margin-bottom:10px;color:var(--text2)">Enter any 2 values</label>
-  <div class="field"><label>Active Power (kW)</label><input type="number" id="pt_kw" placeholder="" oninput="calcPowerTriangle()"></div>
-  <div class="field"><label>Apparent Power (kVA)</label><input type="number" id="pt_kva" placeholder="" oninput="calcPowerTriangle()"></div>
-  <div class="field"><label>Reactive Power (kVAR)</label><input type="number" id="pt_kvar" placeholder="" oninput="calcPowerTriangle()"></div>
+  <div class="field"><label>Active Power <span class="u">(kW)</span></label><input type="number" id="pt_kw" placeholder="" oninput="calcPowerTriangle()"></div>
+  <div class="field"><label>Apparent Power <span class="u">(kVA)</span></label><input type="number" id="pt_kva" placeholder="" oninput="calcPowerTriangle()"></div>
+  <div class="field"><label>Reactive Power <span class="u">(kVAR)</span></label><input type="number" id="pt_kvar" placeholder="" oninput="calcPowerTriangle()"></div>
   <div id="ptResult"></div>
   ${formulaNote('kVA² = kW² + kVAR² | PF = kW/kVA | φ = arccos(PF)')}`;
 }
@@ -378,7 +465,7 @@ function calcPowerTriangle(){
   if(!isNaN(kw)&&!isNaN(kva)){rKW=kw;rKVA=kva;rKVAR=Math.sqrt(Math.max(0,kva**2-kw**2));pf=kw/kva;}
   else if(!isNaN(kw)&&!isNaN(kvar)){rKW=kw;rKVAR=kvar;rKVA=Math.sqrt(kw**2+kvar**2);pf=kw/rKVA;}
   else if(!isNaN(kva)&&!isNaN(kvar)){rKVA=kva;rKVAR=kvar;rKW=Math.sqrt(Math.max(0,kva**2-kvar**2));pf=rKW/kva;}
-  else{r.innerHTML='<span style="color:var(--text2)">Enter any 2 values</span>';return;}
+  else{r.innerHTML='<span class="muted">Enter any 2 values</span>';return;}
   const angle=Math.acos(Math.min(1,pf))*180/Math.PI;
   r.innerHTML=resultGrid([['kW (Active)',fmtN(rKW,3),'kW'],['kVA (Apparent)',fmtN(rKVA,3),'kVA'],['kVAR (Reactive)',fmtN(rKVAR,3),'kVAR'],['Power Factor',fmtN(pf,4),''],['Angle φ',fmtN(angle,2),'°']]);
 }
@@ -417,7 +504,7 @@ function htmlMotorFLA(){
     <div style="margin-top:5px;font-size:0.76rem;color:var(--text2)">PF and η auto-filled from IEC 60034-30-1 typical values. Override below if nameplate data available.</div>
   </div>
 
-  <div class="field"><label>Voltage (Line-to-Line)</label>${voltSelect('fla_volt','calcMotorFLA()',400)}
+  <div class="field"><label>Voltage <span class="u">(Line-to-Line)</span></label>${voltSelect('fla_volt','calcMotorFLA()',400)}
     <div id="fla_volt_hint" style="display:none;margin-top:6px;font-size:0.78rem;color:var(--accent2)">Typical 50 Hz: 380 V, 400 V, 415 V, 440 V</div>
   </div>
 
@@ -429,7 +516,7 @@ function htmlMotorFLA(){
   </div>
 
   <div class="field" id="fla_60hz_factor_row" style="display:none">
-    <label>60 Hz power uprate factor <span style="color:var(--text2);font-weight:400">(applied to nameplate kW, not directly to FLA)</span></label>
+    <label>60 Hz power uprate factor <span style="color:var(--text2);font-weight:400"><span class="u">(applied to nameplate kW, not directly to FLA)</span></span></label>
     <input type="number" id="fla_60hz_factor" value="1.2" step="0.01" min="1" max="1.3" oninput="calcMotorFLA()">
     <div class="notice">
       <svg><use href="#i-warn"/></svg>
@@ -589,10 +676,10 @@ function htmlMotorStart(){
       <option value="vfd">VFD (~1.5× FLA)</option>
       <option value="auto">Autotransformer (custom tap)</option>
     </select></div>
-  <div class="field"><label>DOL Multiplier (typically 6–8)</label><input type="number" id="ms_mult" value="7" step="0.5"></div>
-  <div class="field"><label>Auto-transformer tap % (auto method only)</label><input type="number" id="ms_tap" value="65"></div>
-  <button class="btn" onclick="calcMotorStart()" style="margin-top:8px">Calculate</button>
-  <div id="msResult" style="margin-top:12px"></div>
+  <div class="field"><label>DOL Multiplier <span class="u">(typically 6–8)</span></label><input type="number" id="ms_mult" value="7" step="0.5"></div>
+  <div class="field"><label>Auto-transformer tap % <span class="u">(auto method only)</span></label><input type="number" id="ms_tap" value="65"></div>
+  <button class="btn mt-8" onclick="calcMotorStart()">Calculate</button>
+  <div class="mt-12" id="msResult"></div>
   ${formulaNote('DOL: Istart = mult×FLA | Star-Delta: DOL/3 | Auto-tx: (tap/100)²×DOL')}`;
 }
 
@@ -614,7 +701,7 @@ function calcMotorStart(){
 }
 
 function htmlPFC(){
-  return `<div class="field"><label>Active Load (kW)</label><input type="number" id="pfc_kw" value="100" oninput="calcPFC()"></div>
+  return `<div class="field"><label>Active Load <span class="u">(kW)</span></label><input type="number" id="pfc_kw" value="100" oninput="calcPFC()"></div>
   <div class="field"><label>Existing Power Factor</label><input type="number" id="pfc_pf1" value="0.75" step="0.01" min="0.1" max="1" oninput="calcPFC()"></div>
   <div class="field"><label>Target Power Factor</label><input type="number" id="pfc_pf2" value="0.95" step="0.01" min="0.1" max="1" oninput="calcPFC()"></div>
   <div id="pfcResult"></div>
@@ -633,7 +720,7 @@ function calcPFC(){
 }
 
 function htmlTransformer(){
-  return `<div class="field"><label>Total Connected Load (kVA)</label><input type="number" id="tx_load" value="100" oninput="calcTransformer()"></div>
+  return `<div class="field"><label>Total Connected Load <span class="u">(kVA)</span></label><input type="number" id="tx_load" value="100" oninput="calcTransformer()"></div>
   <div class="field"><label>Demand Factor (0.5–1.0)</label><input type="number" id="tx_df" value="0.8" step="0.05" oninput="calcTransformer()"></div>
   <div class="field"><label>Safety Margin (%)</label><input type="number" id="tx_margin" value="20" oninput="calcTransformer()"></div>
   <div id="txResult"></div>
@@ -649,7 +736,8 @@ function calcTransformer(){
   if([load,df,margin].some(isNaN)){r.innerHTML='';return;}
   const req=load*df*(1+margin/100);
   const std=TX_SIZES.find(s=>s>=req)||req;
-  r.innerHTML=resultGrid([['Demand Load',fmtN(load*df,1),'kVA'],['Required (with margin)',fmtN(req,1),'kVA'],['Recommended Standard',std,'kVA','var(--accent)'],['Loading at Standard',fmtN(req/std*100,1)+'%','']]);
+  const i=TX_SIZES.indexOf(std), dn=i>0?TX_SIZES[i-1]:null;
+  r.innerHTML=resultGrid([['Demand Load',fmtN(load*df,1),'kVA'],['Required (with margin)',fmtN(req,1),'kVA'],['Recommended Standard',std,'kVA','var(--accent)',adjacentStd(TX_SIZES,std)],['Loading at Standard',fmtN(req/std*100,1)+'%','','',dn?`${dn} kVA would run at ${fmtN(req/dn*100,0)}% — too small`:'']]);
 }
 
 function htmlFuse(){
@@ -671,21 +759,22 @@ function calcFuse(){
   if(isNaN(fla)){r.innerHTML='';return;}
   const min_r=fla*(app==='motor'?1.25:1.0);
   const std=FUSE_SIZES.find(s=>s>=min_r)||min_r;
-  r.innerHTML=resultGrid([['FLA',fmtN(fla,1),'A'],['Minimum Rating',fmtN(min_r,1),'A'],['Recommended Standard',std,'A','var(--accent)']]);
+  r.innerHTML=resultGrid([['FLA',fmtN(fla,1),'A'],['Minimum Rating',fmtN(min_r,1),'A'],['Recommended Standard',std,'A','var(--accent)',adjacentStd(FUSE_SIZES,std)]])+
+    `<div class="hint mt-8">Check the chosen rating also protects the cable (I<sub>n</sub> ≤ I<sub>z</sub>) and, for motors, rides through the starting current.</div>`;
 }
 
 function htmlZs(){
-  return `<div class="field"><label>Ze — External impedance (Ω)</label><input type="number" id="zs_ze" value="0.35" step="0.01"></div>
-  <div class="field"><label>R1 — Line conductor resistance (Ω)</label><input type="number" id="zs_r1" value="0.25" step="0.01"></div>
-  <div class="field"><label>R2 — CPC resistance (Ω)</label><input type="number" id="zs_r2" value="0.40" step="0.01"></div>
+  return `<div class="field"><label>Ze — External impedance <span class="u">(Ω)</span></label><input type="number" id="zs_ze" value="0.35" step="0.01"></div>
+  <div class="field"><label>R1 — Line conductor resistance <span class="u">(Ω)</span></label><input type="number" id="zs_r1" value="0.25" step="0.01"></div>
+  <div class="field"><label>R2 — CPC resistance <span class="u">(Ω)</span></label><input type="number" id="zs_r2" value="0.40" step="0.01"></div>
   <div class="field"><label>Protective Device</label>
     <select id="zs_dev">
       <option value="32B">32A Type B MCB (max 1.44 Ω)</option><option value="32C">32A Type C MCB (max 0.72 Ω)</option>
       <option value="63B">63A Type B MCB (max 0.73 Ω)</option><option value="63C">63A Type C MCB (max 0.36 Ω)</option>
       <option value="100B">100A Type B MCB (max 0.46 Ω)</option><option value="rcd">RCD protected</option>
     </select></div>
-  <button class="btn" onclick="calcZs()" style="margin-top:8px">Calculate</button>
-  <div id="zsResult" style="margin-top:12px"></div>
+  <button class="btn mt-8" onclick="calcZs()">Calculate</button>
+  <div class="mt-12" id="zsResult"></div>
   ${formulaNote('Zs = Ze + R1 + R2 | Ia = Uo/Zs | BS 7671 / IEC 60364')}`;
 }
 
@@ -702,12 +791,12 @@ function calcZs(){
 }
 
 function htmlIR(){
-  return `<div class="field"><label>IR at 1 min (MΩ)</label><input type="number" id="ir_1m" step="any"></div>
-  <div class="field"><label>IR at 10 min (MΩ) — for PI</label><input type="number" id="ir_10m" step="any"></div>
-  <div class="field"><label>IR at 30 s (MΩ) — for DAR</label><input type="number" id="ir_30s" step="any"></div>
-  <div class="field"><label>IR at 60 s (MΩ) — for DAR</label><input type="number" id="ir_60s" step="any"></div>
-  <button class="btn" onclick="calcIR()" style="margin-top:8px">Calculate</button>
-  <div id="irResult" style="margin-top:12px"></div>
+  return `<div class="field"><label>IR at 1 min <span class="u">(MΩ)</span></label><input type="number" id="ir_1m" step="any"></div>
+  <div class="field"><label>IR at 10 min <span class="u">(MΩ)</span> — for PI</label><input type="number" id="ir_10m" step="any"></div>
+  <div class="field"><label>IR at 30 s <span class="u">(MΩ)</span> — for DAR</label><input type="number" id="ir_30s" step="any"></div>
+  <div class="field"><label>IR at 60 s <span class="u">(MΩ)</span> — for DAR</label><input type="number" id="ir_60s" step="any"></div>
+  <button class="btn mt-8" onclick="calcIR()">Calculate</button>
+  <div class="mt-12" id="irResult"></div>
   ${formulaNote('PI = R₁₀ₘᵢₙ/R₁ₘᵢₙ | DAR = R₆₀ₛ/R₃₀ₛ | PI ≥ 2.0 good, ≥ 4.0 excellent')}`;
 }
 
@@ -718,9 +807,9 @@ function calcIR(){
   const r60s=parseFloat(document.getElementById('ir_60s')?.value);
   const r=document.getElementById('irResult'); if(!r) return;
   let rows=[];
-  if(!isNaN(r1m)) rows.push(['IR @ 1 min',fmtN(r1m,2),'MΩ',r1m>=100?'var(--success)':r1m>=10?'var(--warn)':'var(--danger)']);
-  if(!isNaN(r10m)&&!isNaN(r1m)){const pi=r10m/r1m;rows.push(['PI (10min/1min)',fmtN(pi,2),'',pi>=4?'var(--success)':pi>=2?'var(--warn)':'var(--danger)'],['PI Assessment',pi>=4?'Excellent':pi>=2?'Good':pi>=1?'Questionable':'Poor','',pi>=2?'var(--success)':'var(--danger)']);}
-  if(!isNaN(r30s)&&!isNaN(r60s)){const dar=r60s/r30s;rows.push(['DAR (60s/30s)',fmtN(dar,2),'',dar>=1.25?'var(--success)':'var(--danger)'],['DAR Assessment',dar>=1.25?'Acceptable':'Poor','',dar>=1.25?'var(--success)':'var(--danger)']);}
+  if(!isNaN(r1m)) rows.push(['IR @ 1 min',fmtN(r1m,2),'MΩ',r1m>=100?'var(--success)':r1m>=10?'var(--warn)':'var(--danger)',r1m>=100?'≥ 100 MΩ — healthy':r1m>=10?'10–100 MΩ — acceptable, trend it':'< 10 MΩ — investigate before energising']);
+  if(!isNaN(r10m)&&!isNaN(r1m)){const pi=r10m/r1m;rows.push(['PI (10min/1min)',fmtN(pi,2),'',pi>=4?'var(--success)':pi>=2?'var(--warn)':'var(--danger)',pi>=4?'≥ 4.0 excellent':pi>=2?'2.0–4.0 good — below 4.0 excellent':'< 2.0 — insulation may be damp or contaminated'],['PI Assessment',pi>=4?'Excellent':pi>=2?'Good':pi>=1?'Questionable':'Poor','',pi>=2?'var(--success)':'var(--danger)']);}
+  if(!isNaN(r30s)&&!isNaN(r60s)){const dar=r60s/r30s;rows.push(['DAR (60s/30s)',fmtN(dar,2),'',dar>=1.25?'var(--success)':'var(--danger)',dar>=1.25?'≥ 1.25 acceptable':'< 1.25 minimum'],['DAR Assessment',dar>=1.25?'Acceptable':'Poor','',dar>=1.25?'var(--success)':'var(--danger)']);}
   if(rows.length===0){r.innerHTML='Enter at least one pair of values';return;}
   r.innerHTML=resultGrid(rows);
 }
@@ -728,16 +817,16 @@ function calcIR(){
 function htmlBattery(){
   return `<div class="field"><label>Total DC Load (W)</label><input type="number" id="bat_load" value="500" oninput="calcBattery()"></div>
   <div class="field"><label>System Voltage (V)</label><input type="number" id="bat_volt" value="24" oninput="calcBattery()"></div>
-  <div class="field"><label>Required Backup Time (hours)</label><input type="number" id="bat_hrs" value="4" step="0.5" oninput="calcBattery()"></div>
+  <div class="field"><label>Required Backup Time <span class="u">(hours)</span></label><input type="number" id="bat_hrs" value="4" step="0.5" oninput="calcBattery()"></div>
   <div class="field"><label>Battery Type</label>
     <select id="bat_type" onchange="batSetType()">
       <option value="0.8,1.15">Lead-Acid / VRLA (80% usable, Peukert k=1.15)</option>
       <option value="0.9,1.05">Li-Ion (90% usable, Peukert k=1.05)</option>
       <option value="0.75,1.10">Ni-Cd (75% usable, Peukert k=1.10)</option></select></div>
   <div class="field"><label>Peukert Exponent k</label><input type="number" id="bat_k" value="1.15" min="1" max="1.5" step="0.01" oninput="calcBattery()"></div>
-  <div class="field"><label>Rated Hour-Rate H (typically C10 or C20)</label><input type="number" id="bat_H" value="10" min="1" oninput="calcBattery()"></div>
-  <button class="btn" onclick="calcBattery()" style="margin-top:8px">Calculate</button>
-  <div id="batResult" style="margin-top:12px"></div>
+  <div class="field"><label>Rated Hour-Rate H <span class="u">(typically C10 or C20)</span></label><input type="number" id="bat_H" value="10" min="1" oninput="calcBattery()"></div>
+  <button class="btn mt-8" onclick="calcBattery()">Calculate</button>
+  <div class="mt-12" id="batResult"></div>
   ${formulaNote('C = I × H × (T/H)^(1/k) [Peukert] | Add 20% design margin. k=1.0 ⇒ no Peukert effect (ideal battery).')}`;
 }
 
@@ -797,8 +886,8 @@ function calcDB(){
 }
 
 function htmlLux(){
-  return `<div class="field"><label>Room Length (m)</label><input type="number" id="lux_l" value="10" oninput="calcLux()"></div>
-  <div class="field"><label>Room Width (m)</label><input type="number" id="lux_w" value="6" oninput="calcLux()"></div>
+  return `<div class="field"><label>Room Length <span class="u">(m)</span></label><input type="number" id="lux_l" value="10" oninput="calcLux()"></div>
+  <div class="field"><label>Room Width <span class="u">(m)</span></label><input type="number" id="lux_w" value="6" oninput="calcLux()"></div>
   <div class="field"><label>Lumens per Fitting</label><input type="number" id="lux_lm" value="3500" oninput="calcLux()"></div>
   <div class="field"><label>Number of Fittings</label><input type="number" id="lux_n" value="8" oninput="calcLux()"></div>
   <div class="field"><label>Maintenance Factor (0.5–1.0)</label><input type="number" id="lux_mf" value="0.8" step="0.05" oninput="calcLux()"></div>
@@ -815,7 +904,7 @@ function calcLux(){
   const lux=n*lm*0.65*mf/(l*w);
   const guide=lux>=500?'Control Room':lux>=300?'Workshop':lux>=150?'General area':'Below minimum';
   const guideColor=lux>=150?'var(--success)':'var(--warn)';
-  r.innerHTML=resultGrid([['Average Illuminance',fmtN(lux,0),'lux','var(--accent)'],['Area',fmtN(l*w,1),'m²'],['Offshore guide',guide,'',guideColor]]);
+  r.innerHTML=resultGrid([['Average Illuminance',fmtN(lux,0),'lux','var(--accent)'],['Area',fmtN(l*w,1),'m²'],['Offshore guide',guide,'',guideColor,lux>=150?`Meets ${lux>=500?'500 lux control room':lux>=300?'300 lux workshop':'150 lux general'} target`:`${fmtN(150-lux,0)} lux short of the 150 lux general-area minimum`]]);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -823,13 +912,13 @@ function calcLux(){
 // ══════════════════════════════════════════════════════════
 
 function htmlHeatLoad(){
-  return `<div class="field"><label>Room Area (m²)</label><input type="number" id="hl_area" value="50"></div>
-  <div class="field"><label>Ceiling Height (m)</label><input type="number" id="hl_h" value="2.7" step="0.1"></div>
-  <div class="field"><label>U-value (W/m²K)</label><input type="number" id="hl_u" value="0.35" step="0.05"></div>
-  <div class="field"><label>Indoor Temp (°C)</label><input type="number" id="hl_tin" value="21"></div>
-  <div class="field"><label>Outdoor Temp (°C)</label><input type="number" id="hl_tout" value="35"></div>
+  return `<div class="field"><label>Room Area <span class="u">(m²)</span></label><input type="number" id="hl_area" value="50"></div>
+  <div class="field"><label>Ceiling Height <span class="u">(m)</span></label><input type="number" id="hl_h" value="2.7" step="0.1"></div>
+  <div class="field"><label>U-value <span class="u">(W/m²K)</span></label><input type="number" id="hl_u" value="0.35" step="0.05"></div>
+  <div class="field"><label>Indoor Temp <span class="u">(°C)</span></label><input type="number" id="hl_tin" value="21"></div>
+  <div class="field"><label>Outdoor Temp <span class="u">(°C)</span></label><input type="number" id="hl_tout" value="35"></div>
   <div class="field"><label>Number of Occupants</label><input type="number" id="hl_occ" value="4"></div>
-  <div class="field"><label>Occupant gain (W/person)</label><input type="number" id="hl_occw" value="120" step="5"></div>
+  <div class="field"><label>Occupant gain <span class="u">(W/person)</span></label><input type="number" id="hl_occw" value="120" step="5"></div>
   <div class="field"><label>Include floor in fabric loss?</label>
     <div class="flex-wrap">
       <button class="btn active" id="hl_floor_off" onclick="hlSetFloor(false)">Walls + roof only</button>
@@ -837,8 +926,8 @@ function htmlHeatLoad(){
     </div>
   </div>
   <div class="field"><label>Equipment Load (W)</label><input type="number" id="hl_equip" value="1000"></div>
-  <button class="btn" onclick="calcHeatLoad()" style="margin-top:8px">Calculate</button>
-  <div id="hlResult" style="margin-top:12px"></div>
+  <button class="btn mt-8" onclick="calcHeatLoad()">Calculate</button>
+  <div class="mt-12" id="hlResult"></div>
   ${formulaNote('Q_fabric = U × A × ΔT (assumes a square-footprint room) | Q_occ default 120W/person (sensible+latent, working adult) | Simplified — use CIBSE/ASHRAE for design')}`;
 }
 
@@ -866,8 +955,8 @@ function calcHeatLoad(){
 }
 
 function htmlACH(){
-  return `<div class="field"><label>Room Volume (m³)</label><input type="number" id="ach_vol" value="135" oninput="calcACH()"></div>
-  <div class="field"><label>Airflow Rate (m³/hr)</label><input type="number" id="ach_flow" value="810" oninput="calcACH()"></div>
+  return `<div class="field"><label>Room Volume <span class="u">(m³)</span></label><input type="number" id="ach_vol" value="135" oninput="calcACH()"></div>
+  <div class="field"><label>Airflow Rate <span class="u">(m³/hr)</span></label><input type="number" id="ach_flow" value="810" oninput="calcACH()"></div>
   <div id="achResult"></div>
   ${formulaNote('ACH = Airflow (m³/hr) / Volume (m³)')}`;
 }
@@ -879,12 +968,12 @@ function calcACH(){
   const ach=flow/vol;
   const guide=ach>=12?'Battery room min':ach>=6?'Accommodation':ach>=4?'Low':'Below typical minimum';
   const guideColor=ach>=6?'var(--success)':ach>=4?'var(--warn)':'var(--danger)';
-  r.innerHTML=resultGrid([['Air Changes/Hour',fmtN(ach,1),'ACH','var(--accent)'],['Offshore Guide',guide,'',guideColor]]);
+  r.innerHTML=resultGrid([['Air Changes/Hour',fmtN(ach,1),'ACH','var(--accent)'],['Offshore Guide',guide,'',guideColor,ach>=12?'Meets 12 ACH battery-room minimum':ach>=6?`Meets 6 ACH accommodation; ${fmtN(12-ach,1)} short of battery-room 12`:`${fmtN(6-ach,1)} ACH short of the 6 ACH accommodation minimum`]]);
 }
 
 function htmlDuct(){
-  return `<div class="field"><label>Airflow (m³/s)</label><input type="number" id="duct_q" value="0.5" step="0.01" oninput="calcDuct()"></div>
-  <div class="field"><label>Target Velocity (m/s)</label><input type="number" id="duct_v" value="6" step="0.5" oninput="calcDuct()"></div>
+  return `<div class="field"><label>Airflow <span class="u">(m³/s)</span></label><input type="number" id="duct_q" value="0.5" step="0.01" oninput="calcDuct()"></div>
+  <div class="field"><label>Target Velocity <span class="u">(m/s)</span></label><input type="number" id="duct_v" value="6" step="0.5" oninput="calcDuct()"></div>
   <div id="ductResult"></div>
   ${formulaNote('A = Q/V | Dia = √(4A/π) | Square side = √A')}`;
 }
@@ -898,9 +987,9 @@ function calcDuct(){
 }
 
 function htmlChilledWater(){
-  return `<div class="field"><label>Cooling Load (kW)</label><input type="number" id="cw_kw" value="50" oninput="calcChilledWater()"></div>
-  <div class="field"><label>Supply Temp (°C)</label><input type="number" id="cw_ts" value="6" oninput="calcChilledWater()"></div>
-  <div class="field"><label>Return Temp (°C)</label><input type="number" id="cw_tr" value="12" oninput="calcChilledWater()"></div>
+  return `<div class="field"><label>Cooling Load <span class="u">(kW)</span></label><input type="number" id="cw_kw" value="50" oninput="calcChilledWater()"></div>
+  <div class="field"><label>Supply Temp <span class="u">(°C)</span></label><input type="number" id="cw_ts" value="6" oninput="calcChilledWater()"></div>
+  <div class="field"><label>Return Temp <span class="u">(°C)</span></label><input type="number" id="cw_tr" value="12" oninput="calcChilledWater()"></div>
   <div id="cwResult"></div>
   ${formulaNote('ṁ = Q / (Cp × ΔT) | Cp water = 4.187 kJ/kg·K')}`;
 }
@@ -946,8 +1035,8 @@ function htmlTorque(){
     <select id="tq_mode" onchange="calcTorque()">
       <option value="pt">Power + Speed → Torque</option><option value="tp">Torque + Speed → Power</option>
     </select></div>
-  <div class="field"><label>Power (kW)</label><input type="number" id="tq_kw" value="22" oninput="calcTorque()"></div>
-  <div class="field"><label>Torque (N·m)</label><input type="number" id="tq_nm" placeholder="leave blank if solving" oninput="calcTorque()"></div>
+  <div class="field"><label>Power <span class="u">(kW)</span></label><input type="number" id="tq_kw" value="22" oninput="calcTorque()"></div>
+  <div class="field"><label>Torque <span class="u">(N·m)</span></label><input type="number" id="tq_nm" placeholder="leave blank if solving" oninput="calcTorque()"></div>
   <div class="field"><label>Speed (RPM)</label><input type="number" id="tq_rpm" value="1480" oninput="calcTorque()"></div>
   <div id="tqResult"></div>
   ${formulaNote('T(N·m) = P(kW)×9550/RPM | P(kW) = T×RPM/9550')}`;
@@ -962,13 +1051,13 @@ function calcTorque(){
   if(isNaN(rpm)){r.innerHTML='';return;}
   if(mode==='pt'&&!isNaN(kw)){const t=kw*9550/rpm;r.innerHTML=resultGrid([['Torque',fmtN(t,2),'N·m','var(--accent)'],['Torque',fmtN(t*0.7376,2),'ft·lb']]);}
   else if(mode==='tp'&&!isNaN(nm)){const p=nm*rpm/9550;r.innerHTML=resultGrid([['Power',fmtN(p,3),'kW','var(--accent)'],['Power',fmtN(p*1.341,3),'HP']]);}
-  else r.innerHTML='<span style="color:var(--text2)">Enter required values</span>';
+  else r.innerHTML='<span class="muted">Enter required values</span>';
 }
 
 function htmlPump(){
-  return `<div class="field"><label>Flow Rate (L/s)</label><input type="number" id="pm_q" value="10" oninput="calcPump()"></div>
-  <div class="field"><label>Total Head (m)</label><input type="number" id="pm_h" value="30" oninput="calcPump()"></div>
-  <div class="field"><label>Fluid Density (kg/m³)</label><input type="number" id="pm_rho" value="1025" oninput="calcPump()"></div>
+  return `<div class="field"><label>Flow Rate <span class="u">(L/s)</span></label><input type="number" id="pm_q" value="10" oninput="calcPump()"></div>
+  <div class="field"><label>Total Head <span class="u">(m)</span></label><input type="number" id="pm_h" value="30" oninput="calcPump()"></div>
+  <div class="field"><label>Fluid Density <span class="u">(kg/m³)</span></label><input type="number" id="pm_rho" value="1025" oninput="calcPump()"></div>
   <div class="field"><label>Pump Efficiency (%)</label><input type="number" id="pm_eff" value="75" oninput="calcPump()"></div>
   <div id="pmResult"></div>
   ${formulaNote('P_hydraulic = ρ×g×Q×H | P_shaft = P_hydraulic/η | g=9.81 m/s²')}`;
@@ -986,8 +1075,8 @@ function calcPump(){
 }
 
 function htmlPipeVelocity(){
-  return `<div class="field"><label>Pipe Internal Bore (mm)</label><input type="number" id="pv_bore" value="50" oninput="calcPipeVelocity()"></div>
-  <div class="field"><label>Flow Rate (L/s)</label><input type="number" id="pv_q" value="5" oninput="calcPipeVelocity()"></div>
+  return `<div class="field"><label>Pipe Internal Bore <span class="u">(mm)</span></label><input type="number" id="pv_bore" value="50" oninput="calcPipeVelocity()"></div>
+  <div class="field"><label>Flow Rate <span class="u">(L/s)</span></label><input type="number" id="pv_q" value="5" oninput="calcPipeVelocity()"></div>
   <div id="pvResult"></div>
   ${formulaNote('V = Q/A | A = π(d/2)² | Limit: water ≤3 m/s, seawater ≤2 m/s')}`;
 }
@@ -998,17 +1087,17 @@ function calcPipeVelocity(){
   const r=document.getElementById('pvResult'); if(!r) return;
   if([bore,q].some(isNaN)||bore<=0){r.innerHTML='';return;}
   const area=Math.PI*(bore/2)**2,vel=q/area;
-  r.innerHTML=resultGrid([['Pipe Area',fmtN(area*1e4,2),'cm²'],['Velocity',fmtN(vel,3),'m/s',warnBand(vel,2,3)],['Assessment',vel>3?'High — erosion risk':vel>2?'Above seawater limit':'Acceptable','',warnBand(vel,2,3)]]);
+  r.innerHTML=resultGrid([['Pipe Area',fmtN(area*1e4,2),'cm²'],['Velocity',fmtN(vel,3),'m/s',warnBand(vel,2,3),bandReason(vel,2,3,' m/s','seawater','erosion')],['Assessment',vel>3?'High — erosion risk':vel>2?'Above seawater limit':'Acceptable','',warnBand(vel,2,3)]]);
 }
 
 function htmlPipePressure(){
-  return `<div class="field"><label>Pipe Internal Bore (mm)</label><input type="number" id="pp_bore" value="50"></div>
-  <div class="field"><label>Pipe Length (m)</label><input type="number" id="pp_len" value="100"></div>
-  <div class="field"><label>Flow Velocity (m/s)</label><input type="number" id="pp_vel" value="2"></div>
-  <div class="field"><label>Fluid Density (kg/m³)</label><input type="number" id="pp_rho" value="1025"></div>
-  <div class="field"><label>Darcy Friction Factor (f)</label><input type="number" id="pp_f" value="0.02" step="0.001"></div>
-  <button class="btn" onclick="calcPipePressure()" style="margin-top:8px">Calculate</button>
-  <div id="ppResult" style="margin-top:12px"></div>
+  return `<div class="field"><label>Pipe Internal Bore <span class="u">(mm)</span></label><input type="number" id="pp_bore" value="50"></div>
+  <div class="field"><label>Pipe Length <span class="u">(m)</span></label><input type="number" id="pp_len" value="100"></div>
+  <div class="field"><label>Flow Velocity <span class="u">(m/s)</span></label><input type="number" id="pp_vel" value="2"></div>
+  <div class="field"><label>Fluid Density <span class="u">(kg/m³)</span></label><input type="number" id="pp_rho" value="1025"></div>
+  <div class="field"><label>Darcy Friction Factor <span class="u">(f)</span></label><input type="number" id="pp_f" value="0.02" step="0.001"></div>
+  <button class="btn mt-8" onclick="calcPipePressure()">Calculate</button>
+  <div class="mt-12" id="ppResult"></div>
   ${formulaNote('ΔP = f×(L/D)×(ρV²/2) | f≈0.02 turbulent steel | Add 10–20% for fittings')}`;
 }
 
@@ -1032,10 +1121,10 @@ function htmlThermalExp(){
       <option value="150">HDPE (150 μm/m·°C)</option><option value="200">XLPE Cable (200 μm/m·°C)</option>
       <option value="0">Custom…</option>
     </select></div>
-  <div class="field"><label>α — Coefficient (μm/m·°C) — custom only</label>
+  <div class="field"><label>α — Coefficient <span class="u">(μm/m·°C)</span> — custom only</label>
     <input type="number" id="te_alpha" value="12" oninput="calcThermalExp()"></div>
-  <div class="field"><label>Length (m)</label><input type="number" id="te_len" value="100" oninput="calcThermalExp()"></div>
-  <div class="field"><label>ΔT — Temperature change (°C)</label><input type="number" id="te_dt" value="40" oninput="calcThermalExp()"></div>
+  <div class="field"><label>Length <span class="u">(m)</span></label><input type="number" id="te_len" value="100" oninput="calcThermalExp()"></div>
+  <div class="field"><label>ΔT — Temperature change <span class="u">(°C)</span></label><input type="number" id="te_dt" value="40" oninput="calcThermalExp()"></div>
   <div id="teResult"></div>
   ${formulaNote('ΔL = α × L × ΔT | α in μm/m·°C')}`;
 }
@@ -1057,13 +1146,13 @@ function calcThermalExp(){
 // ══════════════════════════════════════════════════════════
 
 function htmlHydrostatic(){
-  return `<div class="field"><label>Depth (m)</label><input type="number" id="hs_depth" value="100" oninput="calcHydrostatic()"></div>
+  return `<div class="field"><label>Depth <span class="u">(m)</span></label><input type="number" id="hs_depth" value="100" oninput="calcHydrostatic()"></div>
   <div class="field"><label>Fluid</label>
     <select id="hs_fluid" onchange="calcHydrostatic()">
       <option value="1025">Seawater (1025 kg/m³)</option><option value="1000">Fresh Water (1000 kg/m³)</option>
       <option value="800">Light Oil (~800 kg/m³)</option><option value="0">Custom density…</option>
     </select></div>
-  <div class="field"><label>Custom Density (kg/m³)</label><input type="number" id="hs_rho" value="1025" oninput="calcHydrostatic()"></div>
+  <div class="field"><label>Custom Density <span class="u">(kg/m³)</span></label><input type="number" id="hs_rho" value="1025" oninput="calcHydrostatic()"></div>
   <div id="hsResult"></div>
   ${formulaNote('P = ρ×g×h | Seawater: ~1 bar per 10m depth')}`;
 }
@@ -1079,9 +1168,9 @@ function calcHydrostatic(){
 }
 
 function htmlBoyles(){
-  return `<div class="field"><label>Initial Pressure P1 (bar absolute)</label><input type="number" id="bl_p1" value="1.013" step="any" oninput="calcBoyles()"></div>
-  <div class="field"><label>Initial Volume V1 (litres)</label><input type="number" id="bl_v1" value="50" oninput="calcBoyles()"></div>
-  <div class="field"><label>Final Pressure P2 (bar absolute)</label><input type="number" id="bl_p2" value="7" oninput="calcBoyles()"></div>
+  return `<div class="field"><label>Initial Pressure P1 <span class="u">(bar absolute)</span></label><input type="number" id="bl_p1" value="1.013" step="any" oninput="calcBoyles()"></div>
+  <div class="field"><label>Initial Volume V1 <span class="u">(litres)</span></label><input type="number" id="bl_v1" value="50" oninput="calcBoyles()"></div>
+  <div class="field"><label>Final Pressure P2 <span class="u">(bar absolute)</span></label><input type="number" id="bl_p2" value="7" oninput="calcBoyles()"></div>
   <div id="blResult"></div>
   ${formulaNote('P₁V₁ = P₂V₂ | Constant temperature. 1 atm = 1.01325 bar absolute.')}`;
 }
@@ -1121,8 +1210,8 @@ function calcVacuum(){
 }
 
 function htmlVentilation(){
-  return `<div class="field"><label>Room Area (m²)</label><input type="number" id="ven_area" value="50" oninput="calcVentilation()"></div>
-  <div class="field"><label>Ceiling Height (m)</label><input type="number" id="ven_h" value="2.7" step="0.1" oninput="calcVentilation()"></div>
+  return `<div class="field"><label>Room Area <span class="u">(m²)</span></label><input type="number" id="ven_area" value="50" oninput="calcVentilation()"></div>
+  <div class="field"><label>Ceiling Height <span class="u">(m)</span></label><input type="number" id="ven_h" value="2.7" step="0.1" oninput="calcVentilation()"></div>
   <div class="field"><label>Required ACH</label><input type="number" id="ven_ach" value="8" oninput="calcVentilation()"></div>
   <div id="venResult"></div>
   ${formulaNote('Q(m³/hr) = Volume × ACH | Q(m³/s) = Q/3600')}`;
@@ -1239,18 +1328,18 @@ function htmlMotorTable() {
 
   return `
   <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px">
-    <div class="field" style="margin:0;flex:0 0 auto">
+    <div class="field m-0 flex-none">
       <label>Voltage</label>
       <select id="mt_volt" onchange="renderMotorTable()">${voltOpts}</select>
     </div>
-    <div class="field" style="margin:0;flex:0 0 auto">
+    <div class="field m-0 flex-none">
       <label>Frequency</label>
       <div class="flex-wrap">
         <button class="btn active" id="mt_hz50" onclick="mtSetHz(50)">50 Hz</button>
         <button class="btn" id="mt_hz60" onclick="mtSetHz(60)">60 Hz</button>
       </div>
     </div>
-    <div class="field" style="margin:0;flex:0 0 auto">
+    <div class="field m-0 flex-none">
       <label>IE Class</label>
       <div class="flex-wrap">
         <button class="btn" id="mt_ie2" onclick="mtSetIE('IE2')">IE2</button>
@@ -1258,7 +1347,7 @@ function htmlMotorTable() {
         <button class="btn" id="mt_ie4" onclick="mtSetIE('IE4')">IE4</button>
       </div>
     </div>
-    <div class="field" style="margin:0;flex:0 0 auto">
+    <div class="field m-0 flex-none">
       <label>Starting Method</label>
       <select id="mt_start" onchange="renderMotorTable()">
         <option value="dol">DOL (×7)</option>
@@ -1267,7 +1356,7 @@ function htmlMotorTable() {
         <option value="vfd">VFD (×1.5)</option>
       </select>
     </div>
-    <div class="field" style="margin:0;flex:0 0 auto">
+    <div class="field m-0 flex-none">
       <label>Cable Cores</label>
       <div class="flex-wrap">
         <button class="btn" id="mt_c1" onclick="mtSetCores(1)">Single core</button>
@@ -1275,7 +1364,7 @@ function htmlMotorTable() {
         <button class="btn active" id="mt_c3" onclick="mtSetCores(3)">3 or 4 core</button>
       </div>
     </div>
-    <div class="field" style="margin:0;flex:0 0 auto">
+    <div class="field m-0 flex-none">
       <label>Cable Bunching</label>
       <div class="flex-wrap">
         <button class="btn active" id="mt_b1" onclick="mtSetBunch(1.0)">≤6 cables</button>
@@ -1283,10 +1372,10 @@ function htmlMotorTable() {
       </div>
     </div>
     <div class="field" id="mt_factor_row" style="margin:0;flex:0 0 auto;display:none">
-      <label>60 Hz power factor <span style="color:var(--text2);font-weight:400;font-size:0.75rem">(×IEC kW rating)</span></label>
+      <label>60 Hz power factor <span style="color:var(--text2);font-weight:400;font-size:0.75rem"><span class="u">(×IEC kW rating)</span></span></label>
       <input type="number" id="mt_60hz_factor" value="1.2" step="0.01" min="0.5" max="2" style="width:80px" oninput="renderMotorTable()">
     </div>
-    <div class="field" style="margin:0;flex:0 0 auto">
+    <div class="field m-0 flex-none">
       <label>RPM columns</label>
       <button class="btn" id="mt_rpm_toggle" onclick="mtToggleRPM()">Show RPM</button>
     </div>
@@ -1432,8 +1521,8 @@ function htmlVolShapes() {
       <option value="m">m</option>
     </select>
   </div>
-  <div id="vol_inputs" style="margin-top:8px"></div>
-  <div id="volResult" style="margin-top:12px"></div>`;
+  <div class="mt-8" id="vol_inputs"></div>
+  <div class="mt-12" id="volResult"></div>`;
 }
 
 function calcVolShapes() {
@@ -1452,7 +1541,7 @@ function calcVolShapes() {
     sphere:   [['Diameter (d)','vs_d']],
   };
   inp.innerHTML = fields[shape].map(([lbl,id]) =>
-    `<div class="field"><label>${lbl} (${unit})</label><input type="number" id="${id}" value="100" min="0" oninput="calcVolShapes()"></div>`
+    `<div class="field"><label>${lbl} <span class="u">(${unit})</span></label><input type="number" id="${id}" value="100" min="0" oninput="calcVolShapes()"></div>`
   ).join('');
 
   const g = id => parseFloat(document.getElementById(id)?.value) || 0;
@@ -1482,9 +1571,9 @@ function calcVolShapes() {
 function htmlBMI() {
   return `
   <div class="field"><label>Height</label>
-    <div class="flex-row" style="gap:6px">
-      <input type="number" id="bmi_h" value="180" min="50" max="300" oninput="calcBMI()" style="flex:1">
-      <select id="bmi_hunit" onchange="calcBMI()" style="flex:0 0 auto">
+    <div class="flex-row gap-6">
+      <input class="flex-1" type="number" id="bmi_h" value="180" min="50" max="300" oninput="calcBMI()">
+      <select class="flex-none" id="bmi_hunit" onchange="calcBMI()">
         <option value="cm" selected>cm</option>
         <option value="ft">ft+in</option>
       </select>
@@ -1492,15 +1581,15 @@ function htmlBMI() {
     <input type="number" id="bmi_hin" placeholder="inches part" style="display:none;margin-top:6px" oninput="calcBMI()">
   </div>
   <div class="field"><label>Weight</label>
-    <div class="flex-row" style="gap:6px">
-      <input type="number" id="bmi_w" value="80" min="20" max="500" oninput="calcBMI()" style="flex:1">
-      <select id="bmi_wunit" onchange="calcBMI()" style="flex:0 0 auto">
+    <div class="flex-row gap-6">
+      <input class="flex-1" type="number" id="bmi_w" value="80" min="20" max="500" oninput="calcBMI()">
+      <select class="flex-none" id="bmi_wunit" onchange="calcBMI()">
         <option value="kg" selected>kg</option>
         <option value="lb">lb</option>
       </select>
     </div>
   </div>
-  <div id="bmiResult" style="margin-top:12px"></div>
+  <div class="mt-12" id="bmiResult"></div>
   ${formulaNote('BMI = weight(kg) / height(m)² | WHO classification')}`;
 }
 

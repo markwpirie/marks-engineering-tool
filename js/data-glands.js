@@ -21,8 +21,9 @@ const GLAND_453 = [
 // ICG/653/UNIV — barrier gland (SECOND)
 // innerMax = "Max Inner Sheath 'E'" (bore that accepts the cable's under-sheath diameter,
 // i.e. checked against a cable's Inner Covering Diameter). coreMax = "Max Over Cores 'D'"
-// (the tighter bare-core-bundle bore inside the barrier compound — no cable data tracks this
-// dimension, so it isn't checked, only carried for display).
+// (the tighter bare-core-bundle bore inside the barrier compound). No datasheet publishes the
+// laid-up core diameter, so this is only checked advisorily against estimateCoreBundleOD()
+// (data-cable.js) — it never affects which size is recommended.
 const GLAND_653 = [
   { size:'Os', metric:'M20',  npt:'½"',         innerMax:10.0, coreMax:8.9,  outerMin:5.5,  outerMax:12.0, arm1:'0.8/1.25', arm2:'0.0/0.8' },
   { size:'O',  metric:'M20',  npt:'½"',         innerMax:10.0, coreMax:8.9,  outerMin:9.5,  outerMax:16.0, arm1:'0.8/1.25', arm2:'0.0/0.8' },
@@ -124,7 +125,8 @@ function pickRecommendedGland(matches) {
   return fullFit.length ? fullFit[0] : matches[0];
 }
 
-// ── Shared HTML rendering (used by tab-cable.js and tab-wonder.js) ─────────
+
+// ── Text summaries (Wonder Tool PDF + copy-summary) ─────────────────────────
 // Describes which specific dimension(s) failed the full-tolerance check and in which
 // direction: "exceeds max" (cable at +tol is bigger than the gland's bore) or "below min"
 // (cable at -tol is smaller than the gland's bore — risk of an under-clamped/loose fit).
@@ -147,106 +149,7 @@ function glandFitSummaryText(fit) {
   return `Book value only — ${glandFitFailures(fit).join('; ')}`;
 }
 
-function glandFitBadgesHTML(fit) {
-  const nomBadge = `<span class="badge pass"><svg><use href="#i-check"/></svg>Fits book value</span>`;
-  if (!fit.tol) return nomBadge + ` <span class="badge mut">No tolerance data</span>`;
-  if (fit.fitsFullTol) {
-    return nomBadge + ` <span class="badge pass"><svg><use href="#i-check"/></svg>Fits full tolerance (±${fit.tol}mm)</span>`;
-  }
-  const detail = glandFitFailures(fit).join('; ');
-  return nomBadge + ` <span class="badge warn"><svg><use href="#i-warn"/></svg>Book value only — ${detail}</span>`;
-}
-
-// Wraps a dimension's raw text (e.g. "23.1–32.5 mm") in a warning colour when that specific
-// dimension is the one that failed the full-tolerance check, plus an inline "+Xmm exceeds
-// max" / "-Xmm below min" tag — so the failing figure is visually obvious without doing the
-// mm arithmetic by hand. `dim` is an outerFit/innerFit sub-object, or undefined/null if this
-// dimension wasn't checked or isn't relevant to the candidate being rendered.
-function glandDimValueHTML(text, dim) {
-  if (!dim || !dim.fitsNominal || dim.fitsFullTol) return `<b>${text}</b>`;
-  const tag = dim.highFail ? `+${dim.tol}mm exceeds max` : `-${dim.tol}mm below min`;
-  return `<b style="color:var(--warn)">${text}</b> <span style="color:var(--warn);font-size:0.72rem;font-weight:600">(${tag})</span>`;
-}
-
-function glandNptExample(size, prefix, npt) {
-  return `${prefix}/${size}/${npt.split(' ')[0].replace('"','').replace('/','')+'NP'}`;
-}
-
-const GLAND_NPT_ATEX_NOTICE = `<div class="notice" style="margin-bottom:14px"><svg><use href="#i-warn"/></svg><span>NPT entries in ATEX zones require certified adapters — check MOC implications</span></div>`;
-
-// Renders the list-of-matching-sizes body for the 453 (armoured) or 653 (barrier) families.
-// `type` is '453' or '653'; `matches` comes from findFittingGlands(GLAND_453|GLAND_653, od, odTol).
-// `codeTransform` optionally post-processes the generated order code (e.g. Wonder Tool's NP→NPT).
-function renderGlandSizeList(type, matches, useNPT, codeTransform) {
-  codeTransform = codeTransform || (c => c);
-  if (!matches.length) return `<p style="color:var(--text2)">No size in this family covers the given cable OD.</p>`;
-  const prefix = type === '453' ? '501/453/UNIV' : 'ICG/653/UNIV';
-  const recommended = pickRecommendedGland(matches);
-  const rows = matches.map((g) => {
-    const entry = useNPT ? g.npt.split(' ')[0] : g.metric;
-    const orderCode = codeTransform(getGlandOrderCode(type, g.size, useNPT ? 'npt' : 'metric', entry));
-    const metEx = `${prefix}/${g.size}/${type === '453' ? g.metric.replace('/','-') : g.metric}`;
-    const nptEx = glandNptExample(g.size, prefix, g.npt);
-    const rangeSpan = type === '453'
-      ? `<span>Inner sheath ${glandDimValueHTML(`${g.innerMin}–${g.innerMax} mm`, g.innerFit)}</span>`
-      : `<span>Max inner sheath ${glandDimValueHTML(`${g.innerMax} mm`, g.innerFit)}</span><span>Max over cores <b>${g.coreMax} mm</b></span>`;
-    const isRec = g === recommended;
-    return `<div class="gsize${isRec ? ' rec' : ''}">
-      <div class="sizeref">${g.size}<small>Size ref</small></div>
-      <div class="meta">
-        <span>${useNPT?'NPT Entry':'Metric Entry'} <b>${useNPT?g.npt:g.metric}</b></span>
-        ${rangeSpan}
-        <span>Outer sheath ${glandDimValueHTML(`${g.outerMin}–${g.outerMax} mm`, g.outerFit)}</span>
-      </div>
-      <div class="fit">
-        ${isRec ? `<span class="badge rec">Recommended</span>` : ''}
-        ${glandFitBadgesHTML(g)}
-      </div>
-      <div class="code">
-        <div class="k">Order code</div>
-        <span class="oc">${orderCode} <button class="copy" title="Copy order code" aria-label="Copy order code" onclick="copyText('${orderCode}')"><svg><use href="#i-copy"/></svg></button></span>
-      </div>
-    </div>
-    <div style="margin:4px 0 10px;font-size:0.72rem;color:var(--text3)">Metric ex: <span class="mono" style="font-family:var(--mono)">${metEx}</span> &nbsp;|&nbsp; NPT ex: <span class="mono" style="font-family:var(--mono)">${nptEx}</span></div>`;
-  }).join('');
-  return rows + (useNPT ? GLAND_NPT_ATEX_NOTICE : '');
-}
-
-// Renders the list-of-matching-sizes body for the 421 (compression) family.
-// `matches` comes from findFitting421(od, odTol). `codeTransform` — see renderGlandSizeList().
-function renderGland421SizeList(matches, useNPT, codeTransform) {
-  codeTransform = codeTransform || (c => c);
-  if (!matches.length) return `<p style="color:var(--text2)">No size in this family covers the given cable OD (std or alternative seal).</p>`;
-  const prefix = '501/421/UNIV';
-  const recommended = pickRecommendedGland(matches);
-  const rows = matches.map((g) => {
-    const isAlt = g.seal === 'alt';
-    const entry = useNPT ? g.npt.split(' ')[0] : g.metric;
-    const orderCode = codeTransform(getGlandOrderCode('421', g.size, useNPT ? 'npt' : 'metric', entry) + (isAlt ? 'S' : ''));
-    const metEx = `${prefix}/${g.size}/${g.metric}`;
-    const nptEx = glandNptExample(g.size, prefix, g.npt);
-    const isRec = g === recommended;
-    return `<div class="gsize${isRec ? ' rec' : ''}">
-      <div class="sizeref">${g.size}<small>Size ref</small></div>
-      <div class="meta">
-        <span>${useNPT?'NPT Entry':'Metric Entry'} <b>${useNPT?g.npt:g.metric}</b></span>
-        <span>Std seal OD ${glandDimValueHTML(`${g.stdMin}–${g.stdMax} mm`, isAlt ? null : g)}</span>
-        ${g.altMin!=null?`<span>Alt seal OD ${glandDimValueHTML(`${g.altMin}–${g.altMax} mm`, isAlt ? g : null)}</span>`:''}
-      </div>
-      <div class="fit">
-        ${isRec ? `<span class="badge rec">Recommended</span>` : ''}
-        <span class="badge mut">${isAlt?'Alternative Seal (S)':'Standard Seal'}</span>
-        ${glandFitBadgesHTML(g)}
-      </div>
-      <div class="code">
-        <div class="k">Order code</div>
-        <span class="oc">${orderCode} <button class="copy" title="Copy order code" aria-label="Copy order code" onclick="copyText('${orderCode}')"><svg><use href="#i-copy"/></svg></button></span>
-      </div>
-    </div>
-    <div style="margin:4px 0 10px;font-size:0.72rem;color:var(--text3)">Metric ex: <span class="mono" style="font-family:var(--mono)">${metEx}</span> &nbsp;|&nbsp; NPT ex: <span class="mono" style="font-family:var(--mono)">${nptEx}</span></div>`;
-  }).join('');
-  return rows + (useNPT ? GLAND_NPT_ATEX_NOTICE : '');
-}
+const GLAND_NPT_ATEX_NOTICE = `<div class="notice mb-14"><svg><use href="#i-warn"/></svg><span>NPT entries in ATEX zones require certified adapters — check MOC implications</span></div>`;
 
 // Full Hawke order code format: 501/453/UNIV/SIZE/ENTRY
 function getGlandOrderCode(type, size, entryType, entryVal) {
@@ -264,46 +167,9 @@ function getGlandOrderCode(type, size, entryType, entryVal) {
   return '';
 }
 
-// Renders all three Hawke gland families (braided/armoured 453, barrier 653, compression 421)
-// for a given cable OD — the single shared render path for both the Cable & Gland tab's
-// full-list view and the Wonder Tool, so the two can no longer drift apart (they previously
-// had separate implementations, which is how the Wonder Tool shipped an ICG/653 bug that the
-// Cable & Gland tab never had). `codeTransform` optionally post-processes order codes (e.g.
-// Wonder Tool's Hawke "NP" suffix -> "NPT").
-function renderAllGlandFamilies(OD, odTol, innerOD, innerODTol, useNPT, codeTransform) {
-  let html = `<div class="family">
-    <img src="jpg/501-453.jpg" alt="Hawke 501/453/UNIV cable gland cross-section">
-    <div>
-      <h3>Hawke 501/453/UNIV — Coldflow, Armoured/Braided</h3>
-      <p>Dual certified Exe/Exd. Passive diaphragm seal for cold flow cables. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.</p>
-    </div>
-  </div>`;
-  html += renderGlandSizeList('453', findFittingGlands(GLAND_453, OD, odTol, innerOD, innerODTol), useNPT, codeTransform);
-
-  html += `<div class="family">
-    <img src="jpg/icg653.jpg" alt="Hawke ICG/653/UNIV barrier gland cross-section">
-    <div>
-      <h3>Hawke ICG/653/UNIV — Barrier</h3>
-      <p>Dual certified Exe/Exd. Seals around individual cores. Cold flow, hygroscopic fillers, fibre optic cables. ExPress resin standard (30 min cure). QSP available (suffix Q).</p>
-    </div>
-  </div>`;
-  html += renderGlandSizeList('653', findFittingGlands(GLAND_653, OD, odTol, innerOD, innerODTol), useNPT, codeTransform);
-
-  html += `<div class="family">
-    <img src="jpg/501-421.jpg" alt="Hawke 501/421 cable gland cross-section">
-    <div>
-      <h3>Hawke 501/421/UNIV — Compression, Non-Armoured</h3>
-      <p>Dual certified Exe/Exd. For non-armoured elastomer and plastic insulated cables. Braid cables: braid passes into enclosure and terminates inside.</p>
-    </div>
-  </div>`;
-  html += renderGland421SizeList(findFitting421(OD, odTol), useNPT, codeTransform);
-
-  return html;
-}
-
 // Best-fit gland from each of the three families for a given cable OD — used where a single
 // summary line/row per family is wanted (Wonder Tool's result summary and PDF) rather than
-// the full per-size list. Returns { '453': {match, orderCode}, '653': {...}, '421': {...} }.
+// the full recommender view. Returns { '453': {match, orderCode}, '653': {...}, '421': {...} }.
 function bestGlandPerFamily(OD, odTol, innerOD, innerODTol) {
   const build = (type, matches, getOrderCode) => {
     const match = pickRecommendedGland(matches);
@@ -326,10 +192,8 @@ function glandFamilyName(type) {
        : 'Hawke Compression Gland (501/421/UNIV)';
 }
 
-// ── Adjacent-size lookup (Glanding V2 sandbox tab) ──────────────────────────
-// Purely additive from here down — nothing above is modified, so the live Cable & Gland tab and
-// Wonder Tool (which call findFittingGlands/findFitting421/renderGlandSizeList etc. directly) are
-// unaffected. Supports Glanding V2's "show size below/above" and its zero-match case, e.g. a
+// ── Adjacent-size lookup ────────────────────────────────────────────────────
+// Supports the recommender's "show size below/above" toggles and its zero-match case, e.g. a
 // barrier gland size that fits the outer sheath but not the inner sheath — nothing in the family
 // fits, but the near-miss is still useful to see instead of a bare "no size covers this".
 
@@ -393,4 +257,180 @@ function glandAdjacentSizes(type, list, recommended, od) {
     above: idx < list.length - 1 ? list[idx + 1] : null,
     anchor: list[idx],
   };
+}
+
+// ── Gland recommender view (Cable & Gland tab + Wonder Tool) ────────────────
+// The single shared render path, so the two can't drift apart (they previously had separate
+// implementations, which is how the Wonder Tool shipped an ICG/653 bug the Cable & Gland tab
+// never had). Per family it shows ONE recommended size, with collapsed "size below/above"
+// disclosures either side; each checked dimension gets its own badge, the reason it isn't a
+// clean fit, and the cable's own figure boxed next to it so nothing needs scrolling back up.
+//
+// opts: {
+//   useNPT        — NPT entry codes instead of metric
+//   odManual      — OD is a physically measured value (0 tolerance, labelled as measured)
+//   innerManual   — same for the inner-sheath OD
+//   codeTransform — optional order-code post-processor (Wonder Tool's Hawke NP -> NPT)
+//   coreBundle    — { od } estimated diameter over the laid-up cores (see estimateCoreBundleOD in
+//                   data-cable.js) — checked against the ICG/653 "Max over cores" bore, advisory
+//                   only: it never changes which size is recommended, since it isn't book data.
+// }
+const GLAND_FAMILY_INFO = [
+  { type: '453', list: () => GLAND_453, img: 'jpg/501-453.jpg', alt: 'Hawke 501/453/UNIV cable gland cross-section',
+    title: 'Hawke 501/453/UNIV — Coldflow, Armoured/Braided',
+    blurb: 'Dual certified Exe/Exd. Passive diaphragm seal for cold flow cables. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.' },
+  { type: '653', list: () => GLAND_653, img: 'jpg/icg653.jpg', alt: 'Hawke ICG/653/UNIV barrier gland cross-section',
+    title: 'Hawke ICG/653/UNIV — Barrier',
+    blurb: 'Dual certified Exe/Exd. Seals around individual cores. Cold flow, hygroscopic fillers, fibre optic cables. ExPress resin standard (30 min cure). QSP available (suffix Q).' },
+  { type: '421', list: () => GLAND_421, img: 'jpg/501-421.jpg', alt: 'Hawke 501/421 cable gland cross-section',
+    title: 'Hawke 501/421/UNIV — Compression, Non-Armoured',
+    blurb: 'Dual certified Exe/Exd. For non-armoured elastomer and plastic insulated cables. Braid cables: braid passes into enclosure and terminates inside.' },
+];
+
+function renderGlandRecommender(OD, odTol, innerOD, innerODTol, opts) {
+  opts = opts || {};
+  return GLAND_FAMILY_INFO.map(f => `<div class="family">
+    <img src="${f.img}" alt="${f.alt}">
+    <div><h3>${f.title}</h3><p>${f.blurb}</p></div>
+  </div>` + renderGlandFamilySection(f.type, f.list(), OD, odTol, innerOD, innerODTol, opts)).join('');
+}
+
+// The cable figures that justified the recommendation, copied down next to it.
+function renderGlandRecSummary(OD, odTol, innerOD, innerODTol, opts) {
+  opts = opts || {};
+  const measured = `<div class="measured-note">Measured value — 0 mm tolerance</div>`;
+  const core = opts.coreBundle;
+  return `<div class="spec mb-14">
+    <div><div class="k">Overall OD</div><div class="v hi">${OD}${odTol && !opts.odManual ? ' ± ' + odTol : ''} <small>mm</small></div>${opts.odManual ? measured : ''}</div>
+    ${innerOD ? `<div><div class="k">OD over inner insulation</div><div class="v">${innerOD}${innerODTol && !opts.innerManual ? ' ± ' + innerODTol : ''} <small>mm</small></div>${opts.innerManual ? measured : ''}</div>` : ''}
+    ${core ? `<div><div class="k">Over laid-up cores <span class="badge mut">Estimated</span></div><div class="v">≈ ${core.od} <small>mm</small></div><div class="measured-note muted">${core.basis}</div></div>` : ''}
+  </div>`;
+}
+
+function renderGlandFamilySection(type, list, OD, odTol, innerOD, innerODTol, opts) {
+  const matches = type === '421'
+    ? findFitting421(OD, odTol)
+    : findFittingGlands(list, OD, odTol, innerOD, innerODTol);
+  const recommended = pickRecommendedGland(matches);
+  const adj = glandAdjacentSizes(type, list, recommended, OD);
+  const row = (g, isRecommended, sizeLabel) => renderGlandRow(type, g, OD, odTol, innerOD, innerODTol, Object.assign({}, opts, { isRecommended, sizeLabel }));
+  const npt = opts.useNPT ? GLAND_NPT_ATEX_NOTICE : '';
+
+  if (recommended) {
+    const below = adj.below ? glandDisclosure(`One size down — ${adj.below.size}`, row(adj.below, false, 'One size down')) : '';
+    const above = adj.above ? glandDisclosure(`One size up — ${adj.above.size}`, row(adj.above, false, 'One size up')) : '';
+    return below + row(recommended, true, 'Size ref') + above + npt;
+  }
+
+  const noneMsg = `<p class="muted">No size in this family covers the given cable OD${type === '421' ? ' (std or alternative seal)' : ''}.</p>`;
+  if (!adj.below && !adj.anchor && !adj.above) return noneMsg;
+
+  return noneMsg + `<div class="mt-10">
+    <p class="muted small mb-6">Closest candidates — none satisfy every dimension, shown for reference:</p>
+    ${adj.below ? row(adj.below, false, 'One size down') : ''}
+    ${adj.anchor ? row(adj.anchor, false, 'Closest size') : ''}
+    ${adj.above ? row(adj.above, false, 'One size up') : ''}
+  </div>` + npt;
+}
+
+// Native <details> disclosure — accessible and keyboard-operable with no per-instance JS/IDs.
+function glandDisclosure(summary, panelHTML) {
+  return `<details class="disclose"><summary>${summary}</summary>${panelHTML}</details>`;
+}
+
+// "<label> <b>value</b>" — the gland's own bore figure for one dimension.
+function glandDimLabelHTML(label, valueText) {
+  return `<div class="gdim-label">${label} <b>${valueText}</b></div>`;
+}
+
+// One dimension's own verdict badge + (if not a clean fit) the reason, scoped to that dimension so
+// it can sit directly under its value. A tolerance-edge result is ONE amber badge — pairing a green
+// "fits" with an amber "edge" read as a pass at a glance.
+function glandDimStatusHTML(val, tol, min, max, isManual) {
+  if (val == null) return '';
+  const reason = glandDimFailReason('', val, tol, min, max);
+  let badge;
+  if (!reason) {
+    const label = isManual ? 'Fits measured value' : tol ? 'Fits full tolerance' : 'Fits book value';
+    badge = `<span class="badge pass"><svg><use href="#i-check"/></svg>${label}</span>`;
+    if (!tol && !isManual) badge += ` <span class="badge mut">No tolerance data</span>`;
+  } else if (reason.level === 'warn') {
+    badge = `<span class="badge warn"><svg><use href="#i-warn"/></svg>Book fit only</span>`;
+  } else {
+    badge = `<span class="badge fail"><svg><use href="#i-x"/></svg>Does not fit</span>`;
+  }
+  const detail = reason ? `<div class="gdim-reason ${reason.level}">${reason.text.trim()}</div>` : '';
+  return badge + detail;
+}
+
+// The cable's own value for one dimension, boxed so it reads as "what's being checked".
+function glandCableValueBoxHTML(label, val, tol, isManual, prefix) {
+  if (val == null) return '';
+  const tolText = isManual ? '' : (tol ? ` ± ${tol}` : '');
+  return `<div class="gcable-val">${label} <b>${prefix || ''}${val}${tolText} mm</b>${isManual ? ' (measured)' : ''}</div>`;
+}
+
+// Advisory check of the estimated core-bundle diameter against the barrier gland's "Max over
+// cores" bore. Never a hard fail — it's a geometric estimate, not a datasheet figure.
+function glandCoreBundleStatusHTML(bundle, coreMax) {
+  if (!bundle) return `<span class="badge mut">Not estimated for this cable</span>`;
+  const ok = bundle.od <= coreMax;
+  return (ok
+    ? `<span class="badge pass"><svg><use href="#i-check"/></svg>Est. fits</span>`
+    : `<span class="badge warn"><svg><use href="#i-warn"/></svg>Est. exceeds — verify</span>`)
+    + ` <span class="badge mut">Estimated</span>`
+    + (ok ? '' : `<div class="gdim-reason warn">Estimated ${bundle.od}mm over cores exceeds this size's ${coreMax}mm — check against the manufacturer's core dimensions</div>`);
+}
+
+function renderGlandRow(type, g, od, odTol, innerOD, innerODTol, opts) {
+  const useNPT = !!opts.useNPT;
+  const transform = opts.codeTransform || (c => c);
+  const entryVal = useNPT ? g.npt.split(' ')[0] : g.metric;
+  let orderCode, dimGroups;
+
+  if (type === '421') {
+    const [min, max] = glandPrimaryRange('421', g, od);
+    const isAlt = g.altMin != null && min === g.altMin;
+    orderCode = transform(getGlandOrderCode('421', g.size, useNPT ? 'npt' : 'metric', entryVal) + (isAlt ? 'S' : ''));
+    dimGroups = `<div class="gfit-group">
+      ${glandDimLabelHTML(isAlt ? 'Alt seal OD (S)' : 'Std seal OD', `${min}–${max} mm`)}
+      <div class="mt-4">${glandDimStatusHTML(od, odTol, min, max, opts.odManual)}</div>
+      ${glandCableValueBoxHTML('Cable OD', od, odTol, opts.odManual)}
+    </div>`;
+  } else {
+    orderCode = transform(getGlandOrderCode(type, g.size, useNPT ? 'npt' : 'metric', entryVal));
+    const innerLabel = type === '453' ? 'Inner sheath' : 'Max inner sheath';
+    const innerRange = type === '453' ? `${g.innerMin}–${g.innerMax} mm` : `${g.innerMax} mm`;
+    const innerMin = type === '453' ? g.innerMin : null;
+    dimGroups = `<div class="gfit-group">
+      ${glandDimLabelHTML('Outer sheath', `${g.outerMin}–${g.outerMax} mm`)}
+      <div class="mt-4">${glandDimStatusHTML(od, odTol, g.outerMin, g.outerMax, opts.odManual)}</div>
+      ${glandCableValueBoxHTML('Cable OD', od, odTol, opts.odManual)}
+    </div>
+    <div class="gfit-group">
+      ${glandDimLabelHTML(innerLabel, innerRange)}
+      <div class="mt-4">${innerOD != null ? glandDimStatusHTML(innerOD, innerODTol, innerMin, g.innerMax, opts.innerManual) : '<span class="badge mut">No inner OD for this cable</span>'}</div>
+      ${glandCableValueBoxHTML('Cable inner OD', innerOD, innerODTol, opts.innerManual)}
+    </div>`;
+    if (type === '653' && g.coreMax != null) {
+      dimGroups += `<div class="gfit-group">
+        ${glandDimLabelHTML('Max over cores', `${g.coreMax} mm`)}
+        <div class="mt-4">${glandCoreBundleStatusHTML(opts.coreBundle, g.coreMax)}</div>
+        ${opts.coreBundle ? glandCableValueBoxHTML('Est. over cores', opts.coreBundle.od, null, false, '≈ ') : ''}
+      </div>`;
+    }
+  }
+
+  return `<div class="gsize${opts.isRecommended ? ' rec' : ' candidate'}">
+    <div class="sizeref">${g.size}<small>${opts.sizeLabel}</small></div>
+    <div class="meta">
+      <span>${useNPT ? 'NPT Entry' : 'Metric Entry'} <b>${useNPT ? g.npt : g.metric}</b></span>
+      ${opts.isRecommended ? `<span class="badge rec">Recommended</span>` : ''}
+    </div>
+    <div class="fit fit-top">${dimGroups}</div>
+    <div class="code">
+      <div class="k">Order code</div>
+      <span class="oc">${orderCode} <button class="copy" title="Copy order code" aria-label="Copy order code" data-copy="${escapeHtml(orderCode)}" onclick="copyText(this.dataset.copy)"><svg><use href="#i-copy"/></svg></button></span>
+    </div>
+  </div>`;
 }

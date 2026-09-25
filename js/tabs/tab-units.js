@@ -112,10 +112,10 @@ function doConvert() {
   if (u.convert) { result = u.convert(v, from, to); }
   else { const base = v * u.toBase[from]; result = base / u.toBase[to]; }
   const display = Math.abs(result) < 1e-10 ? '0' : (Math.abs(result) >= 1e12 || (Math.abs(result) < 1e-6 && result !== 0) ? result.toExponential(6) : parseFloat(result.toPrecision(8)));
-  if (resultEl) resultEl.innerHTML = `<span style="font-size:1.1rem">${v} ${from} = <strong style="color:var(--accent)">${display} ${to}</strong></span><button class="copy-btn" onclick="copyText('${display}')">Copy</button>`;
+  if (resultEl) resultEl.innerHTML = `<span style="font-size:1.1rem">${v} ${from} = <strong class="accent">${display} ${to}</strong></span><button class="copy-btn" onclick="copyText('${display}')">Copy</button>`;
 
   if (!allEl) return;
-  let all = `<div style="margin-top:8px"><h4>All ${cat} conversions:</h4>`;
+  let all = `<div class="mt-8"><h4>All ${cat} conversions:</h4>`;
   if (u.convert) {
     u.units.forEach(ut => { const r=u.convert(v,from,ut); const d=parseFloat(r.toPrecision(6)); all+=`<div class="prefix-row"><span class="prefix-sym" style="width:90px;font-size:0.8rem">${ut}</span><span class="prefix-val">${d}</span><button class="copy-btn" style="position:relative;top:0;right:0;font-size:0.65rem" onclick="copyText('${d}')">⎘</button></div>`; });
   } else {

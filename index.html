@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>M.E.T. v4.2 — Mark's Engineering Tool</title>
+<title>M.E.T. v4.3 — Mark's Engineering Tool</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<!-- SVG sprite: the complete functional icon set (10) — the ONLY iconography in the app -->
+<!-- SVG sprite: the complete functional icon set — the ONLY iconography in the app -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
   <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
@@ -19,6 +19,9 @@
   <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
 </svg>
 
@@ -28,32 +31,54 @@
       <div class="brand" onclick="showAbout()" title="About M.E.T.">M<span class="dot">.</span>E<span class="dot">.</span>T<span class="dot">.</span></div>
       <div class="wordmark">Mark's Engineering Tool</div>
       <div class="mast-right">
-        <span class="ver"><span id="verBannerPill">v4.2</span> · 2026-07-15</span>
+        <span class="ver"><span id="verBannerPill">v4.3</span> · 2026-09-25</span>
+        <button class="btn search-btn" onclick="openPalette()" title="Search everything (Ctrl+K / ⌘K)" aria-label="Search everything"><svg><use href="#i-search"/></svg><span>Search</span><kbd>Ctrl K</kbd></button>
         <button class="btn" onclick="exportData()" title="Export data to JSON">Export</button>
         <button class="btn" onclick="importData()" title="Import data from JSON">Import</button>
         <button class="btn danger" onclick="resetAllState()" title="Reset all calculator inputs to defaults">Reset</button>
+        <button id="linkBtn" class="iconbtn" onclick="copyDeepLink()" title="Copy a link to this exact view" aria-label="Copy link to this view"><svg><use href="#i-link"/></svg></button>
+        <button id="binBtn" class="iconbtn" onclick="switchTab('recycle')" title="Recycle Bin" aria-label="Recycle Bin"><svg><use href="#i-trash"/></svg></button>
+        <button id="fieldBtn" class="iconbtn" onclick="toggleFieldMode()" title="Field mode — larger text and touch targets for use on site" aria-label="Toggle field mode" aria-pressed="false"><svg><use href="#i-hand"/></svg></button>
         <button id="themeToggle" class="iconbtn" onclick="toggleTheme()" title="Toggle dark/light mode" aria-label="Toggle light/dark theme">
           <svg id="themeIcon"><use href="#i-moon"/></svg>
         </button>
       </div>
     </div>
-    <nav class="tabs" id="topnav" role="tablist" aria-label="Main sections">
+    <nav class="tabs" id="topnav" aria-label="Main sections">
+      <span class="nav-group" aria-hidden="true">Reference</span>
       <button class="nav-tab active" data-tab="symbols"  onclick="switchTab('symbols')">Symbols</button>
       <button class="nav-tab"        data-tab="atex"     onclick="switchTab('atex')">ATEX</button>
       <button class="nav-tab"        data-tab="units"    onclick="switchTab('units')">Units</button>
+      <button class="nav-tab"        data-tab="npt"      onclick="switchTab('npt')">NPT</button>
+      <span class="nav-sep" aria-hidden="true"></span>
+      <span class="nav-group" aria-hidden="true">Design</span>
       <button class="nav-tab"        data-tab="calcs"    onclick="switchTab('calcs')">Calcs</button>
-      <button class="nav-tab"        data-tab="cable"    onclick="switchTab('cable')">Cable & Gland</button>
-      <button class="nav-tab"        data-tab="glandingv2" onclick="switchTab('glandingv2')">Glanding V2 <span class="beta-badge">BETA</span></button>
+      <button class="nav-tab"        data-tab="cable"    onclick="switchTab('cable')">Cable &amp; Gland</button>
       <button class="nav-tab"        data-tab="wonder"   onclick="switchTab('wonder')">Wonder Tool <span class="beta-badge">BETA</span></button>
       <button class="nav-tab"        data-tab="isloop"   onclick="switchTab('isloop')">IS Loop</button>
-      <button class="nav-tab"        data-tab="npt"      onclick="switchTab('npt')">NPT</button>
+      <span class="nav-sep" aria-hidden="true"></span>
+      <span class="nav-group" aria-hidden="true">Tools</span>
       <button class="nav-tab"        data-tab="prompts"  onclick="switchTab('prompts')">Prompts</button>
-      <button class="nav-tab"        data-tab="recycle"  onclick="switchTab('recycle')">Recycle Bin</button>
     </nav>
   </div>
 </header>
 
 <div id="toast"></div>
+<div id="backupBanner" class="backup-banner hidden" role="status"></div>
+
+<!-- Command palette (Ctrl+K) -->
+<div id="palette" class="palette hidden" role="dialog" aria-modal="true" aria-label="Search everything">
+  <div class="palette-box">
+    <div class="palette-input-row">
+      <svg><use href="#i-search"/></svg>
+      <input type="text" id="paletteInput" placeholder="Search tabs, calculators, cables, symbols, NPT sizes…" autocomplete="off" spellcheck="false"
+        oninput="renderPalette()" onkeydown="paletteKey(event)" aria-controls="paletteList">
+      <kbd>Esc</kbd>
+    </div>
+    <div id="paletteList" class="palette-list" role="listbox"></div>
+    <div class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span>Symbols copy straight to the clipboard</span></div>
+  </div>
+</div>
 
 <!-- ════════════════════════════════════════════
      ABOUT MODAL
@@ -63,16 +88,16 @@
     <button class="modal-close" onclick="closeAbout()">✕</button>
     <div class="met-title">M.E.T.</div>
     <div class="met-subtitle">Mark's Engineering Tool</div>
-    <p class="modal-body-text">Written by <strong style="color:#e2e8f0">Mark</strong> and <strong style="color:#e2e8f0">Claude</strong>. A labour of love, many cups of tea, one very long offshore rotation, and a concerning number of late-night conversations with an AI about cable gland order codes.</p>
+    <p class="modal-body-text">Written by <strong>Mark</strong> and <strong>Claude</strong>. A labour of love, many cups of tea, one very long offshore rotation, and a concerning number of late-night conversations with an AI about cable gland order codes.</p>
     <hr class="modal-divider">
     <div class="disclaimer-box">
       <div class="disc-item"><span class="disc-label-warn">⚠ Disclaimer:</span> This tool is for reference only. Always verify against official datasheets, standards, and project specifications before ordering, installing, or certifying anything.</div>
       <div class="disc-item"><span class="disc-label-atex">🔥 ATEX:</span> Ex zone classifications, protection concepts, and EPL assignments must be verified by a competent person per IEC 60079-14 / NORSOK E-001. This tool does not constitute engineering sign-off.</div>
       <div class="disc-item"><span class="disc-label-gland">🔩 Glands:</span> Gland selections are indicative. Always confirm with Hawke datasheets. NPT adapters in hazardous areas require certified adapters and may require an MOC.</div>
-      <div class="disc-item" style="color:#64748b">💡 Data sources: Hawke International datasheets, Draka/Prysmian NEK606, IEC 60079 series, ANSI/ASME B1.20.1.</div>
+      <div class="disc-item faint">💡 Data sources: Hawke International datasheets, Draka/Prysmian NEK606, IEC 60079 series, ANSI/ASME B1.20.1.</div>
     </div>
     <hr class="modal-divider">
-    <div class="modal-footer"><span id="aboutVersion">v4.2</span> &nbsp;·&nbsp; Static site, runs from local files &nbsp;·&nbsp; No data leaves your browser</div>
+    <div class="modal-footer"><span id="aboutVersion">v4.3</span> &nbsp;·&nbsp; Static site, runs from local files &nbsp;·&nbsp; No data leaves your browser</div>
   </div>
 </div>
 
@@ -81,7 +106,7 @@
 ════════════════════════════════════════════ -->
 <div id="tab-symbols" class="tab-content active">
   <h2>Symbol Tool</h2>
-  <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">Click any symbol to copy. Search filters all sections. Drag ⠿ handles to reorder sections — order is saved automatically.</p>
+  <p class="lead">Click any symbol to copy. Search filters all sections. Drag ⠿ handles to reorder sections — order is saved automatically.</p>
 
   <div class="search-bar">
     <input type="text" id="symSearch" placeholder="Search symbols, snippets..." oninput="filterSymbols()">
@@ -92,8 +117,8 @@
   <!-- Snippet Store -->
   <div class="card" id="clipboardSection">
     <div class="kicker"><span class="n">1.1</span> My Clipboard — Snippet Store</div>
-    <div class="flex-row" style="margin-bottom:12px">
-      <div class="field" style="flex:1"><label>Title</label><input type="text" id="snipTitle" placeholder="e.g. Site address"></div>
+    <div class="flex-row mb-12">
+      <div class="field flex-1"><label>Title</label><input type="text" id="snipTitle" placeholder="e.g. Site address"></div>
       <div class="field" style="flex:2"><label>Content</label><textarea id="snipBody" rows="2" placeholder="Paste text, email, address..."></textarea></div>
       <button class="btn primary" onclick="addSnippet()">+ Add</button>
     </div>
@@ -103,9 +128,9 @@
   <!-- Custom Sections -->
   <div class="card" id="card-sym-customsections">
     <div class="kicker"><span class="n">1.2</span> Custom Sections</div>
-    <div class="flex-row" style="margin-bottom:12px;align-items:flex-end;flex-wrap:wrap;gap:8px">
+    <div class="flex-row mb-12">
       <div class="field"><label>Section Name</label><input type="text" id="customSecName" placeholder="My section name"></div>
-      <div class="field" style="flex:0 0 auto">
+      <div class="field flex-none">
         <label>Emoji</label>
         <div style="display:flex;gap:4px;align-items:center">
           <input type="text" id="customSecEmoji" placeholder="📌" style="width:60px">
@@ -122,52 +147,52 @@
     <div class="kicker"><span class="n">1.3</span> Document Number Generator — IP-QF-023 (MDR)</div>
 
     <div class="field">
-      <label>Step 1 — Select category (letter)</label>
-      <div class="flex-wrap" id="docCatButtons" style="gap:6px;margin-top:4px"></div>
+      <label>Step 1 — Select category <span class="u">(letter)</span></label>
+      <div class="flex-wrap gap-6 mt-4" id="docCatButtons"></div>
     </div>
 
-    <div class="field" style="margin-top:8px">
+    <div class="field mt-8">
       <label>Step 2 — Select document code</label>
       <select id="docCodeSelect" onchange="onDocCodeSelect()" style="display:none;margin-top:4px">
         <option value="">— select code —</option>
       </select>
     </div>
 
-    <div class="grid2" style="margin-top:12px">
+    <div class="grid2 mt-12">
       <div>
         <div class="field">
-          <label>Project Prefix (e.g. WCE-ES-146)</label>
+          <label>Project Prefix <span class="u">(e.g. WCE-ES-146)</span></label>
           <input type="text" id="docProject" placeholder="WCE-ES-146" oninput="genDocNumber()">
         </div>
         <div class="field">
-          <label>Description (auto-filled)</label>
+          <label>Description <span class="u">(auto-filled)</span></label>
           <input type="text" id="docDesc" placeholder="Select category and code above..." oninput="genDocNumber()">
         </div>
         <div class="flex-row">
-          <div class="field" style="flex:1">
+          <div class="field flex-1">
             <label>Sequence No.</label>
             <input type="number" id="docSeq" value="1" min="1" max="9999" oninput="genDocNumber()">
           </div>
-          <div class="field" style="flex:1">
+          <div class="field flex-1">
             <label>Sheet No.</label>
             <input type="number" id="docSheet" value="1" min="0" max="99" oninput="genDocNumber()">
           </div>
-          <div class="field" style="flex:1">
+          <div class="field flex-1">
             <label>Revision</label>
             <input type="text" id="docRev" value="01" placeholder="01" oninput="genDocNumber()">
           </div>
         </div>
-        <div id="docNumOutput" style="margin-top:4px"></div>
+        <div class="mt-4" id="docNumOutput"></div>
       </div>
       <div style="font-size:0.82rem;color:var(--text2);line-height:1.9;padding-top:4px">
-        <strong style="color:var(--text)">Format:</strong><br>
+        <strong class="text-strong">Format:</strong><br>
         <code style="font-family:var(--mono);font-size:0.8rem;color:var(--accent)">[PROJECT]-[CODE]-[NNNN]-[SS]-[RR]</code><br><br>
-        <strong style="color:var(--text)">Example:</strong><br>
+        <strong class="text-strong">Example:</strong><br>
         <code style="font-family:var(--mono);font-size:0.8rem;color:var(--accent3)">WCE-ES-146-C19-0001-01-01 (Block Diagram)</code><br><br>
         <div style="background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:4px">
-          <strong style="color:var(--text2)">NNNN</strong> = sequence (0001) &nbsp;
-          <strong style="color:var(--text2)">SS</strong> = sheet (01) &nbsp;
-          <strong style="color:var(--text2)">RR</strong> = revision (01)<br>
+          <strong class="muted">NNNN</strong> = sequence (0001) &nbsp;
+          <strong class="muted">SS</strong> = sheet (01) &nbsp;
+          <strong class="muted">RR</strong> = revision (01)<br>
           <span style="font-size:0.75rem;color:var(--text3)">Source: IP-QF-023 Rev 05</span>
         </div>
       </div>
@@ -186,11 +211,11 @@
     <div class="card" id="card-atex-decoder">
       <div class="kicker"><span class="n">2.1</span> Decoder — Paste ATEX Marking</div>
       <div class="flex-row">
-        <input type="text" id="atexInput" placeholder="e.g. II 2 G Ex d e IIC T4 Gb" style="flex:1" onkeydown="if(event.key==='Enter')decodeATEX()">
+        <input class="flex-1" type="text" id="atexInput" placeholder="e.g. II 2 G Ex d e IIC T4 Gb" onkeydown="if(event.key==='Enter')decodeATEX()">
         <button class="btn primary" onclick="decodeATEX()">Decode</button>
       </div>
       <!-- Quick-load buttons — full marking strings -->
-      <div class="flex-wrap" style="margin-top:10px;gap:6px">
+      <div class="flex-wrap mt-10 gap-6">
         <button class="btn" onclick="document.getElementById('atexInput').value='II 2 G Ex d IIC T4 Gb';decodeATEX()">II 2 G Ex d IIC T4 Gb</button>
         <button class="btn" onclick="document.getElementById('atexInput').value='II 2 G Ex e IIC T5 Gb';decodeATEX()">II 2 G Ex e IIC T5 Gb</button>
         <button class="btn" onclick="document.getElementById('atexInput').value='II 2 GD Ex de IIC T4 Gb';decodeATEX()">II 2 GD Ex de IIC T4 Gb</button>
@@ -204,7 +229,7 @@
         <button class="btn" onclick="document.getElementById('atexInput').value='II 2 G Ex h IIC T4 Gb';decodeATEX()">II 2 G Ex h IIC T4 Gb</button>
         <button class="btn" onclick="document.getElementById('atexInput').value='II 2 D Ex t IIIC T135 Db';decodeATEX()">II 2 D Ex t IIIC T135 Db</button>
       </div>
-      <div id="atexDecodeResult" style="margin-top:16px"></div>
+      <div class="mt-16" id="atexDecodeResult"></div>
     </div>
 
     <!-- ENCODER -->
@@ -212,21 +237,51 @@
       <div class="kicker"><span class="n">2.2</span> Encoder — Build ATEX Marking</div>
       <div class="field"><label>Equipment Group</label><div class="flex-wrap" id="enc-group"></div></div>
       <div class="field"><label>Category</label><div class="flex-wrap" id="enc-cat"></div></div>
-      <div class="field"><label>Environment (multi-select)</label><div class="flex-wrap" id="enc-env"></div></div>
-      <div class="field"><label>Protection Concept(s) — up to 4</label><div class="flex-wrap" id="enc-prot"></div></div>
+      <div class="field"><label>Environment <span class="u">(multi-select)</span></label><div class="flex-wrap" id="enc-env"></div></div>
+      <div class="field"><label>Protection Concept<span class="u">(s)</span> — up to 4</label><div class="flex-wrap" id="enc-prot"></div></div>
       <div class="field"><label>Gas / Dust Group</label><div class="flex-wrap" id="enc-gasgrp"></div></div>
       <div class="field"><label>Temperature Class</label><div class="flex-wrap" id="enc-temp"></div></div>
       <div class="field"><label>Equipment Protection Level (EPL)</label><div class="flex-wrap" id="enc-epl"></div></div>
-      <div id="encodeResult" style="margin-top:12px"></div>
-      <div id="encodeWarnings" style="margin-top:6px"></div>
-      <button class="btn primary" style="margin-top:12px;width:100%" onclick="buildATEX()">Build Marking</button>
+      <div class="mt-12" id="encodeResult"></div>
+      <div class="mt-6" id="encodeWarnings"></div>
+      <button class="btn primary mt-12 full-width" onclick="buildATEX()">Build Marking</button>
     </div>
+  </div>
+
+  <!-- Suitability check -->
+  <div class="card" id="card-atex-suitability">
+    <div class="kicker"><span class="n">2.6</span> Suitability Check — Marking vs Area</div>
+    <div class="flex-row mb-10">
+      <div class="field flex-1 mb-0"><label>Equipment Marking</label>
+        <input type="text" id="suitMarking" placeholder="e.g. II 2 G Ex db IIB T4 Gb" oninput="atexSuitCheck()"></div>
+      <button class="btn" onclick="atexSuitUseDecoder()" title="Copy the marking from the decoder above">Use decoder marking</button>
+    </div>
+    <div class="flex-row">
+      <div class="field"><label>Area Zone</label>
+        <select id="suitZone" onchange="atexSuitZoneChange()">
+          <option value="0">Zone 0 (gas)</option><option value="1" selected>Zone 1 (gas)</option><option value="2">Zone 2 (gas)</option>
+          <option value="20">Zone 20 (dust)</option><option value="21">Zone 21 (dust)</option><option value="22">Zone 22 (dust)</option>
+        </select></div>
+      <div id="suitGasBox" class="flex-row">
+        <div class="field"><label>Gas Group Required</label>
+          <select id="suitGasGrp" onchange="atexSuitCheck()"><option>IIA</option><option selected>IIB</option><option>IIC</option></select></div>
+        <div class="field"><label>Temperature Class Required</label>
+          <select id="suitTClass" onchange="atexSuitCheck()"><option>T1</option><option>T2</option><option selected>T3</option><option>T4</option><option>T5</option><option>T6</option></select></div>
+      </div>
+      <div id="suitDustBox" class="flex-row hidden">
+        <div class="field"><label>Dust Group Required</label>
+          <select id="suitDustGrp" onchange="atexSuitCheck()"><option>IIIA</option><option selected>IIIB</option><option>IIIC</option></select></div>
+        <div class="field"><label>Max Permitted Surface Temp <span class="u">(°C)</span></label>
+          <input type="number" id="suitDustT" placeholder="e.g. 135" oninput="atexSuitCheck()"></div>
+      </div>
+    </div>
+    <div id="suitResult"></div>
   </div>
 
   <!-- Wallcharts -->
   <div class="card" id="card-atex-wallchart">
     <div class="kicker"><span class="n">2.3</span> Reference Wallchart</div>
-    <div class="flex-wrap" style="gap:10px">
+    <div class="flex-wrap gap-10">
       <button class="btn primary" onclick="window.open('pdfs/exveritas_wallchart.pdf','_blank')">Ex Veritas Wallchart</button>
     </div>
   </div>
@@ -234,7 +289,7 @@
   <!-- IP Rating Lookup -->
   <div class="card" id="card-atex-ip">
     <div class="kicker"><span class="n">2.4</span> IP Rating Lookup — IEC 60529</div>
-    <div class="flex-wrap" style="margin-bottom:14px">
+    <div class="flex-wrap mb-14">
       <button class="btn" onclick="setIPAtex(6,6)">IP66</button>
       <button class="btn" onclick="setIPAtex(6,7)">IP67</button>
       <button class="btn" onclick="setIPAtex(6,8)">IP68</button>
@@ -259,8 +314,8 @@
         </select>
       </div>
     </div>
-    <div id="atexIPResult" style="margin-top:12px"></div>
-    <div style="margin-top:8px;font-size:0.78rem;color:var(--text2)">📐 IEC 60529 | ATEX Zone 1/2 typically requires IP54 minimum</div>
+    <div class="mt-12" id="atexIPResult"></div>
+    <div class="mt-8 small muted">📐 IEC 60529 | ATEX Zone 1/2 typically requires IP54 minimum</div>
   </div>
 
   <!-- Zone/EPL Matrix -->
@@ -279,38 +334,38 @@
 
   <div class="card" id="card-units-converter">
     <!-- Category buttons -->
-    <div class="field" style="margin-bottom:4px"><label>Category</label></div>
-    <div class="flex-wrap" id="unitCatBtns" style="margin-bottom:14px;gap:6px"></div>
+    <div class="field mb-4"><label>Category</label></div>
+    <div class="flex-wrap mb-14 gap-6" id="unitCatBtns"></div>
 
     <!-- From/To button rows (populated by JS) -->
-    <div class="grid2" style="gap:16px;margin-bottom:12px">
+    <div class="grid2 gap-16 mb-12">
       <div>
-        <div class="field" style="margin-bottom:4px"><label>From</label></div>
-        <div class="flex-wrap" id="unitFromBtns" style="gap:5px"></div>
+        <div class="field mb-4"><label>From</label></div>
+        <div class="flex-wrap gap-5" id="unitFromBtns"></div>
       </div>
       <div>
-        <div class="field" style="margin-bottom:4px"><label>To</label></div>
-        <div class="flex-wrap" id="unitToBtns" style="gap:5px"></div>
+        <div class="field mb-4"><label>To</label></div>
+        <div class="flex-wrap gap-5" id="unitToBtns"></div>
       </div>
     </div>
 
     <div class="flex-row" style="align-items:flex-end;gap:8px;margin-bottom:12px">
-      <div class="field" style="flex:1"><label>Value</label><input type="number" id="unitVal" value="1" oninput="doConvert()"></div>
+      <div class="field flex-1"><label>Value</label><input type="number" id="unitVal" value="1" oninput="doConvert()"></div>
       <button class="btn" onclick="swapUnits()" title="Swap From ↔ To" style="padding:8px 14px;font-size:1.1rem;margin-bottom:6px">⇄</button>
     </div>
     <div id="unitResult" class="result-box" style="font-size:1.1rem">—</div>
-    <div id="unitAllResults" style="margin-top:16px"></div>
+    <div class="mt-16" id="unitAllResults"></div>
   </div>
 
   <!-- SI Prefix Converter -->
   <div class="card" id="card-units-siprefix">
     <div class="kicker"><span class="n">3.1</span> SI Prefix Converter</div>
     <div class="flex-row" style="align-items:flex-end;gap:12px">
-      <div class="field" style="flex:1"><label>Value</label><input type="number" id="si_val" value="1" oninput="calcSI()"></div>
+      <div class="field flex-1"><label>Value</label><input type="number" id="si_val" value="1" oninput="calcSI()"></div>
     </div>
     <!-- Prefix selector buttons (pico to tera) -->
-    <div class="flex-wrap" id="siPrefixBtns" style="margin-top:10px;gap:6px"></div>
-    <div id="siResult" style="margin-top:12px"></div>
+    <div class="flex-wrap mt-10 gap-6" id="siPrefixBtns"></div>
+    <div class="mt-12" id="siResult"></div>
   </div>
 </div>
 
@@ -321,13 +376,13 @@
 <div id="tab-calcs" class="tab-content">
   <h2>Engineering Calculators</h2>
   <!-- Category nav -->
-  <div id="calcCatNav" class="flex-wrap" style="margin-bottom:16px"></div>
+  <div id="calcCatNav" class="flex-wrap mb-16"></div>
   <!-- Two-column layout -->
-  <div style="display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start">
+  <div class="calc-layout">
     <div id="calcList" class="calc-list-sidebar"></div>
     <div class="card" id="card-calcs-panel">
       <p id="calcDesc" class="calc-desc-text"></p>
-      <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
+      <hr class="rule">
       <div id="calcPanel"></div>
     </div>
   </div>
@@ -342,7 +397,7 @@
   <!-- Cable Selector -->
   <div class="card" id="card-cable-selector">
     <div class="kicker"><span class="n">5.1</span> Cable Selector — NEK 606 (Draka/Prysmian)</div>
-    <div class="flex-row" style="margin-bottom:16px">
+    <div class="flex-row mb-16">
       <div class="field">
         <label>Fire Rating</label>
         <select id="c_rating" onchange="updateCableApp()">
@@ -364,7 +419,7 @@
         <select id="c_cores" onchange="updateCableCSA()"></select>
       </div>
       <div class="field">
-        <label>CSA (mm²)</label>
+        <label>CSA <span class="u">(mm²)</span></label>
         <select id="c_csa" onchange="showCableResult()"></select>
       </div>
     </div>
@@ -373,7 +428,7 @@
 
     <!-- Temp correction -->
     <div id="tempCorrSection" style="display:none;margin-top:16px">
-      <div class="kicker" style="margin-top:0"><span class="n">5.2</span> Ambient Temperature Correction (Power Cables)</div>
+      <div class="kicker mt-0"><span class="n">5.2</span> Ambient Temperature Correction (Power Cables)</div>
       <div class="field">
         <label>Ambient Temperature</label>
         <select id="ambTemp" onchange="applyTempCorr()">
@@ -400,6 +455,7 @@
       <button class="btn active" id="gland-metric-btn" onclick="switchGlandTab('metric')">Metric Entry</button>
       <button class="btn" id="gland-npt-btn" onclick="switchGlandTab('npt')">NPT Entry</button>
     </div>
+    <div id="cableGlandSummary"></div>
     <div id="glandResults"></div>
   </div>
 
@@ -410,37 +466,64 @@
     <div class="source">AWG → mm² is approximate. IEC/BS cables are rated by nominal CSA; the nearest IEC size may differ slightly from exact AWG area.</div>
   </div>
 
-  <!-- Stubs -->
-  <div class="grid2">
-    <div class="card" style="opacity:0.5;pointer-events:none">
-      <div class="kicker"><span class="n">5.5</span> Cable Tray Fill Calculator <span class="badge mut">COMING SOON</span></div>
-      <p style="font-size:0.82rem;color:var(--text2)">IEC 61537 / NEC fill calculations with SVG bundle sketch.</p>
+  <!-- Tray fill -->
+  <div class="card" id="card-cable-trayfill">
+    <div class="kicker"><span class="n">5.5</span> Cable Tray Fill</div>
+    <div class="flex-row mb-10">
+      <div class="field"><label>Tray Width <span class="u">(mm)</span></label><input type="number" id="tray_width" min="50" step="50" oninput="trayInput('width')"></div>
+      <div class="field"><label>Usable Depth <span class="u">(mm)</span></label><input type="number" id="tray_depth" min="0" step="5" oninput="trayInput('depth')"></div>
+      <div class="field"><label>Max Fill <span class="u">(%)</span></label><input type="number" id="tray_fill" min="5" max="100" step="5" oninput="trayInput('fill')"></div>
+      <div class="field"><label>Layout</label>
+        <select id="tray_spacing" onchange="trayInput('spacing')"><option value="touch">Single layer, touching</option><option value="spaced">Single layer, spaced 1 × D</option></select></div>
     </div>
-    <div class="card" style="opacity:0.5;pointer-events:none">
-      <div class="kicker"><span class="n">5.6</span> Cable Weight / Pulling Tension <span class="badge mut">COMING SOON</span></div>
-      <p style="font-size:0.82rem;color:var(--text2)">Multi-cable weight, pulling tension, jam ratio calculations.</p>
+    <div id="trayRows" class="stack"></div>
+    <button class="btn mt-8" onclick="trayAdd()"><svg class="icon-13"><use href="#i-plus"/></svg>Add cable</button>
+    <div id="trayResult" class="mt-12"></div>
+    <div class="source">Cable ODs and weights: Draka/Prysmian <span class="mono">NEK TS 606</span> datasheets. Cables are saved in this browser and included in Export.</div>
+  </div>
+
+  <!-- Pulling tension -->
+  <div class="card" id="card-cable-pulling">
+    <div class="kicker"><span class="n">5.6</span> Cable Pulling Tension</div>
+    <div class="flex-row mb-10">
+      <div class="field flex-1 minw-260"><label>Cable</label><select id="pull_cable" onchange="calcPulling()"></select></div>
+      <div class="field"><label>Cables Pulled Together</label>
+        <select id="pull_n" onchange="calcPulling()"><option>1</option><option>2</option><option>3</option></select></div>
+      <div class="field"><label>Friction <span class="u">μ</span></label>
+        <select id="pull_mu" onchange="calcPulling()">
+          <option value="0.15">0.15 — rollers</option><option value="0.35" selected>0.35 — tray / ladder</option>
+          <option value="0.5">0.5 — duct / conduit</option><option value="0.75">0.75 — dry duct, rough</option>
+        </select></div>
+      <div class="field"><label>Back Tension <span class="u">(kN)</span></label><input type="number" id="pull_t0" value="0" min="0" step="0.1" oninput="calcPulling()"></div>
+      <div class="field"><label>Manual Limit <span class="u">(kN, opt.)</span></label><input type="number" id="pull_limit" min="0" step="0.1" placeholder="Pulling eye" oninput="calcPulling()"></div>
     </div>
+    <div id="pullRoute" class="stack"></div>
+    <div class="row-gap mt-8">
+      <button class="btn" onclick="pullAdd('straight')"><svg class="icon-13"><use href="#i-plus"/></svg>Straight</button>
+      <button class="btn" onclick="pullAdd('bend')"><svg class="icon-13"><use href="#i-plus"/></svg>Bend</button>
+    </div>
+    <div id="pullResult" class="mt-12"></div>
   </div>
 
   <!-- ── Cable Description Generator ── -->
   <div class="card" id="card-cable-cabledesc">
     <div class="kicker"><span class="n">5.7</span> Cable Description Generator</div>
-    <div class="flex-row" style="flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:flex-end">
+    <div class="flex-row mb-12">
 
       <!-- Count -->
-      <div class="field" style="flex:0 0 auto" id="cgen_elements_box">
+      <div class="field flex-none" id="cgen_elements_box">
         <label id="cgen_unit_label">Count</label>
         <select id="cgen_elements" onchange="genCableDesc()"></select>
       </div>
 
       <!-- Per element (pairs/triples) -->
-      <div class="field" style="flex:0 0 auto" id="cgen_perelement_box">
+      <div class="field flex-none" id="cgen_perelement_box">
         <label>Element Type</label>
         <select id="cgen_perelement" onchange="genCableDesc()"></select>
       </div>
 
       <!-- CSA -->
-      <div class="field" style="flex:0 0 auto">
+      <div class="field flex-none">
         <label>CSA</label>
         <select id="cgen_csa" onchange="genCableDesc()">
           <option value="0.5">0.5 mm²</option>
@@ -466,7 +549,7 @@
       </div>
 
       <!-- Type -->
-      <div class="field" style="flex:0 0 auto">
+      <div class="field flex-none">
         <label>Type</label>
         <select id="cgen_type" onchange="updateCgenUI()">
           <option value="RFOU">RFOU</option>
@@ -480,7 +563,7 @@
       </div>
 
       <!-- Colour — screened only -->
-      <div class="field" style="flex:0 0 auto" id="cgen_colour_box">
+      <div class="field flex-none" id="cgen_colour_box">
         <label>Colour</label>
         <select id="cgen_colour" onchange="genCableDesc()">
           <option value="">— none —</option>
@@ -490,8 +573,8 @@
       </div>
 
       <!-- Extra -->
-      <div class="field" style="flex:1;min-width:120px">
-        <label>Extra (opt.)</label>
+      <div class="field flex-1 minw-120">
+        <label>Extra <span class="u">(opt.)</span></label>
         <input type="text" id="cgen_extra" placeholder="e.g. SWA" oninput="genCableDesc()">
       </div>
     </div>
@@ -501,8 +584,8 @@
   <!-- ── Gland Part Number Generator ── -->
   <div class="card" id="card-cable-glandpart">
     <div class="kicker"><span class="n">5.8</span> Gland Part Number Generator</div>
-    <div class="flex-row" style="flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:flex-end">
-      <div class="field" style="flex:0 0 auto">
+    <div class="flex-row mb-12">
+      <div class="field flex-none">
         <label>Gland Type</label>
         <select id="ggen_type" onchange="updateGgenSizes()">
           <option value="453">501/453/UNIV (Armoured)</option>
@@ -510,85 +593,33 @@
           <option value="421">501/421/UNIV (Non-arm.)</option>
         </select>
       </div>
-      <div class="field" style="flex:0 0 auto">
+      <div class="field flex-none">
         <label>Size</label>
         <select id="ggen_size" onchange="updateGgenEntries()"></select>
       </div>
-      <div class="field" style="flex:0 0 auto">
+      <div class="field flex-none">
         <label>Entry Type</label>
         <select id="ggen_entrytype" onchange="updateGgenEntries()">
           <option value="metric">Metric</option>
           <option value="npt">NPT</option>
         </select>
       </div>
-      <div class="field" style="flex:0 0 auto">
+      <div class="field flex-none">
         <label>Entry Size</label>
         <select id="ggen_entry" onchange="genGlandCode()"></select>
       </div>
     </div>
-    <div style="margin-bottom:12px">
-      <label style="font-size:0.8rem;color:var(--text2);display:block;margin-bottom:6px">Suffix options (select any that apply):</label>
+    <div class="mb-12">
+      <label style="font-size:0.8rem;color:var(--text2);display:block;margin-bottom:6px">Suffix options <span class="u">(select any that apply)</span>:</label>
       <div style="display:flex;flex-wrap:wrap;gap:10px">
-        <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem;cursor:pointer"><input type="checkbox" class="ggen-suffix-check" value="S" onchange="genGlandCode()"> /S — Alt seal</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem;cursor:pointer"><input type="checkbox" class="ggen-suffix-check" value="Q" onchange="genGlandCode()"> /Q — QSP resin</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem;cursor:pointer"><input type="checkbox" class="ggen-suffix-check" value="NI" onchange="genGlandCode()"> /NI — Nickel plated</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem;cursor:pointer"><input type="checkbox" class="ggen-suffix-check" value="SS" onchange="genGlandCode()"> /SS — Stainless steel</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem;cursor:pointer"><input type="checkbox" class="ggen-suffix-check" value="BN" onchange="genGlandCode()"> /BN — Brass nickel</label>
+        <label class="check-label"><input type="checkbox" class="ggen-suffix-check" value="S" onchange="genGlandCode()"> /S — Alt seal</label>
+        <label class="check-label"><input type="checkbox" class="ggen-suffix-check" value="Q" onchange="genGlandCode()"> /Q — QSP resin</label>
+        <label class="check-label"><input type="checkbox" class="ggen-suffix-check" value="NI" onchange="genGlandCode()"> /NI — Nickel plated</label>
+        <label class="check-label"><input type="checkbox" class="ggen-suffix-check" value="SS" onchange="genGlandCode()"> /SS — Stainless steel</label>
+        <label class="check-label"><input type="checkbox" class="ggen-suffix-check" value="BN" onchange="genGlandCode()"> /BN — Brass nickel</label>
       </div>
     </div>
     <div id="ggenOutput"></div>
-  </div>
-</div>
-
-<!-- ════════════════════════════════════════════
-     TAB 5a — GLANDING V2 (sandbox)
-════════════════════════════════════════════ -->
-<div id="tab-glandingv2" class="tab-content">
-  <h2>Glanding V2 <span class="beta-badge" style="font-size:0.7rem;vertical-align:middle">BETA</span></h2>
-  <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">Sandbox for gland recommender UX changes — cable OD data copied down next to the recommendation, plus a size-below/size-above view. Iterating here so the Cable &amp; Gland tab stays untouched. Once settled, this replaces/merges back into that tab.</p>
-
-  <!-- Cable Selector -->
-  <div class="card" id="card-glandingv2-cable-selector">
-    <div class="kicker">Cable Selector — NEK 606 (Draka/Prysmian)</div>
-    <div class="flex-row" style="margin-bottom:16px">
-      <div class="field">
-        <label>Fire Rating</label>
-        <select id="gv2_rating" onchange="updateCableAppV2()">
-          <option value="RFOU">RFOU (Flame Retardant)</option>
-          <option value="BFOU">BFOU (Fire Resistant)</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Application</label>
-        <select id="gv2_app" onchange="updateCableCoresV2()">
-          <option value="Power">Power & Control (P)</option>
-          <option value="InstrI">Instrument Individually Screened (I)</option>
-          <option value="InstrC">Instrument Collectively Screened (C)</option>
-          <option value="Earth">Earth (UX P15 — standalone product)</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Cores / Pairs / Triples</label>
-        <select id="gv2_cores" onchange="updateCableCSAV2()"></select>
-      </div>
-      <div class="field">
-        <label>CSA (mm²)</label>
-        <select id="gv2_csa" onchange="showCableResultV2()"></select>
-      </div>
-    </div>
-    <div id="gv2_cableResult"></div>
-    <div class="source">Source: Draka/Prysmian <span class="mono">NEK TS 606</span> datasheets. Values are book data — verify against the delivered cable's documentation.</div>
-  </div>
-
-  <!-- Gland Recommender -->
-  <div class="card" id="card-glandingv2-glandrec">
-    <div class="kicker">Gland Recommender — Hawke ATEX/IECEx</div>
-    <div class="gland-tabs">
-      <button class="btn active" id="gv2-gland-metric-btn" onclick="switchGlandTabV2('metric')">Metric Entry</button>
-      <button class="btn" id="gv2-gland-npt-btn" onclick="switchGlandTabV2('npt')">NPT Entry</button>
-    </div>
-    <div id="gv2_cableSummary"></div>
-    <div id="gv2_glandResults"></div>
   </div>
 </div>
 
@@ -597,12 +628,12 @@
 ════════════════════════════════════════════ -->
 <div id="tab-wonder" class="tab-content">
   <h2>Wonder Tool <span class="beta-badge" style="font-size:0.7rem;vertical-align:middle">BETA</span></h2>
-  <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">Enter a motor and supply details — get the correct cable and gland in one step. Based on IEC 60092-352 / NEK 606 / Hawke International.</p>
+  <p class="lead">Enter a motor and supply details — get the correct cable and gland in one step. Based on IEC 60092-352 / NEK 606 / Hawke International.</p>
 
   <!-- Project Details -->
   <div class="card wt-proj-card" id="card-wonder-project">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-      <div class="kicker" style="margin:0"><span class="n">6.1</span> Project Details <span style="font-size:0.72rem;font-weight:400;color:var(--text3)">— all fields saved automatically</span></div>
+    <div class="card-head">
+      <div class="kicker m-0"><span class="n">6.1</span> Project Details <span class="label-note">— all fields saved automatically</span></div>
       <button class="btn primary" onclick="wtGeneratePDF()" id="wt_pdf_btn" style="font-size:0.82rem" disabled>Generate PDF</button>
     </div>
     <div class="grid2">
@@ -640,7 +671,7 @@
   <div class="card" id="card-wonder-motor">
     <div class="kicker"><span class="n">6.2</span> Motor & Supply</div>
 
-    <div class="field" style="margin-bottom:14px">
+    <div class="field mb-14">
       <label>Supply Frequency / Standard</label>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
         <button id="wt_btn_50"   class="btn active" onclick="wtSetHz(50)">50 Hz (IEC)</button>
@@ -656,7 +687,7 @@
         <div id="wt_uprate_note" style="display:none;margin-top:6px;font-size:0.8rem;color:var(--accent);font-family:var(--mono)"></div>
       </div>
       <div class="field">
-        <label>Supply Voltage (Line-to-Line)</label>
+        <label>Supply Voltage <span class="u">(Line-to-Line)</span></label>
         <div id="wt_volt_wrap"></div>
         <div id="wt_volt_hint" style="display:none;margin-top:6px;font-size:0.78rem;color:var(--text2)"></div>
       </div>
@@ -669,28 +700,28 @@
         </select>
       </div>
       <div class="field">
-        <label>Power Factor (PF) <span style="font-size:0.75rem;color:var(--text3);font-weight:400">auto-filled, override if known</span></label>
+        <label>Power Factor (PF) <span class="label-note">auto-filled, override if known</span></label>
         <input type="number" id="wt_pf" step="0.01" min="0.5" max="1" oninput="this.dataset.manual='1';wtCalc()">
       </div>
       <div class="field">
-        <label>Efficiency (η) <span style="font-size:0.75rem;color:var(--text3);font-weight:400">auto-filled, override if known</span></label>
+        <label>Efficiency (η) <span class="label-note">auto-filled, override if known</span></label>
         <input type="number" id="wt_eff" step="0.01" min="0.5" max="1" oninput="this.dataset.manual='1';wtCalc()">
       </div>
       <div class="field" id="wt_corr_row" style="display:none">
-        <label>60 Hz power uprate factor <span style="color:var(--text2);font-weight:400">(applied to nameplate kW, not directly to FLA)</span></label>
+        <label>60 Hz power uprate factor <span style="color:var(--text2);font-weight:400"><span class="u">(applied to nameplate kW, not directly to FLA)</span></span></label>
         <input type="number" id="wt_corr_factor" value="1.2" step="0.01" min="1" max="1.3" oninput="wtCalc()">
-        <div style="font-size:0.75rem;color:var(--text3);margin-top:4px">Running a 50 Hz motor at 60 Hz — with supply voltage raised proportionally — typically increases shaft power capability by ~20% while FLA stays close to the 50 Hz nameplate value. If voltage is not raised, set this to 1.0. Default 1.2×.</div>
+        <div class="hint">Running a 50 Hz motor at 60 Hz — with supply voltage raised proportionally — typically increases shaft power capability by ~20% while FLA stays close to the 50 Hz nameplate value. If voltage is not raised, set this to 1.0. Default 1.2×.</div>
       </div>
       <div class="field">
-        <label>Ambient Temperature <span style="color:var(--text2);font-weight:400;font-size:0.8rem">IEC 60092-352</span></label>
+        <label>Ambient Temperature <span class="label-note">IEC 60092-352</span></label>
         <div id="wt_temp_wrap"></div>
-        <div style="font-size:0.75rem;color:var(--text3);margin-top:4px">Ct = √((90−T) / 45) — base 45°C, 90°C conductor max</div>
+        <div class="hint">Ct = √((90−T) / 45) — base 45°C, 90°C conductor max</div>
       </div>
       <div class="field">
-        <label>FLA Override <span style="font-size:0.75rem;color:var(--text3);font-weight:400">enter nameplate amps to skip calculation</span></label>
+        <label>FLA Override <span class="label-note">enter nameplate amps to skip calculation</span></label>
         <input type="number" id="wt_fla_override" placeholder="e.g. 142" step="0.1" min="0" oninput="wtCalc()">
       </div>
-      <div class="field" style="grid-column:1/-1">
+      <div class="field span-all">
         <div id="wt_fla_display" class="wt-fla-box"></div>
         <div style="font-size:0.75rem;color:var(--text3);margin-top:6px">⚑ Always use the FLA from the motor rating plate where possible — calculated values are based on typical efficiency class data and may differ from nameplate.</div>
       </div>
@@ -714,21 +745,20 @@
           <option value="3">3 core</option>
         </select>
       </div>
-      <div class="field" style="grid-column:1/-1">
+      <div class="field span-all">
         <label>Cable Grouping
-          <span style="color:var(--text2);font-weight:400;font-size:0.8rem">IEC 60092-352 Table B.4</span>
-          <a href="pdfs/IEC 60092-352 Table B4.pdf" target="_blank" style="font-size:0.75rem;margin-left:8px;color:var(--accent)">View standard extract</a>
+          <span class="label-note">IEC 60092-352 Table B.4</span>
+          <a href="pdfs/IEC 60092-352 Table B4.pdf" target="_blank" data-optional-asset style="font-size:0.75rem;margin-left:8px;color:var(--accent)">View standard extract</a>
         </label>
         <div style="display:flex;gap:8px;margin-top:6px">
           <button id="wt_grp_1"   class="btn active" onclick="wtSetGroup(1.00)">1.00 — up to 6 cables</button>
           <button id="wt_grp_085" class="btn"        onclick="wtSetGroup(0.85)">0.85 — 7 or more cables</button>
         </div>
-        <div style="font-size:0.75rem;color:var(--text3);margin-top:6px">
+        <div class="hint mt-6">
           Cable ratings are taken from IEC 60092-352 Table B.4.
-          <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent.includes('▶')?'▼ Hide standard text':'▶ Show standard text'" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:0.75rem;padding:0;margin-left:4px">▶ Show standard text</button>
-          <span style="display:none;margin-top:6px;padding:10px 12px;background:var(--surface3);border-left:2px solid var(--border2);border-radius:4px;font-size:0.75rem;color:var(--text2);line-height:1.6;font-style:italic">
-            "These ratings may be considered applicable, without correction factors, for cables bunched together on cable trays, in cable conduits, pipes or trunking, unless more than six cables, which may be expected to operate simultaneously at their full rated capacity, are laid close together in a cable bunch in such a way that there is an absence of free air circulation around them. In this case a correction factor of 0.85 should be applied." — IEC 60092-352 Table B.4
-          </span>
+          <details class="disclose link"><summary>Show standard text</summary>
+            <div class="quote-block">"These ratings may be considered applicable, without correction factors, for cables bunched together on cable trays, in cable conduits, pipes or trunking, unless more than six cables, which may be expected to operate simultaneously at their full rated capacity, are laid close together in a cable bunch in such a way that there is an absence of free air circulation around them. In this case a correction factor of 0.85 should be applied." — IEC 60092-352 Table B.4</div>
+          </details>
         </div>
       </div>
       <div class="field">
@@ -740,6 +770,46 @@
         </select>
       </div>
     </div>
+
+    <div class="kicker mt-16"><span class="n">6.3a</span> Voltage Drop &amp; Short-Circuit <span class="label-note">— optional; leave length blank to size on current rating only</span></div>
+    <div class="grid2">
+      <div class="field">
+        <label>Route Length <span class="u">(one-way, m)</span></label>
+        <input type="number" id="wt_len" min="0" step="1" placeholder="e.g. 120" oninput="wtCalc()">
+      </div>
+      <div class="field">
+        <label>Running VD Limit (%) <span class="label-note">set to project spec</span></label>
+        <input type="number" id="wt_vd_run" value="5" min="0.5" max="20" step="0.5" oninput="wtCalc()">
+      </div>
+      <div class="field">
+        <label>Starting Method</label>
+        <select id="wt_start" onchange="wtStartChange()">
+          <option value="dol" selected>DOL (≈6.5 × FLA, PF 0.3)</option>
+          <option value="sd">Star-Delta (≈2.2 × FLA, PF 0.3)</option>
+          <option value="soft">Soft Starter (≈3.5 × FLA, PF 0.4)</option>
+          <option value="vfd">VFD (≈1.0 × FLA, PF 0.9)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Starting Current × FLA / Starting PF</label>
+        <div class="row-gap">
+          <input type="number" id="wt_start_mult" value="6.5" min="1" max="10" step="0.1" oninput="wtCalc()" class="flex-1">
+          <input type="number" id="wt_start_pf" value="0.3" min="0.1" max="1" step="0.05" oninput="wtCalc()" class="flex-1">
+        </div>
+      </div>
+      <div class="field">
+        <label>Starting VD Limit (%) <span class="label-note">at motor terminals</span></label>
+        <input type="number" id="wt_vd_start" value="15" min="1" max="40" step="1" oninput="wtCalc()">
+      </div>
+      <div class="field">
+        <label>Prospective Fault Current <span class="u">(kA)</span> / Clearing Time <span class="u">(s)</span> <span class="label-note">optional</span></label>
+        <div class="row-gap">
+          <input type="number" id="wt_ik" min="0" step="0.1" placeholder="kA, e.g. 25" oninput="wtCalc()" class="flex-1">
+          <input type="number" id="wt_tk" value="0.1" min="0.01" max="5" step="0.01" oninput="wtCalc()" class="flex-1">
+        </div>
+      </div>
+    </div>
+    <div class="hint">ΔU = √3 · I · L · (R₉₀·cosφ + X·sinφ), using the selected cable's own Draka R at 90 °C and X at the supply frequency. Short-circuit: cable's 1 s rating scaled by 1/√t (adiabatic), checked against the full prospective fault current per run.</div>
   </div>
 
   <div class="card" id="card-wonder-gland">
@@ -752,10 +822,20 @@
         <option value="npt">NPT</option>
       </select>
     </div>
+    <div class="grid2">
+      <div class="field mb-0">
+        <label>Measured Cable OD <span class="u">(mm)</span> <span class="label-note">optional — overrides book OD for the gland check</span></label>
+        <input type="number" id="wt_od_manual" step="0.1" min="0" placeholder="Leave blank for book value" oninput="wtCalc()">
+      </div>
+      <div class="field mb-0">
+        <label>Measured Inner OD <span class="u">(mm)</span> <span class="label-note">optional</span></label>
+        <input type="number" id="wt_innerod_manual" step="0.1" min="0" placeholder="Leave blank for book value" oninput="wtCalc()">
+      </div>
+    </div>
   </div>
 
-  <div id="wt_result" style="margin-top:4px">
-    <p style="color:var(--text2);padding:12px 0">Enter motor power and voltage above to get a recommendation.</p>
+  <div class="mt-4" id="wt_result">
+    <p class="muted pad-y-12">Enter motor power and voltage above to get a recommendation.</p>
   </div>
 </div>
 
@@ -764,11 +844,11 @@
 ════════════════════════════════════════════ -->
 <div id="tab-isloop" class="tab-content">
   <h2>IS Loop Calculation</h2>
-  <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">Entity parameter check for an intrinsically safe loop — barrier/isolator vs field instrument vs cable, per IEC 60079-25. Based on the standard MTL-style entity comparison method.</p>
+  <p class="lead">Entity parameter check for an intrinsically safe loop — barrier/isolator vs field instrument vs cable, per IEC 60079-25. Based on the standard MTL-style entity comparison method.</p>
 
   <!-- Loop / Project Details -->
   <div class="card" id="card-isloop-project">
-    <div class="kicker"><span class="n">7.1</span> Loop / Project Details <span style="font-size:0.72rem;font-weight:400;color:var(--text3)">— all fields saved automatically</span></div>
+    <div class="kicker"><span class="n">7.1</span> Loop / Project Details <span class="label-note">— all fields saved automatically</span></div>
     <div class="grid2">
       <div class="field"><label>Loop Tag</label><input type="text" id="is_proj_tag" placeholder="e.g. XZSH/L-001" oninput="isSaveField('proj_tag');isCalc()"></div>
       <div class="field"><label>Description</label><input type="text" id="is_proj_desc" placeholder="e.g. Valve feedback proximity sensor" oninput="isSaveField('proj_desc');isCalc()"></div>
@@ -783,7 +863,7 @@
   <!-- Barrier / Isolator -->
   <div class="card" id="card-isloop-barrier">
     <div class="kicker"><span class="n">7.2</span> Barrier / Isolator (Source)</div>
-    <div class="field" style="margin-bottom:10px"><label>Preset <span style="font-size:0.72rem;color:var(--text3);font-weight:400">(fills in the fields below — override anything as needed)</span></label>
+    <div class="field mb-10"><label>Preset <span class="label-note"><span class="u">(fills in the fields below — override anything as needed)</span></span></label>
       <select id="is_bar_preset" onchange="isApplyBarrierPreset()"></select>
     </div>
     <div class="grid2">
@@ -792,36 +872,36 @@
       <div class="field"><label>Certificate Number</label><input type="text" id="is_bar_cert" placeholder="e.g. KEMA 01 ATEX 1057 X" oninput="isSaveField('bar_cert')"></div>
       <div class="field"><label>Channel Config. Note</label><input type="text" id="is_bar_note" placeholder="e.g. single channel" oninput="isSaveField('bar_note')"></div>
     </div>
-    <div class="flex-row" style="flex-wrap:wrap;gap:12px;margin-top:8px">
-      <div class="field" style="flex:1;min-width:100px"><label>Uo (V)</label><input type="number" id="is_bar_uo" step="any" oninput="isSaveField('bar_uo');isCalc()"></div>
-      <div class="field" style="flex:1;min-width:100px"><label>Io (mA)</label><input type="number" id="is_bar_io" step="any" oninput="isSaveField('bar_io');isCalc()"></div>
-      <div class="field" style="flex:1;min-width:100px"><label>Po (W)</label><input type="number" id="is_bar_po" step="any" oninput="isSaveField('bar_po');isCalc()"></div>
-      <div class="field" style="flex:1;min-width:140px"><label>Co</label>
-        <div style="display:flex;gap:6px">
-          <input type="number" id="is_bar_co" step="any" oninput="isSaveField('bar_co');isCalc()" style="flex:1">
-          <select id="is_bar_co_unit" onchange="isSaveField('bar_co_unit');isCalc()" style="flex:0 0 68px">
+    <div class="flex-row mt-8">
+      <div class="field flex-1 minw-100"><label><span class="u">Uo (V)</span></label><input type="number" id="is_bar_uo" step="any" oninput="isSaveField('bar_uo');isCalc()"></div>
+      <div class="field flex-1 minw-100"><label><span class="u">Io (mA)</span></label><input type="number" id="is_bar_io" step="any" oninput="isSaveField('bar_io');isCalc()"></div>
+      <div class="field flex-1 minw-100"><label><span class="u">Po (W)</span></label><input type="number" id="is_bar_po" step="any" oninput="isSaveField('bar_po');isCalc()"></div>
+      <div class="field flex-1 minw-140"><label><span class="u">Co</span></label>
+        <div class="row-6">
+          <input class="flex-1" type="number" id="is_bar_co" step="any" oninput="isSaveField('bar_co');isCalc()">
+          <select class="unit-select" id="is_bar_co_unit" onchange="isSaveField('bar_co_unit');isCalc()">
             <option value="pF">pF</option><option value="nF" selected>nF</option><option value="uF">µF</option>
           </select>
         </div>
-        <div id="is_bar_co_norm" style="font-size:0.72rem;color:var(--text3);margin-top:3px"></div>
+        <div class="norm-note" id="is_bar_co_norm"></div>
       </div>
-      <div class="field" style="flex:1;min-width:140px"><label>Lo</label>
-        <div style="display:flex;gap:6px">
-          <input type="number" id="is_bar_lo" step="any" oninput="isSaveField('bar_lo');isCalc()" style="flex:1">
-          <select id="is_bar_lo_unit" onchange="isSaveField('bar_lo_unit');isCalc()" style="flex:0 0 68px">
+      <div class="field flex-1 minw-140"><label><span class="u">Lo</span></label>
+        <div class="row-6">
+          <input class="flex-1" type="number" id="is_bar_lo" step="any" oninput="isSaveField('bar_lo');isCalc()">
+          <select class="unit-select" id="is_bar_lo_unit" onchange="isSaveField('bar_lo_unit');isCalc()">
             <option value="uH">µH</option><option value="mH" selected>mH</option>
           </select>
         </div>
-        <div id="is_bar_lo_norm" style="font-size:0.72rem;color:var(--text3);margin-top:3px"></div>
+        <div class="norm-note" id="is_bar_lo_norm"></div>
       </div>
-      <div class="field" style="flex:1;min-width:120px"><label>Lo/Ro (µH/Ω) <span style="font-size:0.72rem;color:var(--text3);font-weight:400">optional</span></label><input type="number" id="is_bar_loro" step="any" placeholder="e.g. 45" oninput="isSaveField('bar_loro');isCalc()"></div>
+      <div class="field flex-1 minw-120"><label>Lo/Ro <span class="u">(µH/Ω)</span> <span class="label-note">optional</span></label><input type="number" id="is_bar_loro" step="any" placeholder="e.g. 45" oninput="isSaveField('bar_loro');isCalc()"></div>
     </div>
   </div>
 
   <!-- Field Instrument -->
   <div class="card" id="card-isloop-instrument">
     <div class="kicker"><span class="n">7.3</span> Field Instrument (Load)</div>
-    <div class="field" style="margin-bottom:10px"><label>Preset <span style="font-size:0.72rem;color:var(--text3);font-weight:400">(fills in the fields below — override anything as needed)</span></label>
+    <div class="field mb-10"><label>Preset <span class="label-note"><span class="u">(fills in the fields below — override anything as needed)</span></span></label>
       <select id="is_inst_preset" onchange="isApplyInstrumentPreset()"></select>
     </div>
     <div class="grid2">
@@ -831,29 +911,29 @@
       <div class="field"><label>Certificate Number</label><input type="text" id="is_inst_cert" placeholder="e.g. Nemko 04ATEX1233 X" oninput="isSaveField('inst_cert')"></div>
     </div>
     <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;margin:8px 0 4px">
-      <input type="checkbox" id="is_inst_simple" onchange="isSaveField('inst_simple');isCalc()"> Simple apparatus? <span style="font-size:0.75rem;color:var(--text3);font-weight:400">(passive device per IEC 60079-11 — Ui/Ii/Pi checks not required)</span>
+      <input type="checkbox" id="is_inst_simple" onchange="isSaveField('inst_simple');isCalc()"> Simple apparatus? <span class="label-note"><span class="u">(passive device per IEC 60079-11 — Ui/Ii/Pi checks not required)</span></span>
     </label>
-    <div class="flex-row" style="flex-wrap:wrap;gap:12px;margin-top:8px" id="is_inst_vip_row">
-      <div class="field" style="flex:1;min-width:100px"><label>Ui (V)</label><input type="number" id="is_inst_ui" step="any" oninput="isSaveField('inst_ui');isCalc()"></div>
-      <div class="field" style="flex:1;min-width:100px"><label>Ii (mA)</label><input type="number" id="is_inst_ii" step="any" oninput="isSaveField('inst_ii');isCalc()"></div>
-      <div class="field" style="flex:1;min-width:100px"><label>Pi (W)</label><input type="number" id="is_inst_pi" step="any" oninput="isSaveField('inst_pi');isCalc()"></div>
-      <div class="field" style="flex:1;min-width:140px"><label>Ci</label>
-        <div style="display:flex;gap:6px">
-          <input type="number" id="is_inst_ci" step="any" oninput="isSaveField('inst_ci');isCalc()" style="flex:1">
-          <select id="is_inst_ci_unit" onchange="isSaveField('inst_ci_unit');isCalc()" style="flex:0 0 68px">
+    <div class="flex-row mt-8" id="is_inst_vip_row">
+      <div class="field flex-1 minw-100"><label><span class="u">Ui (V)</span></label><input type="number" id="is_inst_ui" step="any" oninput="isSaveField('inst_ui');isCalc()"></div>
+      <div class="field flex-1 minw-100"><label><span class="u">Ii (mA)</span></label><input type="number" id="is_inst_ii" step="any" oninput="isSaveField('inst_ii');isCalc()"></div>
+      <div class="field flex-1 minw-100"><label><span class="u">Pi (W)</span></label><input type="number" id="is_inst_pi" step="any" oninput="isSaveField('inst_pi');isCalc()"></div>
+      <div class="field flex-1 minw-140"><label><span class="u">Ci</span></label>
+        <div class="row-6">
+          <input class="flex-1" type="number" id="is_inst_ci" step="any" oninput="isSaveField('inst_ci');isCalc()">
+          <select class="unit-select" id="is_inst_ci_unit" onchange="isSaveField('inst_ci_unit');isCalc()">
             <option value="pF">pF</option><option value="nF" selected>nF</option><option value="uF">µF</option>
           </select>
         </div>
-        <div id="is_inst_ci_norm" style="font-size:0.72rem;color:var(--text3);margin-top:3px"></div>
+        <div class="norm-note" id="is_inst_ci_norm"></div>
       </div>
-      <div class="field" style="flex:1;min-width:140px"><label>Li</label>
-        <div style="display:flex;gap:6px">
-          <input type="number" id="is_inst_li" step="any" oninput="isSaveField('inst_li');isCalc()" style="flex:1">
-          <select id="is_inst_li_unit" onchange="isSaveField('inst_li_unit');isCalc()" style="flex:0 0 68px">
+      <div class="field flex-1 minw-140"><label><span class="u">Li</span></label>
+        <div class="row-6">
+          <input class="flex-1" type="number" id="is_inst_li" step="any" oninput="isSaveField('inst_li');isCalc()">
+          <select class="unit-select" id="is_inst_li_unit" onchange="isSaveField('inst_li_unit');isCalc()">
             <option value="uH" selected>µH</option><option value="mH">mH</option>
           </select>
         </div>
-        <div id="is_inst_li_norm" style="font-size:0.72rem;color:var(--text3);margin-top:3px"></div>
+        <div class="norm-note" id="is_inst_li_norm"></div>
       </div>
     </div>
   </div>
@@ -906,10 +986,10 @@
       <div class="card" id="card-npt-threadid">
         <div class="kicker"><span class="n">8.2</span> Thread Identifier (from caliper OD)</div>
         <div class="flex-row">
-          <div class="field" style="flex:1"><label>Measured Thread OD (mm)</label><input type="number" id="nptOD" placeholder="e.g. 26.4" oninput="identifyNPT()"></div>
+          <div class="field flex-1"><label>Measured Thread OD <span class="u">(mm)</span></label><input type="number" id="nptOD" placeholder="e.g. 26.4" oninput="identifyNPT()"></div>
           <button class="btn primary" onclick="identifyNPT()">Identify</button>
         </div>
-        <div id="nptIDResult" style="margin-top:10px"></div>
+        <div class="mt-10" id="nptIDResult"></div>
       </div>
     </div>
 
@@ -934,11 +1014,11 @@
       <div class="card" id="card-npt-whynpt">
         <div class="kicker"><span class="n">8.4</span> Why ¾" NPT ≠ ¾" Anything Measurable</div>
         <div style="font-size:0.85rem;line-height:1.7;color:var(--text2)">
-          <p>NPT size designations refer to the <strong style="color:var(--text)">nominal bore</strong> of the pipe the thread was designed for — <em>not</em> any directly measurable thread dimension.</p>
+          <p>NPT size designations refer to the <strong class="text-strong">nominal bore</strong> of the pipe the thread was designed for — <em>not</em> any directly measurable thread dimension.</p>
           <br>
           <p>¾" NPT has a thread OD of approximately <strong style="color:var(--accent)">26.4 mm</strong> — not ¾" (19.05 mm).</p>
           <br>
-          <p>For cable entry sizing, always use the <strong style="color:var(--text)">catalogue bore figure</strong> (e.g. 19.00 mm on the Eaton Redapt ¾"→M25 adapter) — never derive a clearance from the NPT nominal size.</p>
+          <p>For cable entry sizing, always use the <strong class="text-strong">catalogue bore figure</strong> (e.g. 19.00 mm on the Eaton Redapt ¾"→M25 adapter) — never derive a clearance from the NPT nominal size.</p>
           <br>
           <div class="notice">
             <svg><use href="#i-warn"/></svg>
@@ -955,17 +1035,14 @@
     <div id="nptFullTable"></div>
   </div>
 
-  <!-- Stubs -->
-  <div class="grid2">
-    <div class="card" style="opacity:0.5;pointer-events:none">
-      <div class="kicker"><span class="n">8.6</span> MOC / Derogation Builder <span class="badge mut">COMING SOON</span></div>
-      <p style="font-size:0.82rem;color:var(--text2)">Template builder for NPT adapter MOC documentation.</p>
-    </div>
-    <div class="card" style="opacity:0.5;pointer-events:none">
-      <div class="kicker"><span class="n">8.7</span> Gland Torque Reference <span class="badge mut">COMING SOON</span></div>
-      <p style="font-size:0.82rem;color:var(--text2)">Hawke recommended installation torque by size and material.</p>
-    </div>
-  </div>
+  <!-- Roadmap (replaces the old greyed-out "coming soon" cards) -->
+  <details class="disclose roadmap">
+    <summary>On the roadmap for this tab</summary>
+    <ul class="roadmap-list">
+      <li><strong>MOC / derogation builder</strong> — template text for an NPT-adapter Management of Change.</li>
+      <li><strong>Gland torque &amp; install card</strong> — Hawke torque, stripping lengths and armour cone per size. Waiting on data transcribed from Hawke's installation instructions; not something to guess.</li>
+    </ul>
+  </details>
 </div>
 
 
@@ -983,10 +1060,10 @@
     <strong>4. Format</strong> — how should output look?
   </div>
 
-  <h4 style="margin-bottom:10px">Quick-load a persona:</h4>
+  <h4 class="mb-10">Quick-load a persona:</h4>
   <div class="role-grid" id="promptRoleGrid"></div>
 
-  <div class="grid2" style="margin-top:16px">
+  <div class="grid2 mt-16">
     <div>
       <div class="field">
         <div class="prompt-field-label"><span class="prompt-field-num">1</span> Role — who is the AI acting as?</div>
@@ -1007,10 +1084,10 @@
         <div class="role-grid field-preset-row" id="pgFormatPresets"></div>
         <input type="text" id="pgFormat" placeholder="e.g. Numbered list | Markdown table | JSON | Email" oninput="generatePrompt()">
       </div>
-      <div id="pgOutput" style="margin-top:4px"></div>
+      <div class="mt-4" id="pgOutput"></div>
     </div>
     <div>
-      <h4 style="margin-bottom:12px">Prompting Tips</h4>
+      <h4 class="mb-12">Prompting Tips</h4>
       <div id="promptTipsBox"></div>
     </div>
   </div>
@@ -1021,7 +1098,7 @@
 ════════════════════════════════════════════ -->
 <div id="tab-recycle" class="tab-content">
   <h2>Recycle Bin</h2>
-  <p style="color:var(--text2);font-size:0.85rem;margin-bottom:20px">
+  <p class="lead">
     Symbols sections removed via ✕ on their header land here. Custom sections can be restored or permanently deleted; built-in sections can only be restored, since their data lives in the app itself.
   </p>
   <div id="recycleBinContent"></div>
@@ -1031,7 +1108,7 @@
   <div class="wrap">
     <strong>Reference only.</strong> Always verify against official datasheets, standards, and project specifications before ordering, installing, or certifying.
     Ex classifications and EPL assignments must be verified by a competent person per IEC 60079-14 / NORSOK E-001.
-    <span class="mono" style="float:right" id="footerVersion">v4.2</span>
+    <span class="mono" style="float:right" id="footerVersion">v4.3</span>
   </div>
 </footer>
 
@@ -1063,12 +1140,13 @@
 <script src="js/tabs/tab-units.js"></script>
 <script src="js/tabs/tab-calcs.js"></script>
 <script src="js/tabs/tab-cable.js"></script>
-<script src="js/tabs/tab-glandingv2.js"></script>
+<script src="js/tabs/tab-cable-install.js"></script>
 <script src="js/tabs/tab-wonder.js"></script>
 <script src="js/tabs/tab-isloop.js"></script>
 <script src="js/tabs/tab-npt.js"></script>
 <script src="js/tabs/tab-prompts.js"></script>
 <script src="js/reorder.js"></script>
+<script src="js/shell.js"></script>
 <script src="js/app.js"></script>
 
 </body>

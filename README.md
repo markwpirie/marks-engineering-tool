@@ -5,12 +5,17 @@ Mark's Engineering Tool is a browser-based engineering helper for electrical and
 ## What it includes
 
 - Symbol and snippet library with clipboard-friendly shortcuts
-- ATEX / IEC 60079 decoder and encoder helpers
+- ATEX / IEC 60079 decoder, encoder and marking-vs-area suitability check
 - Unit conversion tools
-- Cable and gland calculators
+- Engineering calculators (electrical, HVAC, mechanical, offshore)
+- NEK 606 cable selector with Hawke gland recommender (measured-OD override, size below/above), tray fill and pulling tension
+- Wonder Tool — motor → cable → gland, including running/starting voltage drop and short-circuit checks, with PDF output
+- IS loop entity check with maximum cable length and PDF output
 - NPT / adapter reference tools
 - Prompt-generation helpers
-- Local storage for user-created snippets and custom sections
+- Ctrl+K search across tabs, calculators, cables, NPT sizes and symbols; shareable links to a specific view
+- Works offline once visited (service worker + self-hosted fonts); field mode for phone use on site
+- Local storage for user-created snippets and custom sections, with JSON export/import
 
 ## Demo
 
@@ -24,11 +29,14 @@ To try it yourself, visit the live link above, or open [index.html](index.html) 
 ## Project structure
 
 - index.html — main single-page app shell
-- css/style.css — styling
-- js/app.js — primary app logic
+- css/style.css — styling; css/fonts.css + css/fonts/ — self-hosted fonts
+- js/app.js — startup, export/import, tab routing
+- js/shell.js — deep links, Ctrl+K palette, field mode, backup reminder, service-worker registration
 - js/data-*.js — static reference data
 - js/tabs/*.js — tab-specific logic
-- pdfs/ — reference wallchart PDFs
+- sw.js — offline cache (bump CACHE_VERSION when adding/removing files)
+- checks.html — data sanity checks; open it after editing any js/data-*.js file
+- pdfs/ — reference PDFs
 - jpg/ — supporting images
 
 ## Local use

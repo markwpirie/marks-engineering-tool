@@ -90,7 +90,7 @@ const SPECIAL_SECTIONS = {
       const pad = n => String(n).padStart(2,'0');
       const inputVal = `${active.getFullYear()}-${pad(active.getMonth()+1)}-${pad(active.getDate())}`;
       const picker = `<div class="flex-row" style="align-items:flex-end;margin-bottom:12px">
-        <div class="field" style="flex:0 0 auto">
+        <div class="field flex-none">
           <label>Show date</label>
           <input type="date" id="dtPickDate" value="${inputVal}" onchange="dtPickDate(this.value)">
         </div>
@@ -164,20 +164,20 @@ function htmlDateCalc(){
         <button class="btn" id="calPicking2" onclick="calSetActive(2)">Set Date B</button>
       </div>
       <div id="calWidget" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px"></div>
-      <p style="margin-top:8px;font-size:0.75rem;color:var(--text2)">Click to set <span style="color:var(--accent)">Date A</span>, then <span style="color:var(--accent2)">Date B</span>. Today = <span style="color:var(--accent4)">amber</span>.</p>
+      <p style="margin-top:8px;font-size:0.75rem;color:var(--text2)">Click to set <span class="accent">Date A</span>, then <span style="color:var(--accent2)">Date B</span>. Today = <span style="color:var(--accent4)">amber</span>.</p>
     </div>
     <div>
-      <h4 style="margin-bottom:10px">Add / Subtract from Date A</h4>
-      <div class="flex-row" style="margin-bottom:12px">
-        <div class="field" style="flex:1"><label>Amount (negative = back)</label><input type="number" id="daysNum" value="30" oninput="updateDateCalcResults()"></div>
-        <div class="field" style="flex:0 0 auto"><label>Unit</label>
+      <h4 class="mb-10">Add / Subtract from Date A</h4>
+      <div class="flex-row mb-12">
+        <div class="field flex-1"><label>Amount <span class="u">(negative = back)</span></label><input type="number" id="daysNum" value="30" oninput="updateDateCalcResults()"></div>
+        <div class="field flex-none"><label>Unit</label>
           <select id="daysUnit" onchange="updateDateCalcResults()">
             <option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months</option>
           </select></div>
       </div>
       <div id="dateFwdResult"></div>
       <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
-      <h4 style="margin-bottom:10px">Difference — Date A → Date B</h4>
+      <h4 class="mb-10">Difference — Date A → Date B</h4>
       <p style="font-size:0.8rem;color:var(--text2);margin-bottom:10px">Set both A and B on the calendar above.</p>
       <div id="dateDiffResult"></div>
     </div>
@@ -221,7 +221,7 @@ function updateDateCalcResults(){
     else if(unit==='weeks')dt.setDate(dt.getDate()+fwd*7);
     else dt.setMonth(dt.getMonth()+fwd);
     const el=document.getElementById('dateFwdResult');
-    if(el)el.innerHTML=`<div class="npt-info-item"><div class="key">${fwd>0?fwd+' '+unit+' forward':Math.abs(fwd)+' '+unit+' back'}</div><div class="val" style="color:var(--accent)">${dt.toISOString().split('T')[0]} (${dt.toLocaleDateString('en-GB',{weekday:'long'})})</div></div>`;
+    if(el)el.innerHTML=`<div class="npt-info-item"><div class="key">${fwd>0?fwd+' '+unit+' forward':Math.abs(fwd)+' '+unit+' back'}</div><div class="val accent">${dt.toISOString().split('T')[0]} (${dt.toLocaleDateString('en-GB',{weekday:'long'})})</div></div>`;
   }
   if(s1&&s2){
     // Inclusive — count both start and end day
@@ -335,11 +335,11 @@ function renderSymbols() {
 }
 
 function makeDraggableSection(dataIdx, title, inner, isCustom, extraHeaderHtml='') {
-  return `<div class="card sym-section" style="margin-bottom:12px" data-idx="${dataIdx}" draggable="true"
+  return `<div class="card sym-section mb-12" data-idx="${dataIdx}" draggable="true"
     ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dragDrop(event)" ondragleave="dragLeave(event)">
     <div class="section-toggle" onclick="this.nextElementSibling.classList.toggle('closed')">
       <h3><span class="drag-handle" title="Drag to reorder">⠿</span>${title}</h3>
-      <div style="display:flex;align-items:center;gap:8px">${extraHeaderHtml}<span style="color:var(--text2)">▾</span></div>
+      <div style="display:flex;align-items:center;gap:8px">${extraHeaderHtml}<span class="muted">▾</span></div>
     </div>
     <div class="collapsible" style="max-height:9999px">${inner}</div>
   </div>`;
@@ -350,8 +350,8 @@ function renderCustomSectionCard(si, q, dataKey) {
   if (!sec) return '';
   const filtered = (sec.items||[]).filter(it => !q || it.text.toLowerCase().includes(q));
   const inner = `
-    <div class="flex-row" style="margin-bottom:10px">
-      <input type="text" id="csitem_${si}" placeholder="Add item..." style="flex:1" onkeydown="if(event.key==='Enter')addCustomItem(${si})">
+    <div class="flex-row mb-10">
+      <input class="flex-1" type="text" id="csitem_${si}" placeholder="Add item..." onkeydown="if(event.key==='Enter')addCustomItem(${si})">
       <button class="btn primary" onclick="addCustomItem(${si})">+</button>
     </div>
     <div class="symbol-grid">
@@ -461,7 +461,7 @@ function renderSnippets() {
           </div>`;
         }).join('')}
       </div>`
-    : '<p style="color:var(--text2);font-size:0.82rem">No snippets yet.</p>';
+    : '<p class="small muted">No snippets yet.</p>';
 }
 
 // ══════════════════════════════════════════════════════════
@@ -604,27 +604,27 @@ function renderRecycleBin() {
     const emoji = spec ? spec.emoji : (cat ? cat.emoji : '📦');
     const arg = typeof key === 'number' ? key : `'${key}'`;
     return `
-    <div class="card" style="margin-bottom:10px">
+    <div class="card mb-10">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="font-size:1.5rem">${emoji}</div>
-        <div style="flex:1">
+        <div class="flex-1">
           <div style="font-weight:600;color:var(--text)">${name}</div>
-          <div style="font-size:0.78rem;color:var(--text2)">Built-in section — hidden</div>
+          <div class="small muted">Built-in section — hidden</div>
         </div>
-        <button class="btn" style="font-size:0.78rem" onclick="restoreBuiltinSection(${arg})">Restore</button>
+        <button class="btn small" onclick="restoreBuiltinSection(${arg})">Restore</button>
       </div>
     </div>`;
   }).join('');
   const customCards = recycledSections.map((sec,i) => `
-    <div class="card" style="margin-bottom:10px">
+    <div class="card mb-10">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="font-size:1.5rem">${sec.emoji||'📌'}</div>
-        <div style="flex:1">
+        <div class="flex-1">
           <div style="font-weight:600;color:var(--text)">${sec.name}</div>
-          <div style="font-size:0.78rem;color:var(--text2)">${sec.items?.length||0} item(s) · Deleted ${new Date(sec.deletedAt).toLocaleDateString('en-GB')}</div>
+          <div class="small muted">${sec.items?.length||0} item(s) · Deleted ${new Date(sec.deletedAt).toLocaleDateString('en-GB')}</div>
         </div>
-        <button class="btn" style="font-size:0.78rem" onclick="restoreSection(${i})">Restore</button>
-        <button class="btn danger" style="font-size:0.78rem" onclick="permanentDeleteSection(${i})">Delete</button>
+        <button class="btn small" onclick="restoreSection(${i})">Restore</button>
+        <button class="btn danger small" onclick="permanentDeleteSection(${i})">Delete</button>
       </div>
     </div>`).join('');
   el.innerHTML = hiddenCards + customCards;
@@ -682,7 +682,7 @@ function updateCgenUI() {
     perBox.style.display = 'none';
     colBox.style.display = 'none';
   } else if (isPowerType(type)) {
-    elBox.style.display  = 'flex';
+    elBox.style.display  = 'block';
     perBox.style.display = 'none';
     colBox.style.display = 'none';
     // Populate cores
@@ -691,9 +691,9 @@ function updateCgenUI() {
     if (unitLbl) unitLbl.textContent = 'Cores';
   } else {
     // Screened — pairs/triples
-    elBox.style.display  = 'flex';
-    perBox.style.display = 'flex';
-    colBox.style.display = 'flex';
+    elBox.style.display  = 'block';
+    perBox.style.display = 'block';
+    colBox.style.display = 'block';
     const sel = document.getElementById('cgen_elements');
     sel.innerHTML = [1,2,3,4,6,8,12,16,24].map(n=>`<option value="${n}">${n}</option>`).join('');
     if (unitLbl) unitLbl.textContent = 'Count';
@@ -858,7 +858,7 @@ function genDocNumber() {
   const rev     = (document.getElementById('docRev').value.trim()||'01').padStart(2,'0');
   const desc    = document.getElementById('docDesc').value.trim();
   const out     = document.getElementById('docNumOutput');
-  if (!code) { out.innerHTML = '<span style="color:var(--text2);font-size:0.82rem">Select a category and code above first</span>'; return; }
+  if (!code) { out.innerHTML = '<span class="small muted">Select a category and code above first</span>'; return; }
   let num = '';
   if (project) num += project + '-';
   num += `${code}-${seq}-${sheet}-${rev}`;

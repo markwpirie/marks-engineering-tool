@@ -13,18 +13,15 @@ function parseProtCodes(str, keys) {
   return result;
 }
 
-function decodeATEX() {
-  const raw = document.getElementById('atexInput').value.trim();
-  if (!raw) return;
-
+// Tolerant parser shared by the decoder (2.1) and the suitability check (2.6). Returns every field
+// it could identify (null where it couldn't) plus a list of compatibility warnings.
+function parseAtexMarking(raw) {
   // Tolerant — normalise dashes, collapse whitespace, handle missing spaces around known tokens
   const normalised = raw
     .replace(/[–—]/g, '-')
     .replace(/\s+/g, ' ')
     .trim();
   const tokens = normalised.split(/[\s,/]+/).filter(Boolean);
-
-  const warnings = [];
 
   const grp = tokens.find(t => t==='I' || t==='II');
   const catToken = tokens.find(t => ['1','2','3'].includes(t) || ['m1','m2'].includes(t.toLowerCase()));
@@ -50,7 +47,7 @@ function decodeATEX() {
         const tk = tokens[i];
         if (/^(II[A-C]|III[A-C])$/i.test(tk)) break;
         if (/^T[1-6]$/i.test(tk)) break;
-        if (/^[GDM][abc]$/i.test(tk) && tk.length===2) break;
+        if (/^[GDM][abc]$/.test(tk)) break; // EPL (Gb) — case-sensitive, 'db'/'mb' are protection concepts
         const m = allProtKeys.find(p => p.toLowerCase() === tk.toLowerCase());
         if (m && !prots.includes(m)) prots.push(m);
       }
@@ -61,7 +58,7 @@ function decodeATEX() {
       const tk = tokens[i];
       if (/^(II[A-C]|III[A-C])$/i.test(tk)) break;
       if (/^T[1-6]$/i.test(tk)) break;
-      if (/^[GDM][abc]$/i.test(tk) && tk.length===2) break;
+      if (/^[GDM][abc]$/.test(tk)) break; // EPL (Gb) — case-sensitive, 'db'/'mb' are protection concepts
       const exact = allProtKeys.find(p =>
         p.toLowerCase() === tk.toLowerCase() ||
         p.replace('_','') === tk.replace('_','').toLowerCase()
@@ -82,13 +79,28 @@ function decodeATEX() {
   const tempRaw = tokens.find(t => /^T[1-6]$/i.test(t));
   const tempNorm = tempRaw ? tempRaw.toUpperCase() : null;
 
-  // EPL
-  let epl = null;
-  for (const t of tokens) {
-    const m = Object.keys(ATEX_DB.epl).find(k => k.toLowerCase() === t.toLowerCase());
-    if (m) { epl = m; break; }
+  // Dust max surface temperature, e.g. "T135" or "T135°C" (as opposed to gas T1–T6 classes)
+  const dustTRaw = tokens.find(t => /^T\d{2,3}(°C|C)?$/i.test(t));
+  const tempC = dustTRaw ? parseInt(dustTRaw.slice(1), 10) : null;
+
+  // EPL — sits at the end of a marking, so search from the end, and match case-sensitively first:
+  // "db"/"mb" are protection concepts (Ex db, Ex mb), whereas "Db"/"Mb" are EPLs. A case-blind
+  // first-match read "II 2 G Ex db IIB T4 Gb" as EPL Db. Case-insensitive is only a fallback for
+  // sloppy input, and never for a token already consumed as a protection concept.
+  const eplKeys = Object.keys(ATEX_DB.epl);
+  const rev = [...tokens].reverse();
+  let epl = rev.map(t => eplKeys.find(k => k === t)).find(Boolean) || null;
+  if (!epl) {
+    const protTokens = new Set(tokens.slice(exIdx + 1).filter(t => allProtKeys.some(p => p.toLowerCase() === t.toLowerCase())).map(t => t.toLowerCase()));
+    epl = rev.filter(t => !protTokens.has(t.toLowerCase())).map(t => eplKeys.find(k => k.toLowerCase() === t.toLowerCase())).find(Boolean) || null;
   }
 
+  const warnings = atexCompatWarnings({ cat, epl, prots });
+  return { grp, cat, envNorm, prots, gasgrpNorm, tempNorm, tempC, epl, warnings };
+}
+
+function atexCompatWarnings({ cat, epl, prots }) {
+  const warnings = [];
   if (cat==='1' && epl && !['Ga','Da','Ma'].includes(epl)) warnings.push('Category 1 should pair with EPL Ga, Da, or Ma');
   if (cat==='2' && epl && !['Gb','Db','Mb'].includes(epl)) warnings.push('Category 2 should pair with EPL Gb, Db, or Mb');
   if (cat==='3' && epl && !['Gc','Dc'].includes(epl)) warnings.push('Category 3 should pair with EPL Gc or Dc');
@@ -101,21 +113,29 @@ function decodeATEX() {
   if (prots.includes('h')) warnings.push({ text: 'Ex h (special protection) requires site-specific review per IEC 60079-33', info: true });
   if (prots.includes('nL')) warnings.push('Ex nL is withdrawn from current IEC 60079-15 — verify whether this marking is legacy or should be Ex ic');
 
+  return warnings;
+}
+
+function decodeATEX() {
+  const raw = document.getElementById('atexInput').value.trim();
+  if (!raw) return;
+  const { grp, cat, envNorm, prots, gasgrpNorm, tempNorm, tempC, epl, warnings } = parseAtexMarking(raw);
+
   const rows = [
     ['Equipment Group', grp, grp ? ATEX_DB.group[grp] : null],
     ['Category', cat, cat ? ATEX_DB.cat[cat] : null],
     ['Environment', envNorm, envNorm ? ATEX_DB.env[envNorm] : null],
     ['Protection Concept(s)', prots.length ? prots.join(' + ') : null, prots.map(p => ATEX_DB.prot[p] || '(unknown)').join('<br>')],
     ['Gas/Dust Group', gasgrpNorm, gasgrpNorm ? ATEX_DB.gasgrp[gasgrpNorm] : null],
-    ['Temperature Class', tempNorm, tempNorm ? ATEX_DB.temp[tempNorm] : null],
+    ['Temperature Class', tempNorm || (tempC != null ? `T${tempC}°C` : null), tempNorm ? ATEX_DB.temp[tempNorm] : tempC != null ? `Max surface temperature ${tempC}°C (dust)` : null],
     ['EPL', epl, epl ? ATEX_DB.epl[epl] : null],
   ];
 
-  let html = '<div style="margin-top:12px">';
+  let html = '<div class="mt-12">';
   html += '<table><thead><tr><th>Field</th><th>Value</th><th>Meaning</th></tr></thead><tbody>';
   rows.forEach(([name, val, desc]) => {
     const color = val ? 'var(--accent)' : 'var(--danger)';
-    html += `<tr><td class="atex-field-name">${name}</td><td style="font-family:var(--mono);color:${color}">${val || '—'}</td><td style="color:var(--text2)">${desc || '<span style="color:var(--danger)">Not identified</span>'}</td></tr>`;
+    html += `<tr><td class="atex-field-name">${name}</td><td style="font-family:var(--mono);color:${color}">${val || '—'}</td><td class="muted">${desc || '<span style="color:var(--danger)">Not identified</span>'}</td></tr>`;
   });
   html += '</tbody></table>';
   html += atexWarningsHtml(warnings);
@@ -251,7 +271,7 @@ function renderZoneMatrix() {
       <td>${row.type}</td>
       <td><span class="tag tag-orange">${row.epl}</span></td>
       <td>${row.cats.map(c => `<span class="tag tag-green">Cat ${c}</span>`).join(' ')}</td>
-      <td style="color:var(--text2)">${row.desc}</td>
+      <td class="muted">${row.desc}</td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -312,4 +332,94 @@ function calcIPAtex() {
     <span style="font-family:var(--head);font-size:1.4rem;font-weight:700;color:var(--accent)">IP${d1}${d2}</span>
     <button class="copy-btn" style="position:relative;top:0;right:0;margin-left:10px" onclick="copyText('IP${d1}${d2}')">Copy</button>
   </div>`;
+}
+
+// ── 2.6 Suitability check — equipment marking vs area classification ─────
+// One verdict per criterion (EPL/zone, environment, gas/dust group, temperature), each with the
+// reason, so a failure says exactly which part of the marking doesn't suit the area.
+const ZONE_REQ = {
+  '0':  { env: 'G', epls: ['Ga'] },            '1':  { env: 'G', epls: ['Ga','Gb'] },        '2':  { env: 'G', epls: ['Ga','Gb','Gc'] },
+  '20': { env: 'D', epls: ['Da'] },            '21': { env: 'D', epls: ['Da','Db'] },        '22': { env: 'D', epls: ['Da','Db','Dc'] },
+};
+const GAS_RANK = { IIA: 1, IIB: 2, IIC: 3 }, DUST_RANK = { IIIA: 1, IIIB: 2, IIIC: 3 };
+
+function atexSuitUseDecoder() {
+  const v = document.getElementById('atexInput')?.value || '';
+  document.getElementById('suitMarking').value = v;
+  atexSuitCheck();
+}
+
+function atexSuitZoneChange() {
+  const dust = ['20','21','22'].includes(document.getElementById('suitZone').value);
+  document.getElementById('suitGasBox').classList.toggle('hidden', dust);
+  document.getElementById('suitDustBox').classList.toggle('hidden', !dust);
+  atexSuitCheck();
+}
+
+function atexSuitCheck() {
+  const out = document.getElementById('suitResult');
+  const raw = document.getElementById('suitMarking')?.value.trim();
+  if (!out) return;
+  if (!raw) { out.innerHTML = '<p class="muted small">Paste an equipment marking (or pull it from the decoder) to check it against the area.</p>'; return; }
+  const zone = document.getElementById('suitZone').value;
+  const req = ZONE_REQ[zone];
+  const dust = req.env === 'D';
+  const m = parseAtexMarking(raw);
+
+  // Equipment EPL: explicit, else implied by ATEX category + environment letter
+  const envLetter = m.envNorm === 'GD' ? req.env : m.envNorm;
+  const impliedEpl = !m.epl && m.cat && envLetter ? envLetter + ({ '1': 'a', '2': 'b', '3': 'c' })[m.cat] : null;
+  const epl = m.epl || impliedEpl;
+  const rows = [];
+
+  // 1. Environment
+  const eqEnv = m.envNorm || (epl ? epl[0] : null) || (m.gasgrpNorm ? (m.gasgrpNorm.startsWith('III') ? 'D' : 'G') : null);
+  rows.push(eqEnv == null
+    ? ['Environment', null, 'Marking has no G/D letter, EPL or group to tell gas from dust']
+    : [`Environment — ${dust ? 'dust' : 'gas'} area`, eqEnv.includes(req.env), eqEnv.includes(req.env) ? `Equipment is marked for ${eqEnv === 'GD' ? 'gas and dust' : eqEnv === 'G' ? 'gas' : 'dust'}` : `Equipment is marked for ${eqEnv === 'G' ? 'gas' : 'dust'} only`]);
+
+  // 2. EPL vs zone
+  rows.push(epl == null
+    ? [`EPL — Zone ${zone}`, null, 'No EPL or category found in the marking']
+    : [`EPL — Zone ${zone}`, req.epls.includes(epl), `${epl}${impliedEpl ? ' (implied by Category ' + m.cat + ')' : ''} — Zone ${zone} needs ${req.epls.join(' / ')}`]);
+
+  // 3. Group
+  if (!dust) {
+    const need = document.getElementById('suitGasGrp').value;
+    const g = m.gasgrpNorm;
+    if (g && GAS_RANK[g]) rows.push(['Gas group', GAS_RANK[g] >= GAS_RANK[need], `Equipment ${g} ${GAS_RANK[g] >= GAS_RANK[need] ? 'covers' : 'does not cover'} ${need}${GAS_RANK[g] > GAS_RANK[need] ? ' (higher group is suitable for lower)' : ''}`]);
+    else if (m.grp === 'II' && !g) rows.push(['Gas group', true, 'Group II with no subdivision — suitable for IIA/IIB/IIC (typical of Ex e, Ex m, Ex p); confirm on the certificate']);
+    else rows.push(['Gas group', false, g ? `${g} is a dust/mining group, not a gas group` : 'No gas group found in the marking']);
+  } else {
+    const need = document.getElementById('suitDustGrp').value;
+    const g = m.gasgrpNorm;
+    if (g && DUST_RANK[g]) rows.push(['Dust group', DUST_RANK[g] >= DUST_RANK[need], `Equipment ${g} ${DUST_RANK[g] >= DUST_RANK[need] ? 'covers' : 'does not cover'} ${need}`]);
+    else rows.push(['Dust group', false, g ? `${g} is a gas group, not a dust group` : 'No dust group (IIIA/B/C) found in the marking']);
+  }
+
+  // 4. Temperature
+  if (!dust) {
+    const need = document.getElementById('suitTClass').value; // 'T3'
+    const t = m.tempNorm;
+    rows.push(t
+      ? ['Temperature class', +t[1] >= +need[1], `${t} (max ${ATEX_DB.temp[t].match(/\d+°C/)[0]}) ${+t[1] >= +need[1] ? 'is at or below' : 'exceeds'} the ${need} limit (${ATEX_DB.temp[need].match(/\d+°C/)[0]}) for this gas`]
+      : ['Temperature class', null, 'No T-class (T1–T6) found in the marking']);
+  } else {
+    const max = parseFloat(document.getElementById('suitDustT').value);
+    rows.push(m.tempC == null
+      ? ['Max surface temperature', null, 'No T°C rating (e.g. T135°C) found in the marking']
+      : isNaN(max) ? ['Max surface temperature', null, `Equipment T${m.tempC}°C — enter the area's permitted maximum to check`]
+      : ['Max surface temperature', m.tempC <= max, `Equipment T${m.tempC}°C ${m.tempC <= max ? '≤' : '>'} area maximum ${max}°C`]);
+  }
+
+  const badge = ok => ok === null ? `<span class="badge mut">Can't check</span>` : ok ? `<span class="badge pass"><svg><use href="#i-check"/></svg>Suitable</span>` : `<span class="badge fail"><svg><use href="#i-x"/></svg>Not suitable</span>`;
+  const anyFail = rows.some(r => r[1] === false), anyUnknown = rows.some(r => r[1] === null);
+  const verdict = anyFail ? `<span class="badge fail verdict"><svg><use href="#i-x"/></svg>NOT SUITABLE FOR THIS AREA</span>`
+    : anyUnknown ? `<span class="badge warn verdict"><svg><use href="#i-warn"/></svg>INCOMPLETE — CHECK THE CERTIFICATE</span>`
+    : `<span class="badge pass verdict"><svg><use href="#i-check"/></svg>SUITABLE ON MARKING</span>`;
+  out.innerHTML = `<table class="mt-8"><thead><tr><th>Criterion</th><th>Verdict</th><th>Reason</th></tr></thead><tbody>
+    ${rows.map(([k, ok, why]) => `<tr><td class="atex-field-name">${k}</td><td>${badge(ok)}</td><td class="muted">${why}</td></tr>`).join('')}
+  </tbody></table>
+  <div class="mt-12">${verdict}</div>
+  <div class="notice mt-12"><svg><use href="#i-warn"/></svg><span>Marking-level check only. Also confirm ambient range (Ta), any "X" special conditions of use on the certificate, and installation requirements per IEC 60079-14.</span></div>`;
 }

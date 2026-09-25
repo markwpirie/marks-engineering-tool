@@ -2,7 +2,7 @@
 // M.E.T. — MAIN APP
 // ══════════════════════════════════════════════════════════
 
-const APP_VERSION = '4.2';
+const APP_VERSION = '4.3';
 
 // ── Utility ──
 function toast(msg) {
@@ -13,7 +13,8 @@ function toast(msg) {
 }
 
 function copyText(txt) {
-  navigator.clipboard.writeText(txt).then(() => toast('Copied: ' + txt.substring(0,30)));
+  if (!navigator.clipboard) { toast('Copy needs https (or localhost)'); return; }
+  navigator.clipboard.writeText(txt).then(() => toast('Copied: ' + txt.substring(0,30)), () => toast('Copy blocked by the browser'));
 }
 
 function makeCopyBox(val, label='') {
@@ -21,15 +22,27 @@ function makeCopyBox(val, label='') {
 }
 
 // ── Tab routing ──
+// Tabs that were renamed/merged — keeps an old met_lasttab value or bookmarked link working.
+const TAB_ALIASES = { glandingv2: 'cable' };
+
 function switchTab(name) {
+  name = TAB_ALIASES[name] || name;
+  if (!document.getElementById('tab-' + name)) name = 'symbols';
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  const tab = document.getElementById('tab-' + name);
-  if (tab) tab.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(t => {
-    if (t.getAttribute('data-tab') === name) t.classList.add('active');
+    const on = t.getAttribute('data-tab') === name;
+    t.classList.toggle('active', on);
+    if (on) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
   });
+  document.getElementById('binBtn')?.classList.toggle('active', name === 'recycle');
+  // On a narrow screen the nav scrolls sideways — bring the active tab into view (horizontal only,
+  // so the page itself never jumps).
+  const nav = document.getElementById('topnav'), act = nav?.querySelector('.nav-tab.active');
+  if (nav && act && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = act.offsetLeft - nav.clientWidth / 2 + act.offsetWidth / 2;
   localStorage.setItem('met_lasttab', name);
+  if (typeof updateDeepLink === 'function') updateDeepLink();
 }
 
 // ── Dark/Light mode ──
@@ -38,12 +51,13 @@ function setThemeIcon(isLight) {
   if (use) use.setAttribute('href', isLight ? '#i-sun' : '#i-moon');
 }
 
+// An explicit choice (met_theme) wins; with none saved yet, follow the device's light/dark setting.
 function initTheme() {
   const saved = localStorage.getItem('met_theme');
-  if (saved === 'light') {
-    document.body.classList.add('light-mode');
-  }
-  setThemeIcon(saved === 'light');
+  const light = saved ? saved === 'light'
+    : !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
+  document.body.classList.toggle('light-mode', light);
+  setThemeIcon(light);
 }
 
 function toggleTheme() {
@@ -92,13 +106,40 @@ function exportData() {
     calcState:       JSON.parse(localStorage.getItem('met_calc_state') || '{}'),
     wonderToolProject: wtProj,
     isLoop,
+    trayFill:        JSON.parse(localStorage.getItem('met_trayfill') || 'null'),
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `met-data-${new Date().toISOString().split('T')[0]}.json`;
   a.click();
+  try { localStorage.setItem('met_lastexport', String(Date.now())); } catch (e) {}
+  document.getElementById('backupBanner')?.classList.add('hidden');
   toast('Exported');
+}
+
+// Summarises what an import file would overwrite, for the confirmation prompt. Returns null if the
+// file doesn't look like an M.E.T. export at all.
+function describeImport(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  const known = ['snippets','customSections','recycledSections','sectionOrder','hiddenSections','cardOrder','theme','calcState','wonderToolProject','isLoop','trayFill'];
+  if (!known.some(k => k in data)) return null;
+  const n = v => Array.isArray(v) ? v.length : v && typeof v === 'object' ? Object.keys(v).length : 0;
+  const lines = [];
+  if (data.snippets) lines.push(`• ${n(data.snippets)} clipboard snippet(s) — replaces your current ${n(JSON.parse(localStorage.getItem('met_snippets') || '[]'))}`);
+  if (data.customSections) lines.push(`• ${n(data.customSections)} custom symbol section(s) — replaces your current ${n(JSON.parse(localStorage.getItem('met_customsecs') || '[]'))}`);
+  if (data.recycledSections) lines.push(`• Recycle bin (${n(data.recycledSections)} item(s))`);
+  if (data.sectionOrder || data.hiddenSections || data.cardOrder) lines.push('• Section / card order and hidden sections');
+  if (data.calcState) lines.push(`• Saved inputs for ${n(data.calcState)} calculator(s)`);
+  if (data.wonderToolProject) lines.push(`• Wonder Tool project details (${n(data.wonderToolProject)} field(s))`);
+  if (data.isLoop) lines.push(`• IS Loop fields (${n(data.isLoop)} field(s))`);
+  if (data.trayFill) lines.push('• Cable tray fill cables');
+  if (data.theme) lines.push(`• Theme (${data.theme})`);
+  const ver = data.version ? `v${data.version}` : 'an unknown version';
+  const when = data.exported ? ` on ${String(data.exported).slice(0, 10)}` : '';
+  const newer = data.version && parseFloat(data.version) > parseFloat(APP_VERSION)
+    ? `\n\n⚠ This file came from a NEWER version (v${data.version}) than this app (v${APP_VERSION}) — some data may not import.` : '';
+  return `Import data exported from M.E.T. ${ver}${when}?\n\nThis will overwrite:\n${lines.join('\n') || '• (nothing recognised)'}${newer}\n\nTip: Export first if you want to keep what you have now.`;
 }
 
 function importData() {
@@ -111,6 +152,9 @@ function importData() {
     reader.onload = ev => {
       try {
         const data = JSON.parse(ev.target.result);
+        const summary = describeImport(data);
+        if (!summary) { toast('Import failed: not an M.E.T. export file'); return; }
+        if (!confirm(summary)) { toast('Import cancelled'); return; }
         if (data.snippets)         localStorage.setItem('met_snippets',   JSON.stringify(data.snippets));
         if (data.customSections)   localStorage.setItem('met_customsecs', JSON.stringify(data.customSections));
         if (data.recycledSections) localStorage.setItem('met_recycled',   JSON.stringify(data.recycledSections));
@@ -121,6 +165,7 @@ function importData() {
         if (data.calcState)        localStorage.setItem('met_calc_state', JSON.stringify(data.calcState));
         if (data.wonderToolProject) Object.entries(data.wonderToolProject).forEach(([k,v]) => localStorage.setItem(k, v));
         if (data.isLoop)            Object.entries(data.isLoop).forEach(([k,v]) => localStorage.setItem(k, v));
+        if (data.trayFill)          localStorage.setItem('met_trayfill', JSON.stringify(data.trayFill));
         // Reload live state
         snippets         = JSON.parse(localStorage.getItem('met_snippets')   || '[]');
         customSections   = JSON.parse(localStorage.getItem('met_customsecs') || '[]');
@@ -132,6 +177,8 @@ function importData() {
         if (typeof initWonderTool === 'function') initWonderTool();
         if (typeof initIsLoop === 'function') initIsLoop();
         if (typeof initCardReorder === 'function') initCardReorder();
+        if (typeof initTrayFill === 'function') initTrayFill();
+        initTheme();
         toast('Imported');
       } catch(err) { toast('Import failed: invalid file'); }
     };
@@ -189,7 +236,9 @@ window.addEventListener('DOMContentLoaded', () => {
   const verAbout = document.getElementById('aboutVersion'); if (verAbout) verAbout.textContent = 'v' + APP_VERSION;
   const verFooter = document.getElementById('footerVersion'); if (verFooter) verFooter.textContent = 'v' + APP_VERSION;
 
-  // Restore last tab
+  initFieldMode();
+
+  // Restore last tab (a deep link in the URL, applied at the end of init, takes precedence)
   const lastTab = localStorage.getItem('met_lasttab') || 'symbols';
   switchTab(lastTab);
 
@@ -201,6 +250,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initEncoder();
   renderZoneMatrix();
   calcIPAtex();
+  atexSuitCheck();
   // Auto-decode first quick-load button
   const firstAtexBtn = document.querySelector('#tab-atex .flex-wrap .btn');
   if (firstAtexBtn) firstAtexBtn.click();
@@ -221,15 +271,10 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('c_csa').value = '2.5';
   showCableResult();
   renderAWGSection();
+  initTrayFill();           // 5.5 tray fill
+  initPulling();            // 5.6 pulling tension
   updateGgenSizes();        // init gland generator dropdowns
   updateCgenUI();           // init cable descriptor generator
-
-  // Tab 5a — Glanding V2 (sandbox)
-  updateCableCoresV2();
-  document.getElementById('gv2_cores').value = '3';
-  updateCableCSAV2();
-  document.getElementById('gv2_csa').value = '2.5';
-  showCableResultV2();
 
   // Tab 5b — Wonder Tool
   initWonderTool();
@@ -265,5 +310,14 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // Keyboard shortcut ESC to close modal
-  document.addEventListener('keydown', e => { if (e.key==='Escape') closeAbout(); });
+  document.addEventListener('keydown', e => { if (e.key==='Escape') { closeAbout(); closePalette(); } });
+
+  // Deep link (#tab?…) last, once every tab has its default state to override
+  if (location.hash) applyDeepLink(location.hash);
+  _deepLinkReady = true;
+  updateDeepLink();
+
+  initBackupReminder();
+  hideMissingOptionalAssets();
+  registerServiceWorker();
 });

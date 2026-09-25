@@ -42,7 +42,7 @@ function wtGeneratePDF() {
     const name = glandFamilyName(type);
     if (!g.match) {
       return `<div class="sec" style="margin-top:10px;font-size:9pt">${name}</div>
-<p style="color:#B33F31;padding:4px 0">No gland found for OD ${d.cOD}mm — select manually.</p>`;
+<p style="color:#B33F31;padding:4px 0">No gland found for OD ${d.gOD}mm — select manually.</p>`;
     }
     const gm = g.match;
     const fitRow = glandItem('Fit vs Cable OD', glandFitSummaryText(gm));
@@ -147,6 +147,19 @@ function wtGeneratePDF() {
   <tbody>${tableRows}</tbody>
 </table>
 
+<div class="sec">3a — Design Checks</div>
+<table class="cmp-table">
+  <thead><tr><th>Check</th><th>Basis</th><th>Result</th><th>Limit</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td>Current rating</td><td>FLA ${d.fla.toFixed(1)} A ÷ derating${d.parallel>1?' ÷ runs':''} = ${d.requiredPerRun.toFixed(1)} A/run required</td><td>${d.cRating} A book</td><td>≥ ${d.requiredPerRun.toFixed(1)} A</td><td>${wtPdfBadge(true)}</td></tr>
+    <tr><td>Running voltage drop</td><td>${d.vd.len > 0 ? `${d.vd.len} m, PF ${d.pf.toFixed(2)}, ${d.vd.hz} Hz` : 'No route length entered'}</td><td>${wtPct(d.chk.vdRun, 2)}</td><td>${d.vd.runLimit}%</td><td>${wtPdfBadge(d.chk.vdRunOk)}</td></tr>
+    <tr><td>Starting voltage drop</td><td>${d.vd.len > 0 ? `${d.vd.startLabel}, ${d.vd.startMult}× FLA @ PF ${d.vd.startPf}` : 'No route length entered'}</td><td>${wtPct(d.chk.vdStart, 2)}</td><td>${d.vd.startLimit}%</td><td>${wtPdfBadge(d.chk.vdStartOk)}</td></tr>
+    <tr><td>Short-circuit withstand</td><td>${d.chk.scOk != null ? `${d.vd.ik} kA for ${d.vd.tk} s (adiabatic, 1 s rating ÷ √t)` : 'No fault level entered'}</td><td>${d.chk.scAllow != null ? (d.chk.scAllow/1000).toFixed(1) + ' kA' : '—'}</td><td>${d.chk.scOk != null ? '≥ ' + d.vd.ik + ' kA' : '—'}</td><td>${wtPdfBadge(d.chk.scOk)}</td></tr>
+  </tbody>
+</table>
+${d.sizeDriver ? `<p style="font-size:8.5pt;color:#1B4B72;margin-bottom:10px">Sized up for ${d.sizeDriver} — current rating alone required ${d.ampMinCSA}mm².</p>` : ''}
+<p style="font-size:7.5pt;color:#94a3b8;margin-bottom:10px">Voltage drop is for the cable only (ΔU = √3·I·L·(R₉₀cosφ + X·sinφ), Draka R at 90 °C) and excludes supply-side drop.</p>
+
 ${d.isUpsized ? `<div style="background:rgba(46,124,192,0.07);border:1px solid rgba(46,124,192,0.4);border-left:3px solid #2E7CC0;border-radius:4px;padding:8px 12px;margin-bottom:10px;font-size:8.5pt;color:#1B4B72">
   ⬆ <strong>Upsized at engineer's discretion</strong> — minimum cable was ${d.prevCableCSA}mm² (borderline).
   Selected ${d.cCSA}mm² to achieve adequate headroom.
@@ -172,6 +185,7 @@ ${d.isUpsized ? `<div style="background:rgba(46,124,192,0.07);border:1px solid r
 <div class="sec">5 — Gland Recommendation</div>
 <div class="data-grid" style="margin-bottom:6px">
   <div class="data-item"><div class="k">Entry Thread</div><div class="v">${d.useNPT ? 'NPT' : 'Metric'}</div></div>
+  <div class="data-item"><div class="k">Cable OD Checked</div><div class="v">${d.gOD} mm${d.glandOdManual ? ' (measured)' : ' (book)'}</div></div>
 </div>
 ${glandBlocks}
 
@@ -189,6 +203,11 @@ ${glandBlocks}
 
   const html = buildPdfDocument(`MET — ${p.tag || 'Cable & Gland Selection'}`, APP_VERSION, bodyHtml);
   printHtmlDocument(html);
+}
+
+function wtPdfBadge(ok) {
+  if (ok === null || ok === undefined) return `<span class="pdf-badge">N/A</span>`;
+  return ok ? `<span class="pdf-badge pdf-badge-pass">OK</span>` : `<span class="pdf-badge pdf-badge-fail">Fail</span>`;
 }
 
 // IEC 60092-352 ambient temperature correction factors
@@ -474,7 +493,34 @@ function wtCalc() {
   if (!powerData) { result.innerHTML = `<p style="color:var(--danger)">Cable data not found.</p>`; return; }
 
   const allEntries = powerData.entries.filter(e => e.cores === cores && typeof e.current === 'number').sort((a,b) => a.csa-b.csa);
-  const candidates = allEntries.filter(e => e.current >= requiredPerRun);
+
+  // ── Voltage drop / short-circuit (optional — only when a route length / fault level is given) ──
+  const vd = wtReadVdInputs(fla, volt, pf, parallel);
+  const checkOf = e => wtCableChecks(e, requiredPerRun, vd);
+  const ampOnly    = allEntries.filter(e => e.current >= requiredPerRun);
+  const candidates = allEntries.filter(e => checkOf(e).ok);
+  // What pushed the size up beyond the current-rating minimum, if anything
+  // — judged on the next size DOWN from the pick (the one that just failed), so the note names the
+  // criterion that actually set the size rather than everything the smallest cable fails.
+  let sizeDriver = null;
+  if (candidates.length && ampOnly.length && candidates[0].csa !== ampOnly[0].csa) {
+    const pickIdx = ampOnly.findIndex(e => e.csa === candidates[0].csa);
+    const c0 = checkOf(ampOnly[Math.max(0, pickIdx - 1)]);
+    sizeDriver = c0.vdNoData || c0.scNoData ? 'missing R/X data on the smaller size' : [c0.vdRunOk === false ? 'running voltage drop' : null, c0.vdStartOk === false ? 'starting voltage drop' : null, c0.scOk === false ? 'short-circuit withstand' : null].filter(Boolean).join(' + ');
+  }
+
+  if (!candidates.length && ampOnly.length) {
+    const largest = checkOf(ampOnly[ampOnly.length - 1]);
+    const why = largest.vdNoData || largest.scNoData ? 'it has no published R/X / short-circuit data to check against (legacy unverified entry)'
+      : [largest.vdRunOk === false ? `running VD ${largest.vdRun.toFixed(1)}% > ${vd.runLimit}%` : null,
+         largest.vdStartOk === false ? `starting VD ${largest.vdStart.toFixed(1)}% > ${vd.startLimit}%` : null,
+         largest.scOk === false ? `short-circuit ${vd.ik} kA > ${(largest.scAllow/1000).toFixed(1)} kA for ${vd.tk}s` : null].filter(Boolean).join('; ');
+    result.innerHTML = `<div class="wt-alert">
+      <strong>No single cable meets every check.</strong> Current rating is satisfied from ${ampOnly[0].csa}mm², but even the largest ${cores}-core ${cableType} (${ampOnly[ampOnly.length-1].csa}mm²) fails: ${why}.
+      ${parallel < 3 ? ` Try <strong>${parallel + 1} parallel runs</strong>, a shorter route, or` : ' Try'} review the project limits.
+    </div>`;
+    return;
+  }
 
   if (!candidates.length) {
     const altCores = cores === 4 ? 3 : 4;
@@ -527,7 +573,13 @@ function wtCalc() {
 
   // ── Gland — best fit from each of the three Hawke families, same recommender as the
   //    Cable & Gland tab (js/data-glands.js) ──
-  const glandFamilies = bestGlandPerFamily(cOD, cOdTol, cInnerOD, cable.innerODTol);
+  const chk = checkOf(cable);
+  const odM = parseFloat(document.getElementById('wt_od_manual')?.value);
+  const innerM = parseFloat(document.getElementById('wt_innerod_manual')?.value);
+  const gOD = isNaN(odM) ? cOD : odM, gOdTol = isNaN(odM) ? cOdTol : 0;
+  const gInner = isNaN(innerM) ? cInnerOD : innerM, gInnerTol = isNaN(innerM) ? cable.innerODTol : 0;
+  const glandOpts = { useNPT, codeTransform: useNPT ? wtNptCode : undefined, coreBundle: estimateCoreBundleOD(cable), odManual: !isNaN(odM), innerManual: !isNaN(innerM) };
+  const glandFamilies = bestGlandPerFamily(gOD, gOdTol, gInner, gInnerTol);
   const tempObj    = WT_TEMP.find(t => Math.abs(t.factor - tempFactor) < 0.001);
   const tempLabel  = tempObj ? `${tempObj.temp}°C` : `×${tempFactor}`;
   const groupLabel = groupFactor === 1.00 ? '≤6 cables' : '>6 cables';
@@ -537,8 +589,12 @@ function wtCalc() {
     const g = glandFamilies[type];
     return g.match
       ? `  ${glandFamilyName(type)}: ${g.orderCode} — Size ${g.match.size}, Entry ${useNPT ? g.match.npt : g.match.metric}`
-      : `  ${glandFamilyName(type)}: no fit for OD ${cOD}mm`;
+      : `  ${glandFamilyName(type)}: no fit for OD ${gOD}mm`;
   }).join('\n');
+  const vdSummary = vd.len > 0 && chk.vdRun != null
+    ? `\nVolt drop: ${vd.len} m route — running ${wtPct(chk.vdRun, 2)} (limit ${vd.runLimit}%), starting ${wtPct(chk.vdStart, 2)} (limit ${vd.startLimit}%, ${vd.startMult}× FLA)`
+    : '';
+  const scSummary = chk.scOk != null ? `\nShort-circuit: ${vd.ik} kA for ${vd.tk}s vs ${(chk.scAllow/1000).toFixed(1)} kA cable withstand — ${chk.scOk ? 'OK' : 'FAIL'}` : '';
 
   // ── Summary (stored globally to avoid quote-in-onclick issues) ──
   window._wtSummary =
@@ -552,7 +608,7 @@ Derating: ×${combinedDerating.toFixed(3)} combined
 
 Cable:    ${parallel>1?parallel+' × ':''}${cableDesc}
   Rated ${cRating} A — Derated ${cDerated} A — OD ${cOD} mm — ${cWeight} kg/km
-  ${headroom}% headroom over FLA${parallel>1?` (total ${totalCap} A)`:''}
+  ${headroom}% headroom over FLA${parallel>1?` (total ${totalCap} A)`:''}${vdSummary}${scSummary}${sizeDriver ? `\n  Sized up for ${sizeDriver}` : ''}
 
 Gland recommendations (best fit per family):
 ${glandSummaryLines}
@@ -572,7 +628,8 @@ Generated by M.E.T. v${APP_VERSION}`;
     cCores, cCSA, cOD, cWeight, cRating, cDerated, totalCap, headroom,
     cableDesc, pCode, innerOD: cInnerOD,
     powerDataLabel: powerData.label, powerDataVoltage: powerData.voltage, powerDataColour: powerData.colourCode,
-    useNPT, glandFamilies,
+    useNPT, glandFamilies, gOD, glandOdManual: !isNaN(odM),
+    vd, chk, sizeDriver, requiredPerRun, ampMinCSA: ampOnly[0]?.csa,
     tableSlice, selCSA: cCSA, flaForTable: fla,
     isUpsized, prevCableCSA: prevCable?.csa, borderlineThreshold
   };
@@ -597,10 +654,14 @@ Generated by M.E.T. v${APP_VERSION}`;
         </div>`
       : '';
 
+  const driverNote = sizeDriver
+    ? `<div class="wt-upsize-note"><strong>Sized up for ${sizeDriver}</strong> — current rating alone needs only ${ampOnly[0].csa}mm²; ${cCSA}mm² is the smallest that also meets the ${sizeDriver} limit${sizeDriver.includes('+') ? 's' : ''}.</div>`
+    : '';
+
   result.innerHTML = `
     <div class="kicker">Recommendation</div>
     <div class="wt-summary-card">
-      ${upsizeNote}
+      ${driverNote}${upsizeNote}
       <p class="wt-summary-text">
         <strong>${modeLabel}</strong> at <strong>${volt} V</strong>${wtHz==='5060'?` — uprated to <strong>${kwEffective.toFixed(1)} kW</strong> at 60 Hz`:''}
         → FLA <strong>${fla.toFixed(1)} A</strong> (PF ${pf.toFixed(2)}, η ${eff.toFixed(2)}).
@@ -624,20 +685,24 @@ Generated by M.E.T. v${APP_VERSION}`;
       <div class="wt-chip"><div class="wt-chip-label">Combined</div><div class="wt-chip-val">×${combinedDerating.toFixed(3)}</div></div>
       ${showTotal?`<div class="wt-chip"><div class="wt-chip-label">Runs</div><div class="wt-chip-val">${parallel}</div></div>`:''}
       <div class="wt-chip wt-chip-accent"><div class="wt-chip-label">Headroom</div><div class="wt-chip-val">+${headroom}%</div></div>
+      ${chk.vdRun != null ? `<div class="wt-chip"><div class="wt-chip-label">Run VD</div><div class="wt-chip-val">${wtPct(chk.vdRun)}</div></div>
+      <div class="wt-chip"><div class="wt-chip-label">Start VD</div><div class="wt-chip-val">${wtPct(chk.vdStart)}</div></div>` : ''}
     </div>
 
     <div class="kicker" style="margin-top:24px">Cable Size Comparison
       <span style="font-size:0.72rem;font-weight:400;color:var(--text2);text-transform:none;letter-spacing:normal">IEC 60092-352 / NEK 606</span>
     </div>
-    ${wtCableTable(tableSlice, cCSA, fla, combinedDerating, parallel)}
+    ${wtCableTable(tableSlice, cCSA, fla, combinedDerating, parallel, checkOf, vd)}
 
     <div class="kicker" style="margin-top:24px">Selected Cable</div>
     <div class="gland-card">
+      ${wtDesignChecksHTML({ fla, combinedDerating, tempFactor, groupFactor, parallel, requiredPerRun, cDerated, totalCap, showTotal, vd, chk })}
       ${wtCableCard(cCores, cCSA, cOD, cWeight, cRating, cInnerOD, powerData, combinedDerating, parallel, cableDesc)}
     </div>
 
     <div class="kicker" style="margin-top:24px">Gland Selection — Hawke ATEX/IECEx</div>
-    ${renderAllGlandFamilies(cOD, cOdTol, cInnerOD, cable.innerODTol, useNPT, useNPT ? wtNptCode : undefined)}
+    ${renderGlandRecSummary(gOD, gOdTol, gInner, gInnerTol, glandOpts)}
+    ${renderGlandRecommender(gOD, gOdTol, gInner, gInnerTol, glandOpts)}
 
     <div class="wt-disclaimer">
       Indicative results only. Always verify FLA against motor nameplate, confirm cable
@@ -655,9 +720,12 @@ function wtPrompt() {
 }
 
 // ── Cable comparison table ────────────────────────────────────
-function wtCableTable(entries, selCSA, fla, derating, parallel) {
+function wtCableTable(entries, selCSA, fla, derating, parallel, checkOf, vd) {
   const showTotal = parallel > 1;
+  const showVD = vd && vd.len > 0, showSC = vd && vd.ik > 0;
   const rows = entries.map(e => {
+    const c = checkOf ? checkOf(e) : null;
+    const extraFail = c && (c.vdRunOk === false || c.vdStartOk === false || c.scOk === false);
     const { cores, csa, od, current: rated } = e;
     const derated  = +(rated * derating).toFixed(1);
     const totalCap = +(derated * parallel).toFixed(1);
@@ -665,10 +733,15 @@ function wtCableTable(entries, selCSA, fla, derating, parallel) {
     const isSel    = csa === selCSA;
     let statusTag, rowClass;
     const threshold = wtBorderlineThreshold(fla);
-    if (ratio >= 1 + threshold) {
+    if (ratio >= 1.0 && extraFail) {
+      const what = c.vdNoData || c.scNoData ? 'No R/X data'
+        : [c.vdRunOk === false ? 'Run VD' : null, c.vdStartOk === false ? 'Start VD' : null, c.scOk === false ? 'SC' : null].filter(Boolean).join(' / ');
+      statusTag = `<span class="tag tag-red"><svg style="width:11px;height:11px"><use href="#i-x"/></svg>${what}</span>`;
+      rowClass  = isSel ? 'wt-row-selected' : 'wt-row-red';
+    } else if (ratio >= 1 + threshold) {
       statusTag = `<span class="tag tag-green"><svg style="width:11px;height:11px"><use href="#i-check"/></svg>OK</span>`;
       rowClass  = isSel ? 'wt-row-selected wt-row-green' : 'wt-row-green';
-    } else if (ratio >= 1.0) {
+    } else if (ratio >= 1.0 && !extraFail) {
       statusTag = `<span class="tag tag-yellow"><svg style="width:11px;height:11px"><use href="#i-warn"/></svg>Borderline</span>`;
       rowClass  = isSel ? 'wt-row-selected wt-row-orange' : 'wt-row-orange';
     } else {
@@ -682,6 +755,8 @@ function wtCableTable(entries, selCSA, fla, derating, parallel) {
       <td style="font-family:var(--mono)">${derated} A</td>
       ${showTotal ? `<td style="font-family:var(--mono)">${totalCap} A</td>` : ''}
       <td>${od} mm</td>
+      ${showVD ? `<td class="mono">${wtPct(c.vdRun)} / ${wtPct(c.vdStart)}</td>` : ''}
+      ${showSC ? `<td class="mono">${c.scAllow != null ? (c.scAllow/1000).toFixed(1) + ' kA' : '—'}</td>` : ''}
       <td>${statusTag}</td>
     </tr>`;
   }).join('');
@@ -690,10 +765,80 @@ function wtCableTable(entries, selCSA, fla, derating, parallel) {
     <thead><tr>
       <th>Cable</th><th>Book Rating (A)</th><th>De-Rated (A)</th>
       ${showTotal ? `<th>Total (${parallel} runs)</th>` : ''}
-      <th>OD</th><th>vs ${fla.toFixed(1)} A FLA</th>
+      <th>OD</th>
+      ${showVD ? `<th>VD run / start</th>` : ''}
+      ${showSC ? `<th>SC @ ${vd.tk}s</th>` : ''}
+      <th>vs ${fla.toFixed(1)} A FLA</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
+}
+
+// ── Voltage drop / short-circuit ──────────────────────────────
+const wtPct = (x, dp = 1) => x == null ? '—' : x.toFixed(dp) + '%';
+const WT_START_DEFAULTS = { dol: [6.5, 0.3], sd: [2.2, 0.3], soft: [3.5, 0.4], vfd: [1.0, 0.9] };
+
+function wtStartChange() {
+  const d = WT_START_DEFAULTS[document.getElementById('wt_start')?.value] || WT_START_DEFAULTS.dol;
+  document.getElementById('wt_start_mult').value = d[0];
+  document.getElementById('wt_start_pf').value = d[1];
+  wtCalc();
+}
+
+function wtReadVdInputs(fla, volt, pf, parallel) {
+  const num = (id, def) => { const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? def : v; };
+  const sel = document.getElementById('wt_start');
+  return {
+    len: num('wt_len', 0), runLimit: num('wt_vd_run', 5), startLimit: num('wt_vd_start', 15),
+    startMult: num('wt_start_mult', 6.5), startPf: num('wt_start_pf', 0.3),
+    startLabel: sel ? sel.options[sel.selectedIndex].text.split(' (')[0] : 'DOL',
+    ik: num('wt_ik', 0), tk: num('wt_tk', 0.1),
+    hz: wtHz === 50 ? 50 : 60, fla, volt, pf, parallel,
+  };
+}
+
+// 3-phase ΔU% over the cable for current I (A, per run) at power factor cosφ, using the cable's
+// own Draka R at 90 °C and X at the supply frequency (Ω/km). Cable-only — excludes supply-side drop.
+function wtVdPct(e, I, cosphi, v) {
+  const R = e.r90, X = v.hz === 60 ? e.x60 : e.x50;
+  if (R == null || X == null || !(v.len > 0)) return null;
+  const sin = Math.sqrt(Math.max(0, 1 - cosphi * cosphi));
+  return Math.sqrt(3) * I * (v.len / 1000) * (R * cosphi + X * sin) / v.volt * 100;
+}
+
+// Per-criterion verdicts for one cable. A null *Ok means "not checked" (no length / fault level).
+function wtCableChecks(e, requiredPerRun, v) {
+  const amp = e.current >= requiredPerRun;
+  const perRun = v.fla / v.parallel;
+  const vdRun = wtVdPct(e, perRun, v.pf, v);
+  const vdStart = wtVdPct(e, perRun * v.startMult, v.startPf, v);
+  const scAllow = e.sc1s ? e.sc1s / Math.sqrt(v.tk) : null;
+  // A check that was asked for (length / fault level entered) but can't be done because the cable
+  // has no R/X or short-circuit data counts as a FAIL — never a silent pass. Only the legacy
+  // `unverified` entries lack this data.
+  const wantVd = v.len > 0, wantSc = v.ik > 0;
+  const vdNoData = wantVd && vdRun == null, scNoData = wantSc && scAllow == null;
+  const vdRunOk = vdNoData ? false : vdRun == null ? null : vdRun <= v.runLimit;
+  const vdStartOk = vdNoData ? false : vdStart == null ? null : vdStart <= v.startLimit;
+  const scOk = scNoData ? false : wantSc ? v.ik * 1000 <= scAllow : null;
+  return { amp, vdRun, vdStart, scAllow, vdRunOk, vdStartOk, scOk, vdNoData, scNoData,
+    ok: amp && vdRunOk !== false && vdStartOk !== false && scOk !== false };
+}
+
+// The inputs that justified the selection, laid out next to it with one badge per criterion.
+function wtDesignChecksHTML(d) {
+  const badge = ok => ok === null ? `<span class="badge mut">Not checked</span>`
+    : ok ? `<span class="badge pass"><svg><use href="#i-check"/></svg>Pass</span>`
+    : `<span class="badge fail"><svg><use href="#i-x"/></svg>Fail</span>`;
+  const cap = d.showTotal ? d.totalCap : d.cDerated;
+  const v = d.vd, c = d.chk;
+  return `<div class="spec wt-checks">
+    <div class="full"><div class="k">Required rating per run</div><div class="v">FLA ${d.fla.toFixed(1)} A ÷ (${d.tempFactor} temp × ${d.groupFactor} group${d.parallel>1?` × ${d.parallel} runs`:''}) = <b>${d.requiredPerRun.toFixed(1)} A</b></div></div>
+    <div><div class="k">Current rating</div><div class="v">${cap} A ≥ ${d.fla.toFixed(1)} A ${badge(true)}</div></div>
+    <div><div class="k">Running VD${v.len > 0 ? ` — ${v.len} m` : ''}</div><div class="v">${c.vdRun != null ? `${c.vdRun.toFixed(2)}% ${c.vdRunOk ? '≤' : '>'} ${v.runLimit}% ` : ''}${badge(c.vdRunOk)}</div></div>
+    <div><div class="k">Starting VD — ${v.startLabel} ${v.startMult}× @ PF ${v.startPf}</div><div class="v">${c.vdStart != null ? `${c.vdStart.toFixed(2)}% ${c.vdStartOk ? '≤' : '>'} ${v.startLimit}% ` : ''}${badge(c.vdStartOk)}</div></div>
+    <div><div class="k">Short-circuit @ ${v.tk}s</div><div class="v">${c.scOk != null ? `${v.ik} kA ${c.scOk ? '≤' : '>'} ${(c.scAllow/1000).toFixed(1)} kA ` : ''}${badge(c.scOk)}</div></div>
+  </div>`;
 }
 
 // ── Cable detail card ─────────────────────────────────────────

@@ -4,11 +4,14 @@
 
 let currentGlandTab = 'metric';
 
+// Only re-runs the recommender — NOT showCableResult(), which rebuilds the spec card and would
+// wipe any measured OD the user has typed in.
 function switchGlandTab(tab) {
   currentGlandTab = tab;
   document.getElementById('gland-metric-btn').classList.toggle('active', tab==='metric');
   document.getElementById('gland-npt-btn').classList.toggle('active', tab==='npt');
-  showCableResult();
+  showGlandRec();
+  if (typeof updateDeepLink === 'function') updateDeepLink();
 }
 
 function updateCableApp() { updateCableCores(); }
@@ -146,8 +149,8 @@ function showCableResult() {
 
   let html=`<div class="spec">
     <div class="full"><div class="k">Cable Type</div><div class="v plain">${data.label}</div></div>
-    <div><div class="k">Overall OD</div><div class="v hi">${OD}${entry.odTol?' ± '+entry.odTol:''} <small>mm</small></div></div>
-    ${innerOD ? `<div><div class="k">OD over inner insulation</div><div class="v">${innerOD}${entry.innerODTol?' ± '+entry.innerODTol:''} <small>mm</small></div></div>` : ''}
+    <div><div class="k">Overall OD</div><div class="v hi">${OD}${entry.odTol?' ± '+entry.odTol:''} <small>mm</small></div>${glandMeasureInputHTML('c_od_manual', 'Measured OD')}</div>
+    ${innerOD ? `<div><div class="k">OD over inner insulation</div><div class="v">${innerOD}${entry.innerODTol?' ± '+entry.innerODTol:''} <small>mm</small></div>${glandMeasureInputHTML('c_innerod_manual', 'Measured inner OD')}</div>` : ''}
     <div><div class="k">Min. Bend Radius</div><div class="v">${minBend} <small>mm install</small> / ${fixedBend} <small>mm fixed</small></div></div>
     ${current?`<div><div class="k">Current @45°C</div><div class="v hi">${current} <small>A</small></div></div>`:''}
     <div><div class="k">Voltage Rating</div><div class="v">${data.voltage}</div></div>
@@ -162,7 +165,26 @@ function showCableResult() {
   tcSec.style.display = hasNumericCurrent ? 'block' : 'none';
   if (hasNumericCurrent) { window._baseCurrent=current; applyTempCorr(); }
 
-  showGlandRec(OD, entry.odTol, innerOD, entry.innerODTol);
+  // The measured-OD inputs just rendered are always empty (fresh elements), so the gland check
+  // starts back at book values — an override from a previous cable is intentionally dropped
+  // rather than silently carried over to a different cable.
+  cableGlandBase = { OD, odTol: entry.odTol, innerOD, innerODTol: entry.innerODTol, coreBundle: isPower ? estimateCoreBundleOD(entry) : null };
+  showGlandRec();
+  if (typeof updateDeepLink === 'function') updateDeepLink();
+}
+
+// Datasheet figures for the selected cable — kept so the gland recommender can be re-run (Metric/NPT
+// switch, measured-OD edits) WITHOUT re-rendering the spec card, which would wipe the measured-OD
+// inputs. Reset by showCableResult on every cable change.
+let cableGlandBase = { OD: null, odTol: null, innerOD: null, innerODTol: null, coreBundle: null };
+
+// Small number input for overriding a book OD with a physically measured value — for checking gland
+// suitability against the actual cable. Blank = book value. Only what feeds the gland recommender
+// changes; the book figure shown above it never does.
+function glandMeasureInputHTML(id, placeholder) {
+  return `<input type="number" id="${id}" class="measure-input" step="0.1" min="0" placeholder="${placeholder} (mm)"
+    title="Override with a physically measured value for gland fit checking — leave blank to use the book value"
+    oninput="showGlandRec()">`;
 }
 
 function applyTempCorr() {
@@ -170,12 +192,21 @@ function applyTempCorr() {
   const base = window._baseCurrent;
   if (base==null || typeof base !== 'number') return;
   const corrected = (base*factor).toFixed(1);
-  document.getElementById('tempCorrResult').innerHTML = `<div class="result-box">Corrected: <strong style="color:var(--accent);font-size:1.1rem">${corrected} A</strong> (base ${base}A × ${factor})</div>`;
+  document.getElementById('tempCorrResult').innerHTML = `<div class="result-box">Corrected: <strong class="accent-strong">${corrected} A</strong> (base ${base}A × ${factor})</div>`;
 }
 
-function showGlandRec(OD, odTol, innerOD, innerODTol) {
-  const useNPT = currentGlandTab==='npt';
-  document.getElementById('glandResults').innerHTML = renderAllGlandFamilies(OD, odTol, innerOD, innerODTol, useNPT);
+// Reads the measured-OD inputs (if non-empty) and re-runs the recommender. A measured value is
+// treated as exact — 0 tolerance — since it's an actual reading, not a book range.
+function showGlandRec() {
+  const b = cableGlandBase;
+  if (b.OD == null) return;
+  const read = id => { const el = document.getElementById(id); const v = el && el.value !== '' ? parseFloat(el.value) : NaN; return isNaN(v) ? null : v; };
+  const odM = read('c_od_manual'), innerM = read('c_innerod_manual');
+  const OD = odM != null ? odM : b.OD, odTol = odM != null ? 0 : b.odTol;
+  const innerOD = innerM != null ? innerM : b.innerOD, innerODTol = innerM != null ? 0 : b.innerODTol;
+  const opts = { useNPT: currentGlandTab === 'npt', odManual: odM != null, innerManual: innerM != null, coreBundle: b.coreBundle };
+  document.getElementById('cableGlandSummary').innerHTML = renderGlandRecSummary(OD, odTol, innerOD, innerODTol, opts);
+  document.getElementById('glandResults').innerHTML = renderGlandRecommender(OD, odTol, innerOD, innerODTol, opts);
 }
 
 function renderAWGSection() {

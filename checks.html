@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M.E.T. Data Checks</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body { padding: 24px 16px; }
+  .wrap { max-width: 1100px; }
+  .sum { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 20px; }
+  td.detail { font-family: var(--mono); font-size: 0.75rem; color: var(--text2); white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>M.E.T. — Data Sanity Checks</h2>
+  <p class="lead">Runs automatic consistency checks over the cable, gland, motor, IS and ATEX data files, and confirms that linked assets exist.
+    It catches transcription slips (a range typed backwards, a missing OD, a size list out of order) — it can't tell you a value disagrees with the datasheet.
+    Open this page after editing any <span class="mono">js/data-*.js</span> file. Serve the folder over http (e.g. <span class="mono">python3 -m http.server</span>) so the asset checks can run.</p>
+  <div class="sum" id="summary"></div>
+  <div id="results"></div>
+</div>
+
+<script src="js/core-utils.js"></script>
+<script src="js/data-atex.js"></script>
+<script src="js/data-glands.js"></script>
+<script src="js/data-cable.js"></script>
+<script src="js/data-is.js"></script>
+<script src="js/data-motors.js"></script>
+<script src="js/data-symbols.js"></script>
+<script src="js/data-docregister.js"></script>
+<script>
+// Each check returns a list of problem strings (empty = pass). `level` 'warn' marks checks whose
+// findings are worth a look but may be legitimate (e.g. the dataset intentionally has a gap).
+const CHECKS = [];
+const check = (group, name, fn, level = 'fail') => CHECKS.push({ group, name, fn, level });
+const num = v => typeof v === 'number' && isFinite(v);
+
+// ── Cable data ──
+const CABLE_SETS = [];
+['RFOU', 'BFOU'].forEach(r => ['Power', 'InstrI', 'InstrC', 'Earth'].forEach(app => {
+  const d = CABLE_DATA[r][app];
+  if (d) CABLE_SETS.push({ id: `${r} ${app}`, d, app });
+}));
+const cid = (app, e) => app === 'Power' ? `${e.cores}C×${e.csa}` : app === 'Earth' ? `1×${e.csa}` : `${e.elements}${e.type}×${e.csa}`;
+
+CABLE_SETS.forEach(({ id, d, app }) => {
+  check('Cables', `${id}: every entry has a positive OD, tolerance and weight`, () =>
+    d.entries.filter(e => !(num(e.od) && e.od > 0) || !(num(e.odTol) && e.odTol >= 0) || !(num(e.weight) && e.weight > 0)).map(e => `${cid(app, e)}: od=${e.od} odTol=${e.odTol} weight=${e.weight}`));
+  check('Cables', `${id}: inner OD is smaller than overall OD`, () =>
+    d.entries.filter(e => e.innerOD != null && !(e.innerOD < e.od)).map(e => `${cid(app, e)}: innerOD ${e.innerOD} ≥ OD ${e.od}`));
+  check('Cables', `${id}: conductor Ø < Ø over insulation < overall OD`, () =>
+    d.entries.filter(e => e.condDiam != null && e.insDiam != null && !(e.condDiam < e.insDiam && e.insDiam <= e.od)).map(e => `${cid(app, e)}: cond ${e.condDiam} / ins ${e.insDiam} / OD ${e.od}`));
+  check('Cables', `${id}: no duplicate entries`, () => {
+    const seen = new Set(), dup = [];
+    d.entries.forEach(e => { const k = cid(app, e); if (seen.has(k)) dup.push(k); seen.add(k); });
+    return dup;
+  });
+  if (app === 'Power' || app === 'Earth') {
+    check('Cables', `${id}: R at 90 °C > R at 20 °C`, () =>
+      d.entries.filter(e => e.r20 != null && e.r90 != null && !(e.r90 > e.r20)).map(e => `${cid(app, e)}: r20 ${e.r20} r90 ${e.r90}`));
+    check('Cables', `${id}: current rating rises with CSA (same cores)`, () => {
+      const out = [], by = {};
+      d.entries.filter(e => num(e.current)).forEach(e => (by[e.cores ?? 1] = by[e.cores ?? 1] || []).push(e));
+      Object.values(by).forEach(list => list.sort((a, b) => a.csa - b.csa).forEach((e, i) => { if (i && e.current < list[i - 1].current) out.push(`${cid(app, e)}: ${e.current} A < ${cid(app, list[i - 1])} ${list[i - 1].current} A`); }));
+      return out;
+    });
+    check('Cables', `${id}: R falls as CSA rises (same cores)`, () => {
+      const out = [], by = {};
+      d.entries.filter(e => num(e.r90)).forEach(e => (by[e.cores ?? 1] = by[e.cores ?? 1] || []).push(e));
+      Object.values(by).forEach(list => list.sort((a, b) => a.csa - b.csa).forEach((e, i) => { if (i && e.r90 > list[i - 1].r90) out.push(`${cid(app, e)}: r90 ${e.r90} > smaller CSA's ${list[i - 1].r90}`); }));
+      return out;
+    });
+  }
+  if (app === 'InstrI' || app === 'InstrC') {
+    check('Cables', `${id}: electrical data exists for every CSA`, () =>
+      [...new Set(d.entries.map(e => e.csa))].filter(csa => !(INSTR_ELECTRICAL[d.electrical] || {})[csa]).map(csa => `no ${d.electrical} data for ${csa} mm²`));
+  }
+});
+check('Cables', 'Power entries used by the Wonder Tool have R₉₀, X₅₀/X₆₀ and a 1 s short-circuit rating', () => {
+  const out = [];
+  ['RFOU', 'BFOU'].forEach(r => CABLE_DATA[r].Power.entries.filter(e => num(e.current) && [3, 4].includes(e.cores))
+    .filter(e => !e.unverified)
+    .forEach(e => { if (![e.r90, e.x50, e.x60, e.sc1s].every(num)) out.push(`${r} ${e.cores}C×${e.csa}: r90=${e.r90} x50=${e.x50} x60=${e.x60} sc1s=${e.sc1s}`); }));
+  return out;
+});
+check('Cables', 'Legacy "unverified" entries still in the dataset (not in the Draka datasheet — confirm or remove)', () => {
+  const out = [];
+  CABLE_SETS.forEach(({ id, d, app }) => d.entries.filter(e => e.unverified).forEach(e => out.push(`${id} ${cid(app, e)}`)));
+  return [...new Set(out)];
+}, 'warn');
+check('Cables', 'Core-bundle estimate available for every multicore power cable', () => {
+  const out = [];
+  ['RFOU', 'BFOU'].forEach(r => CABLE_DATA[r].Power.entries.forEach(e => { if (e.insDiam != null && !estimateCoreBundleOD(e)) out.push(`${r} ${e.cores}C×${e.csa}`); }));
+  return out;
+}, 'warn');
+
+// ── Gland data ──
+[['501/453', GLAND_453, 'outer'], ['ICG/653', GLAND_653, 'outer'], ['501/421', GLAND_421, 'std']].forEach(([name, list, kind]) => {
+  check('Glands', `${name}: every range has min < max`, () => list.flatMap(g => {
+    const out = [];
+    if (kind === 'outer') {
+      if (!(g.outerMin < g.outerMax)) out.push(`${g.size}: outer ${g.outerMin}–${g.outerMax}`);
+      if (g.innerMin != null && !(g.innerMin < g.innerMax)) out.push(`${g.size}: inner ${g.innerMin}–${g.innerMax}`);
+      if (g.coreMax != null && !(g.coreMax < g.innerMax)) out.push(`${g.size}: coreMax ${g.coreMax} ≥ innerMax ${g.innerMax}`);
+    } else {
+      if (!(g.stdMin < g.stdMax)) out.push(`${g.size}: std ${g.stdMin}–${g.stdMax}`);
+      if (g.altMin != null && !(g.altMin < g.altMax)) out.push(`${g.size}: alt ${g.altMin}–${g.altMax}`);
+    }
+    return out;
+  }));
+  check('Glands', `${name}: sizes listed smallest → largest (the size-below/above toggles rely on it)`, () => {
+    const key = g => kind === 'outer' ? g.outerMax : g.stdMax;
+    return list.slice(1).filter((g, i) => key(g) < key(list[i])).map(g => `${g.size} (max ${key(g)}) after a larger size`);
+  });
+  check('Glands', `${name}: consecutive sizes overlap (no OD falls between two sizes)`, () => {
+    const lo = g => kind === 'outer' ? g.outerMin : g.stdMin, hi = g => kind === 'outer' ? g.outerMax : g.stdMax;
+    return list.slice(1).filter((g, i) => lo(g) > hi(list[i])).map((g, i) => `gap between ${list[i].size} (max ${hi(list[i])}) and ${g.size} (min ${lo(g)})`);
+  }, 'warn');
+  check('Glands', `${name}: every size has a metric entry and an order code`, () =>
+    list.filter(g => !g.metric || !getGlandOrderCode(name.endsWith('453') ? '453' : name.endsWith('653') ? '653' : '421', g.size, 'metric', g.metric)).map(g => g.size));
+});
+check('Glands', 'Every NEK 606 cable gets a recommendation from at least one family', () => {
+  const out = [];
+  CABLE_SETS.forEach(({ id, d, app }) => d.entries.forEach(e => {
+    const b = bestGlandPerFamily(e.od, e.odTol, e.innerOD, e.innerODTol);
+    if (!b['453'].match && !b['653'].match && !b['421'].match) out.push(`${id} ${cid(app, e)} (OD ${e.od})`);
+  }));
+  return out;
+}, 'warn');
+
+// ── Motors / IS / ATEX ──
+check('Motors', 'IEC kW and NEMA HP lists are strictly ascending', () => [
+  ...IEC_KW.slice(1).filter((k, i) => k <= IEC_KW[i]).map(k => `IEC ${k} kW out of order`),
+  ...NEMA_HP.slice(1).filter((h, i) => h <= NEMA_HP[i]).map(h => `NEMA ${h} HP out of order`)]);
+check('Motors', 'Efficiency and power-factor lookups are between 0 and 1 for every rating', () => {
+  const out = [];
+  IEC_KW.forEach(kw => ['IE2', 'IE3', 'IE4'].forEach(ie => { const r = flaLookup(kw, ie); if (!(r.eff > 0 && r.eff <= 1 && r.pf > 0 && r.pf <= 1)) out.push(`${kw} kW ${ie}: eff ${r.eff} pf ${r.pf}`); }));
+  return out;
+});
+check('IS Loop', 'Presets have numeric entity parameters (null = "no limit" is allowed for Ui/Ii)', () => [
+  ...IS_BARRIER_PRESETS.filter(p => ![p.uo, p.io, p.po, p.co, p.lo].every(num)).map(p => `barrier ${p.model}`),
+  ...IS_INSTRUMENT_PRESETS.filter(p => ![p.ci, p.li].every(num) || [p.ui, p.ii, p.pi].some(v => v !== null && v !== undefined && !num(v))).map(p => `instrument ${p.model}`)]);
+check('IS Loop', 'Preset ids are unique', () => {
+  const ids = [...IS_BARRIER_PRESETS, ...IS_INSTRUMENT_PRESETS].map(p => p.id);
+  return ids.filter((id, i) => ids.indexOf(id) !== i);
+});
+check('ATEX', 'Zone matrix EPLs all exist in the EPL table', () => ZONE_MATRIX.filter(z => !ATEX_DB.epl[z.epl]).map(z => `${z.zone}: ${z.epl}`));
+check('Symbols', 'No empty symbol entries', () => SYMBOL_CATS.flatMap(c => c.items.filter(([s]) => !s).map(() => c.name)));
+
+// ── Assets (async) ──
+async function assetChecks() {
+  const out = [];
+  if (!/^https?:$/.test(location.protocol)) return [{ group: 'Assets', name: 'Linked files exist', level: 'warn', problems: ['Skipped — open this page over http to check assets'] }];
+  const html = await (await fetch('index.html')).text();
+  const refs = new Set();
+  html.replace(/(?:src|href)="([^"#:]+?\.(?:js|css|pdf|jpg|png))"/g, (m, u) => refs.add(u));
+  html.replace(/window\.open\('([^']+\.pdf)'/g, (m, u) => refs.add(u));
+  // Links marked data-optional-asset point at files that may legitimately be absent (e.g. a
+  // copyrighted standard extract that can't be published) — the app hides them when missing, so a
+  // miss there is only worth a review, not a failure.
+  const optional = new Set([...html.matchAll(/href="([^"]+)"[^>]*data-optional-asset/g)].map(m => m[1]));
+  const missing = [], missingOptional = [];
+  for (const u of refs) { const r = await fetch(encodeURI(u), { method: 'HEAD' }).catch(() => null); if (!r || !r.ok) (optional.has(u) ? missingOptional : missing).push(u); }
+  out.push({ group: 'Assets', name: 'Every file linked from index.html exists', level: 'fail', problems: missing });
+  out.push({ group: 'Assets', name: 'Optional files linked from the app (link is hidden when the file is absent)', level: 'warn', problems: missingOptional });
+  // Service worker precache must cover every script/stylesheet the page loads, or it breaks offline.
+  const sw = await (await fetch('sw.js')).text();
+  const pre = new Set([...sw.matchAll(/'([^']+\.(?:js|css|jpg|woff2))'/g)].map(m => m[1]));
+  const notCached = [...refs].filter(u => /\.(js|css|jpg)$/.test(u) && !pre.has(u));
+  out.push({ group: 'Assets', name: 'Service worker precaches every script, stylesheet and image', level: 'fail', problems: notCached.map(u => `${u} missing from sw.js PRECACHE (bump CACHE_VERSION too)`) });
+  const missingPre = [];
+  for (const u of pre) { const r = await fetch(u, { method: 'HEAD' }).catch(() => null); if (!r || !r.ok) missingPre.push(u); }
+  out.push({ group: 'Assets', name: 'Every sw.js PRECACHE entry exists (a missing one aborts the whole install)', level: 'fail', problems: missingPre });
+  return out;
+}
+
+(async () => {
+  const results = CHECKS.map(c => { let problems; try { problems = c.fn(); } catch (e) { problems = ['Check crashed: ' + e.message]; } return { group: c.group, name: c.name, level: c.level, problems }; });
+  results.push(...await assetChecks());
+  const fails = results.filter(r => r.problems.length && r.level === 'fail').length;
+  const warns = results.filter(r => r.problems.length && r.level === 'warn').length;
+  const pass = results.length - fails - warns;
+  document.getElementById('summary').innerHTML =
+    `<span class="badge pass verdict">${pass} passed</span>` +
+    `<span class="badge ${warns ? 'warn' : 'mut'} verdict">${warns} to review</span>` +
+    `<span class="badge ${fails ? 'fail' : 'mut'} verdict">${fails} failed</span>`;
+  const groups = [...new Set(results.map(r => r.group))];
+  document.getElementById('results').innerHTML = groups.map(g => `<div class="card"><div class="kicker">${g}</div><table><thead><tr><th style="width:120px">Result</th><th>Check</th><th>Detail</th></tr></thead><tbody>` +
+    results.filter(r => r.group === g).map(r => {
+      const b = !r.problems.length ? '<span class="badge pass">Pass</span>' : r.level === 'warn' ? '<span class="badge warn">Review</span>' : '<span class="badge fail">Fail</span>';
+      return `<tr><td>${b}</td><td>${escapeHtml(r.name)}</td><td class="detail">${escapeHtml(r.problems.slice(0, 12).join('\n'))}${r.problems.length > 12 ? `\n… and ${r.problems.length - 12} more` : ''}</td></tr>`;
+    }).join('') + '</tbody></table></div>').join('');
+  window.__checks = { pass, warns, fails, results };
+})();
+</script>
+</body>
+</html>
