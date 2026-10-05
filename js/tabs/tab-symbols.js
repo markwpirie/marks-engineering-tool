@@ -301,7 +301,7 @@ function renderSymbols() {
       if (!spec) return;
       const inner = spec.render(q);
       if (inner === '' && q) return;
-      html += makeDraggableSection(key, `${spec.emoji} ${spec.name}`, inner || '', false, makeHideBuiltinBtn(key));
+      html += makeDraggableSection(key, spec.name, inner || '', false, makeHideBuiltinBtn(key));
     } else {
       if (hiddenSections.includes(key)) return;
       const cat = SYMBOL_CATS[key];
@@ -309,7 +309,7 @@ function renderSymbols() {
       const filtered = cat.items.filter(([s,l]) => !q || s.toLowerCase().includes(q) || l.toLowerCase().includes(q));
       if (!filtered.length && q) return;
       const inner = `<div class="symbol-grid">${filtered.map(([s,l]) => makeSymCard(s,l)).join('')}</div>`;
-      html += makeDraggableSection(key, `${cat.emoji} ${cat.name}`, inner, false, makeHideBuiltinBtn(key));
+      html += makeDraggableSection(key, cat.name, inner, false, makeHideBuiltinBtn(key));
     }
   });
 

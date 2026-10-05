@@ -7,7 +7,7 @@
 // Bump CACHE_VERSION whenever a file is added to or removed from PRECACHE. Edits to existing
 // files don't need a bump: stale-while-revalidate picks them up on the next load after a visit.
 // ══════════════════════════════════════════════════════════
-const CACHE_VERSION = 'met-v4.3-2';
+const CACHE_VERSION = 'met-v4.3-3';
 
 const PRECACHE = [
   './',
@@ -15,19 +15,15 @@ const PRECACHE = [
   'css/style.css',
   'css/fonts.css',
   'css/fonts/inter-greek-656bbe.woff2',
-  'css/fonts/inter-latin-1ab1ad.woff2',
-  'css/fonts/inter-latin-ext-749a30.woff2',
   'css/fonts/jetbrains-mono-greek-495eef.woff2',
   'css/fonts/jetbrains-mono-latin-95d8bd.woff2',
   'css/fonts/jetbrains-mono-latin-ext-8ff363.woff2',
-  'css/fonts/rajdhani-latin-513f81.woff2',
-  'css/fonts/rajdhani-latin-c0dfd8.woff2',
-  'css/fonts/rajdhani-latin-d63fb3.woff2',
-  'css/fonts/rajdhani-latin-f30827.woff2',
-  'css/fonts/rajdhani-latin-ext-3fa0b1.woff2',
-  'css/fonts/rajdhani-latin-ext-790b87.woff2',
-  'css/fonts/rajdhani-latin-ext-8abd3f.woff2',
-  'css/fonts/rajdhani-latin-ext-ee96d6.woff2',
+  'css/fonts/montserrat-latin-b6711d.woff2',
+  'css/fonts/montserrat-latin-ext-c33f88.woff2',
+  'css/fonts/playfair-display-latin-613a72.woff2',
+  'css/fonts/playfair-display-latin-ext-59406b.woff2',
+  'css/fonts/playfair-display-italic-latin-f450b4.woff2',
+  'css/fonts/playfair-display-italic-latin-ext-19ad25.woff2',
   'js/core-utils.js',
   'js/data-atex.js',
   'js/data-glands.js',
