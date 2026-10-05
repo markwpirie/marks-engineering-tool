@@ -7,7 +7,7 @@
 // Bump CACHE_VERSION whenever a file is added to or removed from PRECACHE. Edits to existing
 // files don't need a bump: stale-while-revalidate picks them up on the next load after a visit.
 // ══════════════════════════════════════════════════════════
-const CACHE_VERSION = 'met-v4.3-3';
+const CACHE_VERSION = 'met-v4.4-1';
 
 const PRECACHE = [
   './',
