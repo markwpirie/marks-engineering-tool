@@ -4,8 +4,8 @@
 
 // 501/453/UNIV — coldflow, armoured (FIRST)
 const GLAND_453 = [
-  { size:'Os', metric:'M16/M20', npt:'½"',         innerMin:3.5,  innerMax:8.1,  outerMin:5.5,  outerMax:12.0, arm1:'0.8/1.25', arm2:'0.0/0.8' },
-  { size:'O',  metric:'M16/M20', npt:'½"',         innerMin:6.5,  innerMax:11.4, outerMin:9.5,  outerMax:16.0, arm1:'0.8/1.25', arm2:'0.0/0.8' },
+  { size:'Os', metric:'M20',     npt:'½"',         innerMin:3.5,  innerMax:8.1,  outerMin:5.5,  outerMax:12.0, arm1:'0.8/1.25', arm2:'0.0/0.8' },
+  { size:'O',  metric:'M20',     npt:'½"',         innerMin:6.5,  innerMax:11.4, outerMin:9.5,  outerMax:16.0, arm1:'0.8/1.25', arm2:'0.0/0.8' },
   { size:'A',  metric:'M20',     npt:'¾" or ½"',   innerMin:8.4,  innerMax:14.3, outerMin:12.5, outerMax:20.5, arm1:'0.8/1.25', arm2:'0.0/0.8' },
   { size:'B',  metric:'M25',     npt:'1" or ¾"',   innerMin:11.1, innerMax:19.7, outerMin:16.9, outerMax:26.0, arm1:'1.25/1.6', arm2:'0.0/0.7' },
   { size:'C',  metric:'M32',     npt:'1¼" or 1"',  innerMin:17.6, innerMax:26.5, outerMin:22.0, outerMax:33.0, arm1:'1.6/2.0',  arm2:'0.0/0.7' },

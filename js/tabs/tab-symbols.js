@@ -807,7 +807,8 @@ function genGlandCode() {
     // e.g. ¾" → 34NP, 1" → 1NP, ½" → 12NP
     entryCode = entry.replace(/"/g,'').replace(/\//g,'') + 'NP';
   } else {
-    // metric: for 453 use dash e.g. M16-M20, for others as-is
+    // 453's metric field can hold multiple slash-separated options (none currently do) — the
+    // dash-join is kept here in case one's added back, so the part number stays e.g. M16-M20.
     entryCode = type==='453' ? entry.replace('/','-') : entry;
   }
 
