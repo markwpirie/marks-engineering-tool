@@ -2,7 +2,7 @@
 // M.E.T. — MAIN APP
 // ══════════════════════════════════════════════════════════
 
-const APP_VERSION = '4.4';
+const APP_VERSION = '4.5';
 
 // ── Utility ──
 function toast(msg) {
@@ -102,6 +102,8 @@ function exportData() {
     sectionOrder:    JSON.parse(localStorage.getItem('met_secorder')   || 'null'),
     hiddenSections:  JSON.parse(localStorage.getItem('met_hiddensecs') || '[]'),
     cardOrder:       JSON.parse(localStorage.getItem('met_cardorder')  || '{}'),
+    cardHidden:      JSON.parse(localStorage.getItem('met_cardhidden')    || '[]'),
+    cardCollapsed:   JSON.parse(localStorage.getItem('met_cardcollapsed') || '[]'),
     theme:           localStorage.getItem('met_theme') || 'dark',
     calcState:       JSON.parse(localStorage.getItem('met_calc_state') || '{}'),
     wonderToolProject: wtProj,
@@ -122,14 +124,14 @@ function exportData() {
 // file doesn't look like an M.E.T. export at all.
 function describeImport(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
-  const known = ['snippets','customSections','recycledSections','sectionOrder','hiddenSections','cardOrder','theme','calcState','wonderToolProject','isLoop','trayFill'];
+  const known = ['snippets','customSections','recycledSections','sectionOrder','hiddenSections','cardOrder','cardHidden','cardCollapsed','theme','calcState','wonderToolProject','isLoop','trayFill'];
   if (!known.some(k => k in data)) return null;
   const n = v => Array.isArray(v) ? v.length : v && typeof v === 'object' ? Object.keys(v).length : 0;
   const lines = [];
   if (data.snippets) lines.push(`• ${n(data.snippets)} clipboard snippet(s) — replaces your current ${n(JSON.parse(localStorage.getItem('met_snippets') || '[]'))}`);
   if (data.customSections) lines.push(`• ${n(data.customSections)} custom symbol section(s) — replaces your current ${n(JSON.parse(localStorage.getItem('met_customsecs') || '[]'))}`);
   if (data.recycledSections) lines.push(`• Recycle bin (${n(data.recycledSections)} item(s))`);
-  if (data.sectionOrder || data.hiddenSections || data.cardOrder) lines.push('• Section / card order and hidden sections');
+  if (data.sectionOrder || data.hiddenSections || data.cardOrder || data.cardHidden || data.cardCollapsed) lines.push('• Section / card order, hidden sections and collapsed cards');
   if (data.calcState) lines.push(`• Saved inputs for ${n(data.calcState)} calculator(s)`);
   if (data.wonderToolProject) lines.push(`• Wonder Tool project details (${n(data.wonderToolProject)} field(s))`);
   if (data.isLoop) lines.push(`• IS Loop fields (${n(data.isLoop)} field(s))`);
@@ -161,6 +163,8 @@ function importData() {
         if (data.sectionOrder)     localStorage.setItem('met_secorder',   JSON.stringify(data.sectionOrder));
         if (data.hiddenSections)   localStorage.setItem('met_hiddensecs', JSON.stringify(data.hiddenSections));
         if (data.cardOrder)        localStorage.setItem('met_cardorder',  JSON.stringify(data.cardOrder));
+        if (data.cardHidden)       localStorage.setItem('met_cardhidden',    JSON.stringify(data.cardHidden));
+        if (data.cardCollapsed)    localStorage.setItem('met_cardcollapsed', JSON.stringify(data.cardCollapsed));
         if (data.theme)            localStorage.setItem('met_theme',      data.theme);
         if (data.calcState)        localStorage.setItem('met_calc_state', JSON.stringify(data.calcState));
         if (data.wonderToolProject) Object.entries(data.wonderToolProject).forEach(([k,v]) => localStorage.setItem(k, v));
@@ -177,6 +181,8 @@ function importData() {
         if (typeof initWonderTool === 'function') initWonderTool();
         if (typeof initIsLoop === 'function') initIsLoop();
         if (typeof initCardReorder === 'function') initCardReorder();
+        if (typeof refreshCardChrome === 'function') refreshCardChrome();
+        if (typeof renderRecycleBin === 'function') renderRecycleBin();
         if (typeof initTrayFill === 'function') initTrayFill();
         initTheme();
         toast('Imported');
@@ -300,6 +306,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Site-wide card drag-reorder (all tabs)
   initCardReorder();
+
+  // Site-wide card collapse + hide (all tabs)
+  initCardChrome();
+  renderRecycleBin();
 
   // Close modals on backdrop click
   document.getElementById('aboutModal').addEventListener('click', e => {

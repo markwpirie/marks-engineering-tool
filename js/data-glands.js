@@ -277,12 +277,15 @@ function glandAdjacentSizes(type, list, recommended, od) {
 // }
 const GLAND_FAMILY_INFO = [
   { type: '453', list: () => GLAND_453, img: 'jpg/501-453.jpg', alt: 'Hawke 501/453/UNIV cable gland cross-section',
+    pdf: 'pdfs/Hawke 501-453-UNIV Datasheet new.pdf',
     title: 'Hawke 501/453/UNIV — Coldflow, Armoured/Braided',
     blurb: 'Dual certified Exe/Exd. Passive diaphragm seal for cold flow cables. Reversible armour clamp for SWA, wire braid, steel tape. IP66/67/68/69.' },
   { type: '653', list: () => GLAND_653, img: 'jpg/icg653.jpg', alt: 'Hawke ICG/653/UNIV barrier gland cross-section',
+    pdf: 'pdfs/Hawke icg653univ.pdf',
     title: 'Hawke ICG/653/UNIV — Barrier',
     blurb: 'Dual certified Exe/Exd. Seals around individual cores. Cold flow, hygroscopic fillers, fibre optic cables. ExPress resin standard (30 min cure). QSP available (suffix Q).' },
   { type: '421', list: () => GLAND_421, img: 'jpg/501-421.jpg', alt: 'Hawke 501/421 cable gland cross-section',
+    pdf: 'pdfs/Hawke 501-421 Datasheet new.pdf',
     title: 'Hawke 501/421/UNIV — Compression, Non-Armoured',
     blurb: 'Dual certified Exe/Exd. For non-armoured elastomer and plastic insulated cables. Braid cables: braid passes into enclosure and terminates inside.' },
 ];
@@ -290,7 +293,7 @@ const GLAND_FAMILY_INFO = [
 function renderGlandRecommender(OD, odTol, innerOD, innerODTol, opts) {
   opts = opts || {};
   return GLAND_FAMILY_INFO.map(f => `<div class="family">
-    <img src="${f.img}" alt="${f.alt}">
+    <a href="${encodeURI(f.pdf)}" target="_blank" rel="noopener" title="Open ${f.title} datasheet (PDF)"><img src="${f.img}" alt="${f.alt}"></a>
     <div><h3>${f.title}</h3><p>${f.blurb}</p></div>
   </div>` + renderGlandFamilySection(f.type, f.list(), OD, odTol, innerOD, innerODTol, opts)).join('');
 }

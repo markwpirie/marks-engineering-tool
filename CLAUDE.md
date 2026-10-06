@@ -14,6 +14,7 @@ This repository contains Mark's Engineering Tool, a static single-page web app f
 - Offline: sw.js precaches the app shell. Adding or removing a file means updating its PRECACHE list AND bumping CACHE_VERSION — checks.html flags a script/stylesheet the precache misses. Fonts are self-hosted in css/fonts/ (no Google Fonts call).
 - Deep links: #tab?key=value. A tab becomes shareable by adding a get/set pair to DEEP_LINK_STATE in js/shell.js; call updateDeepLink() when its shareable state changes.
 - Card/section drag-reorder: js/reorder.js (site-wide) plus tab-symbols.js's own section-level reorder
+- Card collapse/hide: js/card-chrome.js (site-wide) — adds a collapse toggle and a ✕ (hide, reversible from the Recycle Bin tab) to every top-level `.card[id]` that has a `.kicker`/`.card-head` row. PROTECTED_CARDS in that file lists cards that keep collapse+move but never get a ✕ (a tab's primary input/output chain, or the one card holding its only action button) — extend that set rather than hiding something load-bearing. Cards with no kicker row (card-units-converter, card-calcs-panel) are skipped — each is already its tab's sole feature.
 - Plan/ — build plans and reference material for in-progress work (not shipped app code)
 - Deployment: static site, already wired to GitHub and Cloudflare from the main branch
 

@@ -589,7 +589,8 @@ function deleteCustomItem(si,ii) {
 function renderRecycleBin() {
   const el = document.getElementById('recycleBinContent');
   if (!el) return;
-  if (!recycledSections.length && !hiddenSections.length) {
+  const hiddenCardIds = typeof cardHidden !== 'undefined' ? cardHidden : [];
+  if (!recycledSections.length && !hiddenSections.length && !hiddenCardIds.length) {
     el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text2)">
       <div style="font-size:2rem;margin-bottom:12px">🗑️</div>
       <div style="font-size:0.95rem;font-weight:600;margin-bottom:8px;color:var(--text)">Nothing here yet</div>
@@ -627,7 +628,8 @@ function renderRecycleBin() {
         <button class="btn danger small" onclick="permanentDeleteSection(${i})">Delete</button>
       </div>
     </div>`).join('');
-  el.innerHTML = hiddenCards + customCards;
+  const hiddenSiteCards = typeof renderHiddenCardsList === 'function' ? renderHiddenCardsList() : '';
+  el.innerHTML = hiddenCards + hiddenSiteCards + customCards;
 }
 
 function restoreSection(i) {

@@ -7,7 +7,7 @@
 // Bump CACHE_VERSION whenever a file is added to or removed from PRECACHE. Edits to existing
 // files don't need a bump: stale-while-revalidate picks them up on the next load after a visit.
 // ══════════════════════════════════════════════════════════
-const CACHE_VERSION = 'met-v4.4-1';
+const CACHE_VERSION = 'met-v4.5-1';
 
 const PRECACHE = [
   './',
@@ -43,6 +43,7 @@ const PRECACHE = [
   'js/tabs/tab-npt.js',
   'js/tabs/tab-prompts.js',
   'js/reorder.js',
+  'js/card-chrome.js',
   'js/shell.js',
   'js/app.js',
   'jpg/501-453.jpg',

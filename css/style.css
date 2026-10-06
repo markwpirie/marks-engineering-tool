@@ -423,6 +423,12 @@ table.data tr:hover td { background: var(--surface2); }
 .dragging { opacity: 0.5; }
 .drag-over { border-color: var(--accent) !important; background: var(--surface3) !important; }
 
+/* Site-wide card collapse + hide (js/card-chrome.js) */
+.card-chrome-chevron { display: inline-block; width: 18px; text-align: center; color: var(--text); font-size: 1.25rem; font-weight: 700; user-select: none; margin-right: 2px; }
+.card-chrome-hide { background: none; border: none; cursor: pointer; color: var(--text2); font-size: 0.9rem; line-height: 1; padding: 2px 4px; margin-right: 2px; }
+.card-chrome-hide:hover { color: var(--accent); }
+.card-chrome-hidden { display: none !important; }
+
 /* ── BETA badge ── */
 .beta-badge {
   display: inline-block;
@@ -942,7 +948,10 @@ label.fl {
 .family img {
   width: 150px; border-radius: var(--r-ctl);
   border: 1px solid var(--border); flex-shrink: 0;
+  transition: border-color 0.15s ease;
 }
+.family a { flex-shrink: 0; }
+.family a:hover img, .family a:focus-visible img { border-color: var(--accent); }
 .family h3 {
   font-family: var(--head); font-weight: 600; font-size: 1.02rem;
   letter-spacing: 0.03em; margin-bottom: 0;
